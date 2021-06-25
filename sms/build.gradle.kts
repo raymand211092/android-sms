@@ -39,13 +39,13 @@ android {
 }
 
 dependencies {
-
-    implementation("androidx.core:core-ktx:1.3.2")
     implementation("com.google.dagger:hilt-android:${Versions.hilt}")
     kapt("com.google.dagger:hilt-compiler:${Versions.hilt}")
 
-    implementation("androidx.appcompat:appcompat:1.3.0")
-    implementation("com.google.android.material:material:1.3.0")
+    implementation("com.klinkerapps:android-smsmms:5.2.6")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.0")
+    implementation("androidx.core:core-ktx:1.5.0")
+    implementation("com.google.code.gson:gson:2.8.7")
 
     androidTestImplementation("com.google.dagger:hilt-android-testing:${Versions.hilt}")
     kaptAndroidTest("com.google.dagger:hilt-compiler:${Versions.hilt}")
