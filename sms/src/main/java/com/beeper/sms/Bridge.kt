@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.work.WorkManager
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
@@ -21,7 +22,7 @@ import kotlin.system.exitProcess
 @Singleton
 class Bridge @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val commandProcessor: CommandProcessor,
+    private val workManager: WorkManager,
     private val smsProvider: SmsProvider,
 ) {
     private lateinit var stdin: BufferedWriter
@@ -55,9 +56,7 @@ class Bridge @Inject constructor(
                 stdout.forEachLine {
                     if (it.startsWith("{") && it.endsWith("}")) {
                         Log.d(TAG, "receive: $it")
-                        commandProcessor.handle(it)?.let { response ->
-                            send(response)
-                        }
+                        workManager.handleCommand(it)
                     } else {
                         Log.d(TAG, it)
                     }
