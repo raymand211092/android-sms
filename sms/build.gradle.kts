@@ -41,6 +41,9 @@ android {
 dependencies {
     implementation("com.google.dagger:hilt-android:${Versions.hilt}")
     kapt("com.google.dagger:hilt-compiler:${Versions.hilt}")
+    kapt("androidx.hilt:hilt-compiler:${Versions.hilt_androidx}")
+    implementation("androidx.hilt:hilt-work:${Versions.hilt_androidx}")
+    implementation("androidx.work:work-runtime-ktx:${Versions.work}")
 
     implementation("com.klinkerapps:android-smsmms:5.2.6")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.0")
