@@ -1,12 +1,10 @@
-package com.beeper.sms.work
+package com.beeper.sms
 
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.beeper.sms.Bridge
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.outgoing.Message
@@ -18,15 +16,14 @@ import com.klinker.android.send_message.Settings
 import com.klinker.android.send_message.Transaction
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 
-@HiltWorker
-class CommandProcessor @AssistedInject constructor(
-    @Assisted private val context: Context,
-    @Assisted workerParameters: WorkerParameters,
+class CommandProcessor @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val bridge: Bridge,
-) : CoroutineWorker(context, workerParameters) {
-    override suspend fun doWork(): Result {
-        val input = inputData.getString(COMMAND) ?: return Result.failure()
+) {
+    fun handle(input: String) {
         val command = gson.fromJson(input, Command::class.java)
         val dataTree = gson.toJsonTree(command.data)
         when (command.command) {
@@ -39,7 +36,7 @@ class CommandProcessor @AssistedInject constructor(
                     )
                 } else {
                     Log.e(TAG, "group chats not supported yet")
-                    return Result.failure()
+                    return
                 }
             }
             "get_contact" -> {
@@ -67,7 +64,7 @@ class CommandProcessor @AssistedInject constructor(
                     )
                 } else {
                     Log.e(TAG, "group chats not supported yet")
-                    return Result.failure()
+                    return
                 }
             }
             "get_chats" -> {
@@ -80,10 +77,8 @@ class CommandProcessor @AssistedInject constructor(
             }
             else -> {
                 Log.e(TAG, "unhandled command: $command")
-                return Result.failure()
             }
         }
-        return Result.success()
     }
 
     private val transaction: Transaction

@@ -22,10 +22,10 @@ import kotlin.system.exitProcess
 @Singleton
 class Bridge @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val workManager: WorkManager,
     private val smsProvider: SmsProvider,
 ) {
     private lateinit var stdin: BufferedWriter
+    lateinit var stdout: InputStreamReader
     private val outgoing = newSingleThreadExecutor().asCoroutineDispatcher()
     private val gson =
         GsonBuilder().registerTypeAdapter(DOUBLE_SERIALIZER_TYPE, DOUBLE_SERIALIZER).create()
@@ -39,7 +39,7 @@ class Bridge @Inject constructor(
             .start()
 
         stdin = BufferedWriter(OutputStreamWriter(process.outputStream))
-        val stdout = InputStreamReader(process.inputStream)
+        stdout = InputStreamReader(process.inputStream)
         val stderr = InputStreamReader(process.errorStream)
 
         with(scope) {
@@ -48,17 +48,6 @@ class Bridge @Inject constructor(
                     it.takeIf { it.isNotBlank() }?.let { err ->
                         Log.e(TAG, err)
                         exitProcess(1)
-                    }
-                }
-            }
-
-            launch {
-                stdout.forEachLine {
-                    if (it.startsWith("{") && it.endsWith("}")) {
-                        Log.d(TAG, "receive: $it")
-                        workManager.handleCommand(it)
-                    } else {
-                        Log.d(TAG, it)
                     }
                 }
             }

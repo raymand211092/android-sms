@@ -12,6 +12,8 @@
 
     <uses-permission android:name="android.provider.Telephony.SMS_RECEIVED" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+
     <application android:extractNativeLibs="true">
         <receiver
             android:name=".SmsReceiver"
@@ -61,6 +63,10 @@
                 <data android:scheme="mmsto" />
             </intent-filter>
         </service>
+
+        <service
+            android:name=".BridgeService"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <service android:name="com.android.mms.transaction.TransactionService" />
 
