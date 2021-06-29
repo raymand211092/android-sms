@@ -66,9 +66,7 @@
             </intent-filter>
         </service>
 
-        <service
-            android:name=".BridgeService"
-            android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service android:name=".BridgeService" />
 
         <service android:name="com.android.mms.transaction.TransactionService" />
 

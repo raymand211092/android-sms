@@ -47,7 +47,6 @@ class Bridge @Inject constructor(
                 stderr.forEachLine {
                     it.takeIf { it.isNotBlank() }?.let { err ->
                         Log.e(TAG, err)
-                        exitProcess(1)
                     }
                 }
             }
