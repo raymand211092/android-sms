@@ -18,7 +18,7 @@
 
     <application android:extractNativeLibs="true">
         <receiver
-            android:name=".SmsReceiver"
+            android:name=".receivers.SmsReceiver"
             android:permission="android.permission.BROADCAST_SMS">
             <intent-filter>
                 <action android:name="android.provider.Telephony.SMS_DELIVER" />
@@ -26,7 +26,7 @@
         </receiver>
 
         <receiver
-            android:name=".MmsReceiver"
+            android:name="com.android.mms.transaction.PushReceiver"
             android:permission="android.permission.BROADCAST_WAP_PUSH">
             <intent-filter>
                 <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
@@ -77,6 +77,10 @@
         <receiver
             android:name=".receivers.MyMmsSentReceiver"
             android:taskAffinity="com.klinker.android.messaging.MMS_SENT" />
+
+        <receiver
+            android:name=".receivers.MmsReceiver"
+            android:taskAffinity="com.klinker.android.messaging.MMS_RECEIVED" />
 
         <receiver
             android:name=".receivers.StartupReceiver"
