@@ -10,6 +10,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import java.util.concurrent.Executors.newSingleThreadExecutor
@@ -48,7 +49,7 @@ class BridgeService : Service() {
                 }
             }
         }
-        return START_STICKY
+        return START_REDELIVER_INTENT
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -62,7 +63,8 @@ class BridgeService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 createNotificationChannel(channelId)
             }
-            startService(
+            ContextCompat.startForegroundService(
+                this,
                 Intent(this, BridgeService::class.java)
                     .putExtra(CHANNEL_ID, channelId)
             )
