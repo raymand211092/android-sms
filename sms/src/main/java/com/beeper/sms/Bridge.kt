@@ -3,7 +3,8 @@ package com.beeper.sms
 import android.content.Context
 import android.util.Log
 import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.extensions.cacheDir
+import com.beeper.sms.extensions.env
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
@@ -32,7 +33,10 @@ class Bridge @Inject constructor(
 
     fun start(configPath: String): Boolean = try {
         val process = ProcessBuilder()
-            .apply { environment()["LD_LIBRARY_PATH"] = context.applicationInfo.nativeLibraryDir }
+            .env(
+                "LD_LIBRARY_PATH" to context.applicationInfo.nativeLibraryDir,
+                "TMPDIR" to context.cacheDir("mautrix"),
+            )
             .directory(File(context.applicationInfo.nativeLibraryDir))
             .command("./libmautrix.so", "-c", configPath)
             .start()

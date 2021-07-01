@@ -1,11 +1,13 @@
 package com.beeper.sms
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.provider.Telephony
 import android.util.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.GetChat
 import com.beeper.sms.commands.incoming.GetContact
+import com.beeper.sms.commands.incoming.SendMedia
 import com.beeper.sms.commands.incoming.SendMessage
 import com.beeper.sms.commands.outgoing.Message
 import com.google.gson.Gson
@@ -49,11 +51,31 @@ class CommandProcessor @Inject constructor(
             }
             "send_message" -> {
                 val data = gson.fromJson(dataTree, SendMessage::class.java)
-                if (data.chat_guid.startsWith("SMS;-;")) {
-                    val dm = data.chat_guid.removePrefix("SMS;-;")
+                if (data.isDirectMessage) {
+                    val dm = data.recipients
                     Transaction(context, settings)
                         .sendNewMessage(
                             com.klinker.android.send_message.Message(data.text, dm),
+                            Telephony.Threads.getOrCreateThreadId(context, dm),
+                            command,
+                            null,
+                        )
+                } else {
+                    Log.e(TAG, "group chats not supported yet")
+                    return
+                }
+            }
+            "send_media" -> {
+                val data = gson.fromJson(dataTree, SendMedia::class.java)
+                if (data.isDirectMessage) {
+                    val dm = data.recipients
+                    Transaction(context, settings)
+                        .sendNewMessage(
+                            com.klinker.android.send_message.Message(
+                                "",
+                                dm,
+                                BitmapFactory.decodeFile(data.path_on_disk, null)
+                            ),
                             Telephony.Threads.getOrCreateThreadId(context, dm),
                             command,
                             null,

@@ -8,9 +8,7 @@ import android.provider.Telephony.Mms.Part.*
 import android.util.Log
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message.Attachment
-import com.beeper.sms.extensions.getLong
-import com.beeper.sms.extensions.getString
-import com.beeper.sms.extensions.map
+import com.beeper.sms.extensions.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.FileOutputStream
@@ -38,9 +36,7 @@ class PartProvider @Inject constructor(
                     Log.e(TAG, "Failed to get $partId")
                     return@map null
                 }
-                val cacheDir = File("${context.cacheDir}/mms")
-                cacheDir.mkdirs()
-                val file = File(cacheDir, UUID.randomUUID().toString())
+                val file = File(context.cacheDir("mms"), UUID.randomUUID().toString())
                 FileOutputStream(file).use { fos ->
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
                     fos.flush()
