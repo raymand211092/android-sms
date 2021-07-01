@@ -8,7 +8,7 @@ import com.klinker.android.send_message.DeliveredReceiver
 
 class MyDeliveredReceiver : DeliveredReceiver() {
     override fun onMessageStatusUpdated(context: Context?, intent: Intent?, resultCode: Int) {
-        Log.d(TAG, "intent: ${intent.printExtras()}")
+        Log.d(TAG, intent.printExtras())
     }
 
     companion object {
