@@ -6,13 +6,9 @@ import android.provider.Telephony.Mms.Part.*
 import android.util.Log
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message.Attachment
-import com.beeper.sms.extensions.cacheDir
-import com.beeper.sms.extensions.getLong
-import com.beeper.sms.extensions.getString
-import com.beeper.sms.extensions.map
+import com.beeper.sms.extensions.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
-import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.*
@@ -36,18 +32,7 @@ class PartProvider @Inject constructor(
                 null
             } else {
                 val file = File(context.cacheDir("mms"), UUID.randomUUID().toString())
-                cr.openInputStream("$URI_PART/$partId".toUri())?.use { from ->
-                    FileOutputStream(file).use { to ->
-                        val buf = ByteArray(8192)
-                        while (true) {
-                            val r = from.read(buf)
-                            if (r == -1) {
-                                break
-                            }
-                            to.write(buf, 0, r)
-                        }
-                    }
-                }
+                cr.openInputStream("$URI_PART/$partId".toUri())?.writeTo(file)
                 Part(
                     attachment = Attachment(
                         mime_type = mimetype,
