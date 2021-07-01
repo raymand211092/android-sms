@@ -21,7 +21,7 @@ class SmsReceiver : BroadcastReceiver() {
             Log.e(TAG, "Failed to write message")
             return
         }
-        workManager.sendSms(uri)
+        workManager.sendMessage(uri)
     }
 
     companion object {

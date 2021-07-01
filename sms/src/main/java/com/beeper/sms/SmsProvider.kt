@@ -6,17 +6,13 @@ import android.content.Intent
 import android.database.DatabaseUtils
 import android.net.Uri
 import android.os.Binder
-import android.provider.Telephony
+import android.provider.Telephony.Sms.*
 import android.telephony.SmsMessage
 import android.text.TextUtils
 import android.util.Log
-import com.beeper.sms.extensions.getInt
-import com.beeper.sms.extensions.getLong
-import com.beeper.sms.extensions.getString
 import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.extensions.*
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.lang.Exception
-import java.lang.StringBuilder
 import javax.inject.Inject
 
 
@@ -27,27 +23,18 @@ class SmsProvider @Inject constructor(
 
     fun getMessage(uri: Uri) = getMessages(where = "_id = ${uri.lastPathSegment}").firstOrNull()
 
-    private fun getMessages(
-        where: String? = null,
-        orderBy: String? = Telephony.Sms.DEFAULT_SORT_ORDER,
-    ): List<Message> {
-        val cursor = cr.query(Telephony.Sms.CONTENT_URI, null, where, null, orderBy)
-        val messages = ArrayList<Message>()
-        while (cursor?.moveToNext() == true) {
-            val address = cursor.getString(Telephony.Sms.Inbox.ADDRESS)
-            val message = Message(
-                guid = cursor.getInt("_id").toString(),
-                timestamp = cursor.getLong(Telephony.Sms.Inbox.DATE) / 1000,
-                subject = cursor.getString(Telephony.Sms.Inbox.SUBJECT) ?: "",
-                text = cursor.getString(Telephony.Sms.Inbox.BODY) ?: "",
+    private fun getMessages(where: String? = null): List<Message> =
+        cr.map(CONTENT_URI, where) {
+            val address = it.getString(ADDRESS)
+            Message(
+                guid = it.getInt(_ID).toString(),
+                timestamp = it.getLong(DATE) / 1000,
+                subject = it.getString(SUBJECT) ?: "",
+                text = it.getString(BODY) ?: "",
                 chat_guid = "SMS;-;$address",
                 sender_guid = "SMS;-;$address",
             )
-            Log.d(TAG, "${DatabaseUtils.dumpCurrentRowToString(cursor)} -> $message")
-            messages.add(message)
         }
-        return messages
-    }
 
     /**
      * Store a received SMS into Telephony provider
@@ -56,7 +43,7 @@ class SmsProvider @Inject constructor(
      * @return The URI of written message
      */
     fun writeInboxMessage(intent: Intent): Uri? {
-        val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
+        val messages = Intents.getMessagesFromIntent(intent)
         if (messages == null || messages.isEmpty()) {
             Log.e(TAG, "Failed to parse SMS pdu")
             return null
@@ -71,7 +58,7 @@ class SmsProvider @Inject constructor(
         val values = parseSmsMessage(messages)
         val identity = Binder.clearCallingIdentity()
         try {
-            return cr.insert(Telephony.Sms.Inbox.CONTENT_URI, values)
+            return cr.insert(Inbox.CONTENT_URI, values)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to persist inbox message", e)
         } finally {
@@ -89,19 +76,19 @@ class SmsProvider @Inject constructor(
     private fun parseSmsMessage(msgs: Array<SmsMessage>): ContentValues {
         val sms = msgs[0]
         val values = ContentValues()
-        values.put(Telephony.Sms.Inbox.ADDRESS, sms.displayOriginatingAddress)
-        values.put(Telephony.Sms.Inbox.BODY, buildMessageBodyFromPdus(msgs))
-        values.put(Telephony.Sms.Inbox.DATE_SENT, sms.timestampMillis)
-        values.put(Telephony.Sms.Inbox.DATE, System.currentTimeMillis())
-        values.put(Telephony.Sms.Inbox.PROTOCOL, sms.protocolIdentifier)
-        values.put(Telephony.Sms.Inbox.SEEN, 0)
-        values.put(Telephony.Sms.Inbox.READ, 0)
+        values.put(Inbox.ADDRESS, sms.displayOriginatingAddress)
+        values.put(Inbox.BODY, buildMessageBodyFromPdus(msgs))
+        values.put(Inbox.DATE_SENT, sms.timestampMillis)
+        values.put(Inbox.DATE, System.currentTimeMillis())
+        values.put(Inbox.PROTOCOL, sms.protocolIdentifier)
+        values.put(Inbox.SEEN, 0)
+        values.put(Inbox.READ, 0)
         val subject = sms.pseudoSubject
         if (!TextUtils.isEmpty(subject)) {
-            values.put(Telephony.Sms.Inbox.SUBJECT, subject)
+            values.put(Inbox.SUBJECT, subject)
         }
-        values.put(Telephony.Sms.Inbox.REPLY_PATH_PRESENT, if (sms.isReplyPathPresent) 1 else 0)
-        values.put(Telephony.Sms.Inbox.SERVICE_CENTER, sms.serviceCenterAddress)
+        values.put(Inbox.REPLY_PATH_PRESENT, if (sms.isReplyPathPresent) 1 else 0)
+        values.put(Inbox.SERVICE_CENTER, sms.serviceCenterAddress)
         return values
     }
 
@@ -111,7 +98,7 @@ class SmsProvider @Inject constructor(
      * @param msgs The SmsMessage array of the received SMS
      * @return The text message body
      */
-    private fun buildMessageBodyFromPdus(msgs: Array<SmsMessage>): String? {
+    private fun buildMessageBodyFromPdus(msgs: Array<SmsMessage>): String {
         return if (msgs.size == 1) {
             // There is only one part, so grab the body directly.
             replaceFormFeeds(msgs[0].displayMessageBody)

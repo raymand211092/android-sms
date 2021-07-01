@@ -1,28 +1,27 @@
 package com.beeper.sms
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.outgoing.Message
-import com.beeper.sms.work.WorkManager
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
-import java.io.*
+import java.io.BufferedWriter
+import java.io.File
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
 import java.math.BigDecimal
 import java.util.concurrent.Executors.newSingleThreadExecutor
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.system.exitProcess
 
 @Singleton
 class Bridge @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val smsProvider: SmsProvider,
 ) {
     private lateinit var stdin: BufferedWriter
     lateinit var stdout: InputStreamReader
@@ -61,13 +60,6 @@ class Bridge @Inject constructor(
         Log.e(TAG, e.message ?: "Error")
         false
     }
-
-    fun send(uri: Uri) = scope.launch {
-        val message = smsProvider.getMessage(uri) ?: return@launch
-        send(message)
-    }
-
-    private fun send(message: Message) = send(Command("message", message))
 
     fun send(command: Command) = scope.launch(outgoing) {
         val json = gson.toJson(command)
