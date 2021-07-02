@@ -5,7 +5,6 @@ import android.net.Uri
 import android.provider.Telephony.Mms.*
 import android.provider.Telephony.MmsSms
 import android.provider.Telephony.ThreadsColumns
-import android.util.Log
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
@@ -25,25 +24,18 @@ class MmsProvider @Inject constructor(
         cr.map(CONTENT_URI, where) {
             val id = it.getLong(_ID)
             val recipients =
-                getAddresses(it.getLong(THREAD_ID))
-                    ?.mapNotNull { addr -> getPhoneNumber(addr) }
+                getAddresses(it.getLong(THREAD_ID))?.mapNotNull { addr -> getPhoneNumber(addr) }
             val attachments = partProvider.getAttachment(id)
-            val sender = getSender(id)
-            if (recipients?.size == 1) {
-                Message(
-                    guid = it.getInt(_ID).toString(),
-                    timestamp = it.getLong(DATE),
-                    subject = it.getString(SUBJECT) ?: "",
-                    text = attachments.mapNotNull { a -> a.text }.joinToString(""),
-                    chat_guid = "SMS;-;$sender",
-                    sender_guid = "SMS;-;$sender",
-                    attachments = attachments.mapNotNull { a -> a.attachment },
-                )
-            } else {
-                val address = recipients?.joinToString(" ")
-                Log.e(TAG, "group chats not supported yet: $address")
-                null
-            }
+            val group = if (recipients?.size == 1) "-" else "+"
+            Message(
+                guid = it.getInt(_ID).toString(),
+                timestamp = it.getLong(DATE),
+                subject = it.getString(SUBJECT) ?: "",
+                text = attachments.mapNotNull { a -> a.text }.joinToString(""),
+                chat_guid = "SMS;$group;${recipients?.joinToString(" ")}",
+                sender_guid = "SMS;-;${getSender(id)}",
+                attachments = attachments.mapNotNull { a -> a.attachment },
+            )
         }
 
     private fun getAddresses(thread: Long): List<String>? =

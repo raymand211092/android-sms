@@ -5,10 +5,7 @@ import android.graphics.BitmapFactory
 import android.provider.Telephony
 import android.util.Log
 import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.incoming.GetChat
-import com.beeper.sms.commands.incoming.GetContact
-import com.beeper.sms.commands.incoming.SendMedia
-import com.beeper.sms.commands.incoming.SendMessage
+import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.outgoing.Message
 import com.google.gson.Gson
 import com.klinker.android.send_message.Settings
@@ -26,15 +23,14 @@ class CommandProcessor @Inject constructor(
         when (command.command) {
             "get_chat" -> {
                 val data = gson.fromJson(dataTree, GetChat::class.java)
-                if (data.chat_guid.startsWith("SMS;-;")) {
-                    val dm = data.chat_guid.removePrefix("SMS;-;")
-                    bridge.send(
-                        Command("response", GetChat.Response(dm, listOf(dm)), command.id)
+                val recipients = data.recipientList
+                bridge.send(
+                    Command(
+                        "response",
+                        GetChat.Response(recipients.joinToString(), recipients),
+                        command.id,
                     )
-                } else {
-                    Log.e(TAG, "group chats not supported yet")
-                    return
-                }
+                )
             }
             "get_contact" -> {
                 val data = gson.fromJson(dataTree, GetContact::class.java)
@@ -51,39 +47,32 @@ class CommandProcessor @Inject constructor(
             }
             "send_message" -> {
                 val data = gson.fromJson(dataTree, SendMessage::class.java)
-                if (data.isDirectMessage) {
-                    val dm = data.recipients
-                    Transaction(context, settings)
-                        .sendNewMessage(
-                            com.klinker.android.send_message.Message(data.text, dm),
-                            Telephony.Threads.getOrCreateThreadId(context, dm),
-                            command,
-                            null,
-                        )
-                } else {
-                    Log.e(TAG, "group chats not supported yet")
-                    return
-                }
+                val recipients = data.recipientList
+                Transaction(context, settings)
+                    .sendNewMessage(
+                        com.klinker.android.send_message.Message(
+                            data.text,
+                            recipients.joinToString(" ")
+                        ),
+                        Telephony.Threads.getOrCreateThreadId(context, recipients.toSet()),
+                        command,
+                        null,
+                    )
             }
             "send_media" -> {
                 val data = gson.fromJson(dataTree, SendMedia::class.java)
-                if (data.isDirectMessage) {
-                    val dm = data.recipients
-                    Transaction(context, settings)
-                        .sendNewMessage(
-                            com.klinker.android.send_message.Message(
-                                "",
-                                dm,
-                                BitmapFactory.decodeFile(data.path_on_disk, null)
-                            ),
-                            Telephony.Threads.getOrCreateThreadId(context, dm),
-                            command,
-                            null,
-                        )
-                } else {
-                    Log.e(TAG, "group chats not supported yet")
-                    return
-                }
+                val recipients = data.recipientList
+                Transaction(context, settings)
+                    .sendNewMessage(
+                        com.klinker.android.send_message.Message(
+                            "",
+                            recipients.joinToString(" "),
+                            BitmapFactory.decodeFile(data.path_on_disk, null)
+                        ),
+                        Telephony.Threads.getOrCreateThreadId(context, recipients.toSet()),
+                        command,
+                        null,
+                    )
             }
             "get_chats" -> {
 //                val data = gson.fromJson(dataTree, GetChats::class.java)
@@ -92,6 +81,9 @@ class CommandProcessor @Inject constructor(
             "get_recent_messages" -> {
 //                val data = gson.fromJson(dataTree, GetRecentMessages::class.java)
                 bridge.send(Command("response", ArrayList<Message>(), command.id))
+            }
+            "get_chat_avatar" -> {
+                bridge.send(Command("response", null, command.id))
             }
             else -> {
                 Log.e(TAG, "unhandled command: $command")

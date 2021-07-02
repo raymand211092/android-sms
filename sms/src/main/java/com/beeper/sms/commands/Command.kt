@@ -7,6 +7,6 @@ import kotlinx.parcelize.RawValue
 @Parcelize
 data class Command(
     var command: String,
-    var data: @RawValue Any,
+    var data: @RawValue Any?,
     var id: Int? = null,
 ) : Parcelable
