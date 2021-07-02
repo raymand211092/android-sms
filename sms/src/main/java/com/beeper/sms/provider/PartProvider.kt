@@ -1,14 +1,15 @@
 package com.beeper.sms.provider
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.provider.Telephony
 import android.provider.Telephony.Mms.Part.*
 import android.util.Log
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message.Attachment
-import com.beeper.sms.extensions.*
+import com.beeper.sms.extensions.cacheDir
+import com.beeper.sms.extensions.getLong
+import com.beeper.sms.extensions.getString
+import com.beeper.sms.extensions.map
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.FileOutputStream
@@ -30,16 +31,22 @@ class PartProvider @Inject constructor(
             val data = it.getString("_data")
             if (mimetype == "text/plain") {
                 Part(text = data?.let { getMmsText(partId) } ?: it.getString(TEXT))
-            } else if (mimetype.startsWith("image/") || mimetype.startsWith("video/")) {
-                val bitmap = getMmsImage(partId)
-                if (bitmap == null) {
-                    Log.e(TAG, "Failed to get $partId")
-                    return@map null
-                }
+            } else if (mimetype == "application/smil") {
+                Log.d(TAG, "Ignoring $mimetype: ${it.getString(TEXT)}")
+                null
+            } else {
                 val file = File(context.cacheDir("mms"), UUID.randomUUID().toString())
-                FileOutputStream(file).use { fos ->
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
-                    fos.flush()
+                cr.openInputStream("$URI_PART/$partId".toUri())?.use { from ->
+                    FileOutputStream(file).use { to ->
+                        val buf = ByteArray(8192)
+                        while (true) {
+                            val r = from.read(buf)
+                            if (r == -1) {
+                                break
+                            }
+                            to.write(buf, 0, r)
+                        }
+                    }
                 }
                 Part(
                     attachment = Attachment(
@@ -48,15 +55,7 @@ class PartProvider @Inject constructor(
                         path_on_disk = file.absolutePath,
                     )
                 )
-            } else {
-                Log.e(TAG, "Unhandled mimetype: $mimetype")
-                null
             }
-        }
-
-    private fun getMmsImage(_id: Long) =
-        cr.openInputStream("$URI_PART/$_id".toUri())?.use {
-            BitmapFactory.decodeStream(it)
         }
 
     private fun getMmsText(id: Long) =

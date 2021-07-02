@@ -1,7 +1,6 @@
 package com.beeper.sms
 
 import android.content.Context
-import android.graphics.BitmapFactory
 import android.provider.Telephony
 import android.util.Log
 import com.beeper.sms.commands.Command
@@ -11,6 +10,7 @@ import com.google.gson.Gson
 import com.klinker.android.send_message.Settings
 import com.klinker.android.send_message.Transaction
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import javax.inject.Inject
 
 class CommandProcessor @Inject constructor(
@@ -62,17 +62,17 @@ class CommandProcessor @Inject constructor(
             "send_media" -> {
                 val data = gson.fromJson(dataTree, SendMedia::class.java)
                 val recipients = data.recipientList
-                Transaction(context, settings)
-                    .sendNewMessage(
-                        com.klinker.android.send_message.Message(
-                            "",
-                            recipients.joinToString(" "),
-                            BitmapFactory.decodeFile(data.path_on_disk, null)
-                        ),
-                        Telephony.Threads.getOrCreateThreadId(context, recipients.toSet()),
-                        command,
-                        null,
-                    )
+                val message =
+                    com.klinker.android.send_message.Message("", recipients.toTypedArray())
+                        .apply {
+                            addMedia(
+                                File(data.path_on_disk).readBytes(),
+                                data.mime_type,
+                                data.file_name
+                            )
+                        }
+                val thread = Telephony.Threads.getOrCreateThreadId(context, recipients.toSet())
+                Transaction(context, settings).sendNewMessage(message, thread, command, null)
             }
             "get_chats" -> {
 //                val data = gson.fromJson(dataTree, GetChats::class.java)
