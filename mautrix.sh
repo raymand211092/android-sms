@@ -57,14 +57,9 @@ build_mautrix() {
 
 pushd mautrix-imessage || exit
 
-git reset --hard
-git apply ../mautrix.patch
-
 build_mautrix armeabi-v7a armv7a-linux-androideabi arm 7
 build_mautrix arm64-v8a aarch64-linux-android arm64
 build_mautrix x86 i686-linux-android 386
 build_mautrix x86_64 x86_64-linux-android amd64
 
-git reset --hard
-
-popd || exit
+popd
