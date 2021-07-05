@@ -7,9 +7,9 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.beeper.sms.Bridge
-import com.beeper.sms.MmsProvider
-import com.beeper.sms.MmsProvider.Companion.isMms
-import com.beeper.sms.SmsProvider
+import com.beeper.sms.provider.MmsProvider
+import com.beeper.sms.provider.MmsProvider.Companion.isMms
+import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.commands.Command
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject

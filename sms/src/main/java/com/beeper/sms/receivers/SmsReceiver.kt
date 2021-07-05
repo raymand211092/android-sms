@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.beeper.sms.SmsProvider
+import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.work.WorkManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject

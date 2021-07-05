@@ -5,7 +5,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.core.net.toUri
 import com.beeper.sms.Bridge
-import com.beeper.sms.SmsProvider
+import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
 import com.beeper.sms.extensions.printExtras

@@ -1,9 +1,8 @@
-package com.beeper.sms
+package com.beeper.sms.provider
 
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.database.DatabaseUtils
 import android.net.Uri
 import android.os.Binder
 import android.provider.Telephony.Sms.*

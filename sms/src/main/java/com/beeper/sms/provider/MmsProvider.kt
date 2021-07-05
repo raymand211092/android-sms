@@ -1,4 +1,4 @@
-package com.beeper.sms
+package com.beeper.sms.provider
 
 import android.content.Context
 import android.net.Uri
@@ -8,7 +8,6 @@ import android.provider.Telephony.ThreadsColumns
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
-import com.beeper.sms.provider.PartProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
