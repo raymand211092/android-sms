@@ -6,6 +6,7 @@ import android.util.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.provider.ContactProvider
 import com.google.gson.Gson
 import com.klinker.android.send_message.Settings
 import com.klinker.android.send_message.Transaction
@@ -15,6 +16,7 @@ import javax.inject.Inject
 
 class CommandProcessor @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val contactProvider: ContactProvider,
     private val bridge: Bridge,
 ) {
     fun handle(input: String) {
@@ -22,27 +24,22 @@ class CommandProcessor @Inject constructor(
         val dataTree = gson.toJsonTree(command.data)
         when (command.command) {
             "get_chat" -> {
-                val data = gson.fromJson(dataTree, GetChat::class.java)
-                val recipients = data.recipientList
+                val recipients =
+                    gson.fromJson(dataTree, GetChat::class.java)
+                        .recipientList
+                val room =
+                    contactProvider
+                        .getContacts(recipients)
+                        .map { it.nickname }
+                        .joinToString()
                 bridge.send(
-                    Command(
-                        "response",
-                        GetChat.Response(recipients.joinToString(), recipients),
-                        command.id,
-                    )
+                    Command("response", GetChat.Response(room, recipients), command.id)
                 )
             }
             "get_contact" -> {
                 val data = gson.fromJson(dataTree, GetContact::class.java)
                 bridge.send(
-                    Command(
-                        "response",
-                        GetContact.Response(
-                            nickname = data.user_guid,
-                            phones = listOf(data.user_guid),
-                        ),
-                        command.id,
-                    )
+                    Command("response", contactProvider.getContact(data.user_guid), command.id)
                 )
             }
             "send_message" -> {
@@ -52,7 +49,7 @@ class CommandProcessor @Inject constructor(
                     .sendNewMessage(
                         com.klinker.android.send_message.Message(
                             data.text,
-                            recipients.joinToString(" ")
+                            recipients.toTypedArray()
                         ),
                         Telephony.Threads.getOrCreateThreadId(context, recipients.toSet()),
                         command,
