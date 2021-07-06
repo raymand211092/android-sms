@@ -1,11 +1,11 @@
 package com.beeper.sms
 
 import android.content.Context
-import android.provider.Telephony
 import android.util.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.extensions.getThread
 import com.beeper.sms.provider.ContactProvider
 import com.google.gson.Gson
 import com.klinker.android.send_message.Settings
@@ -51,7 +51,7 @@ class CommandProcessor @Inject constructor(
                             data.text,
                             recipients.toTypedArray()
                         ),
-                        Telephony.Threads.getOrCreateThreadId(context, recipients.toSet()),
+                        context.getThread(data),
                         command,
                         null,
                     )
@@ -68,8 +68,8 @@ class CommandProcessor @Inject constructor(
                                 data.file_name
                             )
                         }
-                val thread = Telephony.Threads.getOrCreateThreadId(context, recipients.toSet())
-                Transaction(context, settings).sendNewMessage(message, thread, command, null)
+                Transaction(context, settings)
+                    .sendNewMessage(message, context.getThread(data), command, null)
             }
             "get_chats" -> {
 //                val data = gson.fromJson(dataTree, GetChats::class.java)
