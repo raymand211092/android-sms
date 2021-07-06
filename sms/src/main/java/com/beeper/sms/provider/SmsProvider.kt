@@ -25,17 +25,18 @@ class SmsProvider @Inject constructor(
     private fun getMessages(where: String? = null): List<Message> =
         cr.map(CONTENT_URI, where) {
             val address = it.getString(ADDRESS)
+            val isFromMe = when (it.getInt(TYPE)) {
+                MESSAGE_TYPE_OUTBOX, MESSAGE_TYPE_SENT -> true
+                else -> false
+            }
             Message(
                 guid = it.getInt(_ID).toString(),
                 timestamp = it.getLong(DATE) / 1000,
                 subject = it.getString(SUBJECT) ?: "",
                 text = it.getString(BODY) ?: "",
                 chat_guid = "SMS;-;$address",
-                sender_guid = "SMS;-;$address",
-                is_from_me = when (it.getInt(TYPE)) {
-                    MESSAGE_TYPE_OUTBOX, MESSAGE_TYPE_SENT -> true
-                    else -> false
-                },
+                sender_guid = if (isFromMe) null else "SMS;-;$address",
+                is_from_me = isFromMe,
             )
         }
 

@@ -25,18 +25,18 @@ class MmsProvider @Inject constructor(
             val recipients =
                 getAddresses(it.getLong(THREAD_ID))?.mapNotNull { addr -> getPhoneNumber(addr) }
             val attachments = partProvider.getAttachment(id)
-            val group = if (recipients?.size == 1) "-" else "+"
+            val isFromMe = when (it.getInt(MESSAGE_BOX)) {
+                MESSAGE_BOX_OUTBOX, MESSAGE_BOX_SENT -> true
+                else -> false
+            }
             Message(
                 guid = it.getInt(_ID).toString(),
                 timestamp = it.getLong(DATE),
                 subject = it.getString(SUBJECT) ?: "",
                 text = attachments.mapNotNull { a -> a.text }.joinToString(""),
                 chat_guid = "SMS;$group;${recipients?.joinToString(" ")}",
-                sender_guid = "SMS;-;${getSender(id)}",
-                is_from_me = when (it.getInt(MESSAGE_BOX)) {
-                    MESSAGE_BOX_OUTBOX, MESSAGE_BOX_SENT -> true
-                    else -> false
-                },
+                sender_guid = if (isFromMe) null else "SMS;-;${getSender(id)}",
+                is_from_me = isFromMe,
                 attachments = attachments.mapNotNull { a -> a.attachment },
             )
         }
