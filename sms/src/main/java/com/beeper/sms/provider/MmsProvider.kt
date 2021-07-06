@@ -33,6 +33,10 @@ class MmsProvider @Inject constructor(
                 text = attachments.mapNotNull { a -> a.text }.joinToString(""),
                 chat_guid = "SMS;$group;${recipients?.joinToString(" ")}",
                 sender_guid = "SMS;-;${getSender(id)}",
+                is_from_me = when (it.getInt(MESSAGE_BOX)) {
+                    MESSAGE_BOX_OUTBOX, MESSAGE_BOX_SENT -> true
+                    else -> false
+                },
                 attachments = attachments.mapNotNull { a -> a.attachment },
             )
         }

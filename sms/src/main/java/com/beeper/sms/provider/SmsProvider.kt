@@ -32,6 +32,10 @@ class SmsProvider @Inject constructor(
                 text = it.getString(BODY) ?: "",
                 chat_guid = "SMS;-;$address",
                 sender_guid = "SMS;-;$address",
+                is_from_me = when (it.getInt(TYPE)) {
+                    MESSAGE_TYPE_OUTBOX, MESSAGE_TYPE_SENT -> true
+                    else -> false
+                },
             )
         }
 
