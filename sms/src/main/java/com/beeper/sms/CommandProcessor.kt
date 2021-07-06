@@ -6,7 +6,7 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.getThread
-import com.beeper.sms.provider.ContactProvider
+import com.beeper.sms.provider.*
 import com.google.gson.Gson
 import com.klinker.android.send_message.Settings
 import com.klinker.android.send_message.Transaction
@@ -18,6 +18,9 @@ class CommandProcessor @Inject constructor(
     @ApplicationContext private val context: Context,
     private val contactProvider: ContactProvider,
     private val bridge: Bridge,
+    private val threadProvider: ThreadProvider,
+    private val smsProvider: SmsProvider,
+    private val mmsProvider: MmsProvider,
 ) {
     fun handle(input: String) {
         val command = gson.fromJson(input, Command::class.java)
@@ -72,12 +75,27 @@ class CommandProcessor @Inject constructor(
                     .sendNewMessage(message, context.getThread(data), command, null)
             }
             "get_chats" -> {
-//                val data = gson.fromJson(dataTree, GetChats::class.java)
-                bridge.send(Command("response", ArrayList<String>(), command.id))
+                val data = gson.fromJson(dataTree, GetChats::class.java)
+                bridge.send(
+                    Command(
+                        "response",
+                        threadProvider.getRecentConversations(data.min_timestamp * 1000),
+                        command.id
+                    )
+                )
+            }
+            "get_messages_after" -> {
+                bridge.send(Command("response", ArrayList<Message>(), command.id))
             }
             "get_recent_messages" -> {
-//                val data = gson.fromJson(dataTree, GetRecentMessages::class.java)
-                bridge.send(Command("response", ArrayList<Message>(), command.id))
+                val data = gson.fromJson(dataTree, GetRecentMessages::class.java)
+                val messages =
+                    threadProvider
+                        .getRecentMessages(context.getThread(data), data.limit.toInt())
+                        .mapNotNull { (id, mms) ->
+                            if (mms) mmsProvider.getMessage(id) else smsProvider.getMessage(id)
+                        }
+                bridge.send(Command("response", messages, command.id))
             }
             "get_chat_avatar" -> {
                 bridge.send(Command("response", null, command.id))

@@ -20,9 +20,11 @@ class SmsProvider @Inject constructor(
 ) {
     private val cr = context.contentResolver
 
-    fun getMessage(uri: Uri) = getMessages(where = "_id = ${uri.lastPathSegment}").firstOrNull()
+    fun getMessage(uri: Uri) = uri.lastPathSegment?.toLongOrNull()?.let { getMessage(it) }
 
-    private fun getMessages(where: String? = null): List<Message> =
+    fun getMessage(id: Long) = getSms(where = "_id = $id").firstOrNull()
+
+    private fun getSms(where: String? = null): List<Message> =
         cr.map(CONTENT_URI, where) {
             val address = it.getString(ADDRESS)
             val isFromMe = when (it.getInt(TYPE)) {
