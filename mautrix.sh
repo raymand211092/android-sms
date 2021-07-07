@@ -37,22 +37,22 @@ build_mautrix() {
   local NDK_TARGET=$2
   local GOARCH=$3
   local GOARM=$4
-  local JNI="$ROOT/sms/src/main/jniLibs/$ANDROID_ARCH"
-  local OUT="$JNI/libmautrix.so"
+  local LIB_JNI="$ROOT/sms/src/main/jniLibs/$ANDROID_ARCH"
+  local APP_JNI="$ROOT/app/src/main/jniLibs/$ANDROID_ARCH"
   echo
-  echo "Building $OUT"
+  echo "Building $ANDROID_ARCH"
   echo
 
-  mkdir -p $JNI
-  rm -f $JNI/*
-  unzip -jq -o "$ROOT/$OLM/$AAR" "jni/$ANDROID_ARCH/libolm.so" -d $JNI
+  rm -rf $LIB_JNI $APP_JNI
+  mkdir -p $LIB_JNI $APP_JNI
+  unzip -jq -o "$ROOT/$OLM/$AAR" "jni/$ANDROID_ARCH/libolm.so" -d $APP_JNI
 
-  (set -x; CGO_CFLAGS="-I$ROOT/$OLM/include/" CGO_LDFLAGS="-L $JNI -lm -llog" CGO_ENABLED=1 \
+  (set -x; CGO_CFLAGS="-I$ROOT/$OLM/include/" CGO_LDFLAGS="-L $LIB_JNI -L $APP_JNI -lm -llog" CGO_ENABLED=1 \
   GOOS=android GOARCH=$GOARCH GOARM=$GOARM \
   CC="$NDK_ROOT/toolchains/llvm/prebuilt/$NDK_ARCH/bin/$NDK_TARGET$ANDROID_API-clang" \
-  go build -ldflags "$LDFLAGS" -o $OUT)
+  go build -ldflags "$LDFLAGS" -o $LIB_JNI/libmautrix.so)
 
-  cp "$NDK_ROOT/sources/cxx-stl/llvm-libc++/libs/$ANDROID_ARCH/libc++_shared.so" $JNI
+  cp "$NDK_ROOT/sources/cxx-stl/llvm-libc++/libs/$ANDROID_ARCH/libc++_shared.so" $APP_JNI
 }
 
 pushd mautrix-imessage || exit
