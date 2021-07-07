@@ -4,9 +4,11 @@ import android.content.Context
 import android.util.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.*
-import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.getThread
-import com.beeper.sms.provider.*
+import com.beeper.sms.provider.ContactProvider
+import com.beeper.sms.provider.MmsProvider
+import com.beeper.sms.provider.SmsProvider
+import com.beeper.sms.provider.ThreadProvider
 import com.google.gson.Gson
 import com.klinker.android.send_message.Settings
 import com.klinker.android.send_message.Transaction
@@ -85,16 +87,19 @@ class CommandProcessor @Inject constructor(
                 )
             }
             "get_messages_after" -> {
-                bridge.send(Command("response", ArrayList<Message>(), command.id))
+                val data = gson.fromJson(dataTree, GetMessagesAfter::class.java)
+                val messages =
+                    threadProvider
+                        .getMessagesAfter(context.getThread(data), data.timestamp)
+                        .toMessages()
+                bridge.send(Command("response", messages, command.id))
             }
             "get_recent_messages" -> {
                 val data = gson.fromJson(dataTree, GetRecentMessages::class.java)
                 val messages =
                     threadProvider
                         .getRecentMessages(context.getThread(data), data.limit.toInt())
-                        .mapNotNull { (id, mms) ->
-                            if (mms) mmsProvider.getMessage(id) else smsProvider.getMessage(id)
-                        }
+                        .toMessages()
                 bridge.send(Command("response", messages, command.id))
             }
             "get_chat_avatar" -> {
@@ -104,6 +109,10 @@ class CommandProcessor @Inject constructor(
                 Log.e(TAG, "unhandled command: $command")
             }
         }
+    }
+
+    private fun List<Pair<Long, Boolean>>.toMessages() = mapNotNull { (id, mms) ->
+        if (mms) mmsProvider.getMessage(id) else smsProvider.getMessage(id)
     }
 
     companion object {
