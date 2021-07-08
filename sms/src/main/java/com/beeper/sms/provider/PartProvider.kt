@@ -25,21 +25,25 @@ class PartProvider @Inject constructor(
             val partId = it.getLong(_ID)
             val mimetype = it.getString(CONTENT_TYPE) ?: ""
             val data = it.getString("_data")
-            if (mimetype == "text/plain") {
-                Part(text = data?.let { getMmsText(partId) } ?: it.getString(TEXT))
-            } else if (mimetype == "application/smil") {
-                Log.d(TAG, "Ignoring $mimetype: ${it.getString(TEXT)}")
-                null
-            } else {
-                val file = File(context.cacheDir("mms"), UUID.randomUUID().toString())
-                cr.openInputStream("$URI_PART/$partId".toUri())?.writeTo(file)
-                Part(
-                    attachment = Attachment(
-                        mime_type = mimetype,
-                        file_name = it.getString(NAME) ?: UUID.randomUUID().toString(),
-                        path_on_disk = file.absolutePath,
+            when (mimetype) {
+                "text/plain" -> {
+                    Part(text = data?.let { getMmsText(partId) } ?: it.getString(TEXT))
+                }
+                "application/smil" -> {
+                    Log.d(TAG, "Ignoring $mimetype: ${it.getString(TEXT)}")
+                    null
+                }
+                else -> {
+                    val file = File(context.cacheDir("mms"), UUID.randomUUID().toString())
+                    cr.openInputStream("$URI_PART/$partId".toUri())?.writeTo(file)
+                    Part(
+                        attachment = Attachment(
+                            mime_type = mimetype,
+                            file_name = it.getString(NAME) ?: UUID.randomUUID().toString(),
+                            path_on_disk = file.absolutePath,
+                        )
                     )
-                )
+                }
             }
         }
 
