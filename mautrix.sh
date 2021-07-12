@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -17,7 +17,7 @@ if [ ! -d "$NDK_ROOT" ]; then
 	exit 1
 fi
 
-if [ "$(uname)" == 'Darwin' ]; then
+if [ "$(uname)" = 'Darwin' ]; then
   NDK_ARCH="darwin-x86_64"
 else
   NDK_ARCH="linux-x86_64"
@@ -26,7 +26,7 @@ fi
 OLM=olm-$OLM_VERSION
 AAR=$OLM.aar
 
-curl -L https://gitlab.matrix.org/matrix-org/olm/-/archive/$OLM_VERSION/$OLM.tar.gz -o - | tar -xvf - $OLM/include/olm
+curl -L https://gitlab.matrix.org/matrix-org/olm/-/archive/$OLM_VERSION/$OLM.tar.gz -o - | tar -xvzf - $OLM/include/olm
 curl -L https://jitpack.io/org/matrix/gitlab/matrix-org/olm/$OLM_VERSION/$AAR -o "$OLM/$AAR"
 
 LDFLAGS="-X main.Tag=$(git describe --exact-match --tags 2>/dev/null) -X main.Commit=$(git rev-parse HEAD) -X 'main.BuildTime=$(date '+%b %_d %Y, %H:%M:%S')'"
@@ -54,6 +54,8 @@ build_mautrix() {
 
   cp "$NDK_ROOT/sources/cxx-stl/llvm-libc++/libs/$ANDROID_ARCH/libc++_shared.so" $APP_JNI
 }
+
+git submodule update --init
 
 pushd mautrix-imessage || exit
 

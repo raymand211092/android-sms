@@ -1,0 +1,37 @@
+image: openjdk:11-jdk
+
+variables:
+  ANDROID_SDK_TOOLS:   "7302050"
+
+before_script:
+  - apt-get --quiet update --yes
+  - apt-get --quiet install --yes wget unzip #build-essential
+  - curl -L https://golang.org/dl/go1.16.5.linux-amd64.tar.gz -o - | tar -C . -xvzf -
+  - export GOROOT=$PWD/go
+  - export GOPATH=$HOME/go
+  - wget --quiet --output-document=android-sdk.zip https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_SDK_TOOLS}_latest.zip
+  - unzip -d android-sdk-linux android-sdk.zip
+  - echo y | android-sdk-linux/cmdline-tools/bin/sdkmanager --sdk_root=android-sdk-linux "platform-tools" "ndk;21.3.6528147" >/dev/null
+  - export ANDROID_HOME=$PWD/android-sdk-linux
+  - export PATH=$GOROOT/bin:$PATH:$PWD/android-sdk-linux/platform-tools/
+  # temporarily disable checking for EPIPE error and use yes to accept all licenses
+  - set +o pipefail
+  - yes | android-sdk-linux/cmdline-tools/bin/sdkmanager --sdk_root=android-sdk-linux --licenses
+  - set -o pipefail
+
+assembleRelease:
+  stage: build
+  script:
+    - ./mautrix.sh
+    - ./gradlew :sms:assembleRelease
+  artifacts:
+    paths:
+    - sms/build/outputs/aar
+
+publishToRegistry:
+  stage: deploy
+  when: manual
+  dependencies:
+    - assembleRelease
+  script:
+    - echo "not yet implemented"
