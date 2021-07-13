@@ -12,12 +12,8 @@ import com.beeper.sms.extensions.firstOrNull
 import com.beeper.sms.extensions.getLong
 import com.beeper.sms.extensions.getString
 import com.beeper.sms.extensions.hasPermission
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
 
-class ContactProvider @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
+class ContactProvider constructor(private val context: Context) {
     private val cr = context.contentResolver
 
     fun getContacts(phones: List<String>) = phones.map { getContact(it) }

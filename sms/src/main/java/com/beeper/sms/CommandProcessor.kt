@@ -12,17 +12,15 @@ import com.beeper.sms.provider.ThreadProvider
 import com.google.gson.Gson
 import com.klinker.android.send_message.Settings
 import com.klinker.android.send_message.Transaction
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
-import javax.inject.Inject
 
-class CommandProcessor @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val contactProvider: ContactProvider,
-    private val bridge: Bridge,
-    private val threadProvider: ThreadProvider,
-    private val smsProvider: SmsProvider,
-    private val mmsProvider: MmsProvider,
+class CommandProcessor constructor(
+    private val context: Context,
+    private val contactProvider: ContactProvider = ContactProvider(context),
+    private val bridge: Bridge = Bridge.INSTANCE,
+    private val threadProvider: ThreadProvider = ThreadProvider(context),
+    private val smsProvider: SmsProvider = SmsProvider(context),
+    private val mmsProvider: MmsProvider = MmsProvider(context),
 ) {
     fun handle(input: String) {
         val command = gson.fromJson(input, Command::class.java)

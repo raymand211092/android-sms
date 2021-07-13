@@ -6,22 +6,16 @@ import android.content.Intent
 import android.util.Log
 import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.work.WorkManager
-import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
-@AndroidEntryPoint
 class SmsReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var smsProvider: SmsProvider
-    @Inject lateinit var workManager: WorkManager
-
     override fun onReceive(context: Context, intent: Intent) {
-        val uri = smsProvider.writeInboxMessage(intent)
+        val uri = SmsProvider(context).writeInboxMessage(intent)
         if (uri == null) {
             Log.e(TAG, "Failed to write message")
             return
         }
-        workManager.sendMessage(uri)
+        WorkManager(context).sendMessage(uri)
     }
 
     companion object {

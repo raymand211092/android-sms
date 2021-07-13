@@ -11,16 +11,14 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.launch
 import java.util.concurrent.Executors.newSingleThreadExecutor
-import javax.inject.Inject
 
-@AndroidEntryPoint
 class BridgeService : Service() {
 
-    @Inject lateinit var bridge: Bridge
-    @Inject lateinit var commandProcessor: CommandProcessor
     private val dispatcher = newSingleThreadExecutor().asCoroutineDispatcher()
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
@@ -38,9 +36,9 @@ class BridgeService : Service() {
                 .setContentText(getString(R.string.notification_body))
                 .build()
         )
-
+        val commandProcessor = CommandProcessor(applicationContext)
         scope.launch {
-            bridge.stdout.forEachLine {
+            Bridge.INSTANCE.stdout.forEachLine {
                 if (it.startsWith("{") && it.endsWith("}")) {
                     Log.d(TAG, "receive: $it")
                     commandProcessor.handle(it)

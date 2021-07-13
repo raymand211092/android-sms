@@ -9,7 +9,6 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
 import com.google.gson.reflect.TypeToken
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import java.io.BufferedWriter
 import java.io.File
@@ -17,13 +16,8 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.math.BigDecimal
 import java.util.concurrent.Executors.newSingleThreadExecutor
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class Bridge @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
+class Bridge private constructor() {
     private lateinit var stdin: BufferedWriter
     lateinit var stdout: InputStreamReader
     private val outgoing = newSingleThreadExecutor().asCoroutineDispatcher()
@@ -31,7 +25,7 @@ class Bridge @Inject constructor(
         GsonBuilder().registerTypeAdapter(DOUBLE_SERIALIZER_TYPE, DOUBLE_SERIALIZER).create()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    fun start(configPath: String): Boolean = try {
+    fun start(context: Context, configPath: String): Boolean = try {
         val process = ProcessBuilder()
             .env(
                 "LD_LIBRARY_PATH" to context.applicationInfo.nativeLibraryDir,
@@ -76,5 +70,6 @@ class Bridge @Inject constructor(
         private val DOUBLE_SERIALIZER_TYPE = object : TypeToken<Double>() {}.type
         private val DOUBLE_SERIALIZER =
             JsonSerializer<Double> { src, _, _ -> JsonPrimitive(BigDecimal.valueOf(src)) }
+        val INSTANCE = Bridge()
     }
 }

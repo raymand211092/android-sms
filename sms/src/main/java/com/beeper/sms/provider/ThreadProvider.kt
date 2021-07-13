@@ -4,12 +4,8 @@ import android.content.Context
 import android.provider.Telephony.*
 import androidx.core.net.toUri
 import com.beeper.sms.extensions.*
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
 
-class ThreadProvider @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
+class ThreadProvider constructor(context: Context) {
     private val cr = context.contentResolver
 
     fun getRecentConversations(minTimestamp: Long): List<String> =

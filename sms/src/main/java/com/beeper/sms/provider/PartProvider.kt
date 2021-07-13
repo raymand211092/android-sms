@@ -7,17 +7,13 @@ import android.util.Log
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message.Attachment
 import com.beeper.sms.extensions.*
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.*
-import javax.inject.Inject
 
 
-class PartProvider @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
+class PartProvider constructor(private val context: Context) {
     private val cr = context.contentResolver
 
     fun getAttachment(message: Long): List<Part> =

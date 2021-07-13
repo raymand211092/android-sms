@@ -6,13 +6,11 @@ import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
 
-class MmsProvider @Inject constructor(
-    @ApplicationContext context: Context,
-    private val partProvider: PartProvider,
-    private val threadProvider: ThreadProvider,
+class MmsProvider constructor(
+    context: Context,
+    private val partProvider: PartProvider = PartProvider(context),
+    private val threadProvider: ThreadProvider = ThreadProvider(context),
 ) {
     private val cr = context.contentResolver
 

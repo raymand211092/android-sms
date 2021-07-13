@@ -2,7 +2,6 @@ plugins {
     id("com.android.application")
     kotlin("android")
     kotlin("kapt")
-    id("dagger.hilt.android.plugin")
 }
 
 android {
@@ -50,11 +49,6 @@ android {
 
 dependencies {
     implementation(project(":sms"))
-
-    implementation("com.google.dagger:hilt-android:${Versions.hilt}")
-    kapt("com.google.dagger:hilt-compiler:${Versions.hilt}")
-    kapt("androidx.hilt:hilt-compiler:${Versions.hilt_androidx}")
-    implementation("androidx.hilt:hilt-work:${Versions.hilt_androidx}")
 
     implementation("androidx.work:work-runtime-ktx:${Versions.work}")
     implementation("androidx.core:core-ktx:1.3.2")

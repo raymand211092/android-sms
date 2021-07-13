@@ -11,13 +11,9 @@ import android.text.TextUtils
 import android.util.Log
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
 
 
-class SmsProvider @Inject constructor(
-    @ApplicationContext context: Context
-) {
+class SmsProvider constructor(context: Context) {
     private val cr = context.contentResolver
 
     fun getMessage(uri: Uri) = uri.lastPathSegment?.toLongOrNull()?.let { getMessage(it) }
