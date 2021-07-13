@@ -2,6 +2,7 @@ package com.beeper.sms
 
 import android.content.Context
 import android.util.Log
+import com.beeper.sms.BridgeService.Companion.startBridge
 import com.beeper.sms.commands.Command
 import com.beeper.sms.extensions.cacheDir
 import com.beeper.sms.extensions.env
@@ -25,7 +26,11 @@ class Bridge private constructor() {
         GsonBuilder().registerTypeAdapter(DOUBLE_SERIALIZER_TYPE, DOUBLE_SERIALIZER).create()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    fun start(context: Context, configPath: String): Boolean = try {
+    fun start(
+        context: Context,
+        configPath: String,
+        channelId: String = DEFAULT_CHANNEL_ID
+    ): Boolean = try {
         val process = ProcessBuilder()
             .env(
                 "LD_LIBRARY_PATH" to context.applicationInfo.nativeLibraryDir,
@@ -52,6 +57,7 @@ class Bridge private constructor() {
             process.exitValue()
             false
         } catch (e: IllegalThreadStateException) {
+            context.startBridge(channelId)
             true
         }
     } catch (e: Exception) {
@@ -67,6 +73,7 @@ class Bridge private constructor() {
 
     companion object {
         private const val TAG = "Bridge"
+        private const val DEFAULT_CHANNEL_ID = "sms_bridge_service"
         private val DOUBLE_SERIALIZER_TYPE = object : TypeToken<Double>() {}.type
         private val DOUBLE_SERIALIZER =
             JsonSerializer<Double> { src, _, _ -> JsonPrimitive(BigDecimal.valueOf(src)) }

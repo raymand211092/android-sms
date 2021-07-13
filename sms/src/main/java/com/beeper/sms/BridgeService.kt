@@ -57,7 +57,7 @@ class BridgeService : Service() {
         private const val ONGOING_NOTIFICATION_ID = 10681
         private const val CHANNEL_ID = "channel_id"
 
-        fun Context.startBridge(channelId: String) {
+        internal fun Context.startBridge(channelId: String) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 createNotificationChannel(channelId)
             }
