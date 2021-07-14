@@ -60,7 +60,7 @@ afterEvaluate {
             create<MavenPublication>("gitlab") {
                 from(components["release"])
                 groupId = "com.beeper"
-                artifactId = "sms"
+                artifactId = "android-sms"
                 version = "${Version.major}.${Version.minor}.${Version.patch}"
                 pom {
                     name.set("Beeper SMS Bridge")
