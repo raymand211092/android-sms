@@ -6,7 +6,7 @@ variables:
 before_script:
   - apt-get --quiet update --yes
   - apt-get --quiet install --yes wget unzip #build-essential
-  - curl -L https://golang.org/dl/go1.16.5.linux-amd64.tar.gz -o - | tar -C . -xvzf -
+  - curl -L https://golang.org/dl/go1.16.5.linux-amd64.tar.gz -o - | tar -C . -xzf -
   - export GOROOT=$PWD/go
   - export GOPATH=$HOME/go
   - wget --quiet --output-document=android-sdk.zip https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_SDK_TOOLS}_latest.zip
@@ -34,4 +34,5 @@ publishToRegistry:
   dependencies:
     - assembleRelease
   script:
-    - echo "not yet implemented"
+    - ./mautrix.sh
+    - ./gradlew :sms:publish
