@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.beeper.sms.extensions.isDefaultSmsApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -23,6 +24,10 @@ class BridgeService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!isDefaultSmsApp) {
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         Log.d(TAG, "starting service")
         val notificationChannel =
             intent?.getStringExtra(CHANNEL_ID) ?: throw RuntimeException("Missing channel_id")
