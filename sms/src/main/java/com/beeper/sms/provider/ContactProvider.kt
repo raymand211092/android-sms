@@ -25,13 +25,17 @@ class ContactProvider constructor(private val context: Context) {
             cr.firstOrNull(phone.lookupUri) { ph ->
                 cr.firstOrNull(
                     ContactsContract.Data.CONTENT_URI,
-                    "${ContactsContract.Data.CONTACT_ID} = ${ph.getLong(PhoneLookup.CONTACT_ID)}"
+                    "${ContactsContract.Data.CONTACT_ID} = ${ph.getLong(PhoneLookup.CONTACT_ID)} AND ${ContactsContract.Data.MIMETYPE} = 'vnd.android.cursor.item/name'"
                 ) { contact ->
+                    val givenName = contact.getString(StructuredName.GIVEN_NAME)
+                    val familyName = contact.getString(StructuredName.FAMILY_NAME)
                     GetContact.Response(
-                        first_name = contact.getString(StructuredName.GIVEN_NAME),
-                        last_name = contact.getString(StructuredName.FAMILY_NAME),
-                        nickname = ph.getString(PhoneLookup.DISPLAY_NAME) ?: phone,
-                        phones = listOf(phone),
+                        first_name = givenName,
+                        last_name = familyName,
+                        nickname = contact.getString(StructuredName.DISPLAY_NAME)
+                            ?: "$givenName $familyName".trim().takeIf { it.isNotBlank() }
+                            ?: phone,
+                        phones = listOf(phone)
                     )
                 }
             }
