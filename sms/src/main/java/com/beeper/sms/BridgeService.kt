@@ -36,7 +36,7 @@ class BridgeService : Service() {
             NotificationCompat.Builder(this, notificationChannel)
                 .setSound(null)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setSmallIcon(R.drawable.ic_status_bar_beeper)
+                .setSmallIcon(intent.getIntExtra(CHANNEL_ICON, DEFAULT_CHANNEL_ICON))
                 .setContentTitle(getString(R.string.notification_title))
                 .setContentText(getString(R.string.notification_body))
                 .build()
@@ -61,8 +61,10 @@ class BridgeService : Service() {
         private const val TAG = "BridgeService"
         private const val ONGOING_NOTIFICATION_ID = 10681
         private const val CHANNEL_ID = "channel_id"
+        private const val CHANNEL_ICON = "channel_icon"
+        private val DEFAULT_CHANNEL_ICON = R.drawable.ic_status_bar_beeper
 
-        internal fun Context.startBridge(channelId: String) {
+        internal fun Context.startBridge(channelId: String, channelIcon: Int? = null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 createNotificationChannel(channelId)
             }
@@ -70,6 +72,7 @@ class BridgeService : Service() {
                 this,
                 Intent(this, BridgeService::class.java)
                     .putExtra(CHANNEL_ID, channelId)
+                    .putExtra(CHANNEL_ICON, channelIcon)
             )
         }
 

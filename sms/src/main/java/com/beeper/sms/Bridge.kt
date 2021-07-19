@@ -29,7 +29,8 @@ class Bridge private constructor() {
     fun start(
         context: Context,
         configPath: String,
-        channelId: String = DEFAULT_CHANNEL_ID
+        channelId: String = DEFAULT_CHANNEL_ID,
+        channelIcon: Int? = null,
     ): Boolean = try {
         val process = ProcessBuilder()
             .env(
@@ -57,7 +58,7 @@ class Bridge private constructor() {
             process.exitValue()
             false
         } catch (e: IllegalThreadStateException) {
-            context.startBridge(channelId)
+            context.startBridge(channelId, channelIcon)
             true
         }
     } catch (e: Exception) {
