@@ -13,15 +13,17 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.beeper.sms.extensions.isDefaultSmsApp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
-import java.util.concurrent.Executors.newSingleThreadExecutor
+import java.io.IOException
+import java.io.InterruptedIOException
 
 class BridgeService : Service() {
 
-    private val dispatcher = newSingleThreadExecutor().asCoroutineDispatcher()
-    private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private lateinit var channelId: String
+    private var channelIcon: Int = 0
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!isDefaultSmsApp) {
@@ -29,22 +31,28 @@ class BridgeService : Service() {
             return START_NOT_STICKY
         }
         Log.d(TAG, "starting service")
-        val notificationChannel =
-            intent?.getStringExtra(CHANNEL_ID) ?: throw RuntimeException("Missing channel_id")
+        channelId = intent?.getStringExtra(CHANNEL_ID)
+            ?: throw RuntimeException("Missing channel_id")
+        channelIcon = intent.getIntExtra(CHANNEL_ICON, DEFAULT_CHANNEL_ICON)
         startForeground(
             ONGOING_NOTIFICATION_ID,
-            NotificationCompat.Builder(this, notificationChannel)
+            NotificationCompat.Builder(this, channelId)
                 .setSound(null)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setSmallIcon(intent.getIntExtra(CHANNEL_ICON, DEFAULT_CHANNEL_ICON))
+                .setSmallIcon(channelIcon)
                 .setContentTitle(getString(R.string.notification_title))
                 .setContentText(getString(R.string.notification_body))
                 .build()
         )
         val commandProcessor = CommandProcessor(applicationContext)
-        scope.launch {
-            Bridge.INSTANCE.stdout.forEachLine {
-                if (it.startsWith("{") && it.endsWith("}")) {
+        restartOnInterrupt {
+            Bridge.INSTANCE.forEachError {
+                Log.e(TAG, it)
+            }
+        }
+        restartOnInterrupt {
+            Bridge.INSTANCE.forEachCommand {
+                if (COMMAND.matches(it)) {
                     Log.d(TAG, "receive: $it")
                     commandProcessor.handle(it)
                 } else {
@@ -55,6 +63,17 @@ class BridgeService : Service() {
         return START_REDELIVER_INTENT
     }
 
+    private fun restartOnInterrupt(block: () -> Unit) = scope.launch {
+        try {
+            block()
+        } catch (e: InterruptedIOException) {
+            Log.e(TAG, e.message ?: "", e)
+            startBridge(channelId, channelIcon)
+        } catch (e: IOException) {
+            Log.e(TAG, e.message ?: "", e)
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
@@ -63,6 +82,8 @@ class BridgeService : Service() {
         private const val CHANNEL_ID = "channel_id"
         private const val CHANNEL_ICON = "channel_icon"
         private val DEFAULT_CHANNEL_ICON = R.drawable.ic_status_bar_beeper
+        @Suppress("RegExpRedundantEscape")
+        private val COMMAND = "^\\{.*\\}$".toRegex()
 
         internal fun Context.startBridge(channelId: String, channelIcon: Int? = null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
