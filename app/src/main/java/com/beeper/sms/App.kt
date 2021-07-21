@@ -12,7 +12,7 @@ class App : Application(), Configuration.Provider {
 
         val config = File(cacheDir, "config.yaml")
         assets.open("config.yaml").writeTo(config)
-        Bridge.INSTANCE.start(this, config.absolutePath)
+        Bridge.INSTANCE.init(this) { config.absolutePath }
     }
 
     override fun getWorkManagerConfiguration(): Configuration = Configuration.Builder()

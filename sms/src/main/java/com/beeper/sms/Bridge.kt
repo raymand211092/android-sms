@@ -8,6 +8,7 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.Error
 import com.beeper.sms.extensions.cacheDir
 import com.beeper.sms.extensions.env
+import com.beeper.sms.extensions.isDefaultSmsApp
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
@@ -19,33 +20,43 @@ import java.math.BigDecimal
 import java.util.concurrent.Executors.newSingleThreadExecutor
 
 class Bridge private constructor() {
-    private lateinit var configPath: String
     private lateinit var nativeLibDir: String
     private lateinit var cacheDir: String
+    private lateinit var channelId: String
+    private var configPathProvider: (suspend () -> String?)? = null
+    private var configPath: String? = null
+    private var channelIcon: Int? = null
     private var process: Process? = null
     private val outgoing = newSingleThreadExecutor().asCoroutineDispatcher()
     private val gson =
         GsonBuilder().registerTypeAdapter(DOUBLE_SERIALIZER_TYPE, DOUBLE_SERIALIZER).create()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    fun start(
+    fun init(
         context: Context,
-        configPath: String,
         channelId: String = DEFAULT_CHANNEL_ID,
         channelIcon: Int? = null,
-    ): Boolean = try {
-        this.configPath = configPath
+        configPathProvider: suspend () -> String?,
+    ) {
+        this.configPathProvider = configPathProvider
+        this.channelId = channelId
+        this.channelIcon = channelIcon
         nativeLibDir = context.applicationInfo.nativeLibraryDir
         cacheDir = context.cacheDir("mautrix")
-        if (getProcess()?.running == true) {
-            context.startBridge(channelId, channelIcon)
-            true
-        } else {
-            false
+        start(context)
+    }
+
+    fun start(context: Context?) = scope.launch {
+        try {
+            if (context?.isDefaultSmsApp == true &&
+                getConfig().exists() &&
+                getProcess()?.running == true
+            ) {
+                context.startBridge(channelId, channelIcon)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, e.message ?: "Error")
         }
-    } catch (e: Exception) {
-        Log.e(TAG, e.message ?: "Error")
-        false
     }
 
     @Synchronized
@@ -63,6 +74,9 @@ class Bridge private constructor() {
         }
         return process
     }
+
+    private suspend fun getConfig(): String? =
+        configPath ?: configPathProvider?.invoke()?.takeIf { it.exists() }?.also { configPath = it }
 
     fun stop() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -116,5 +130,7 @@ class Bridge private constructor() {
             reader().forEachLine(action)
             Log.d(TAG, "$this closed")
         }
+
+        private fun String?.exists(): Boolean = this?.let { File(it) }?.exists() == true
     }
 }
