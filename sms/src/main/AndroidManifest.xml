@@ -88,6 +88,15 @@
             android:taskAffinity="com.klinker.android.messaging.MMS_RECEIVED" />
 
         <receiver
+            android:name=".receivers.DefaultSmsAppReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.provider.action.DEFAULT_SMS_PACKAGE_CHANGED" />
+                <action android:name="android.provider.action.EXTERNAL_PROVIDER_CHANGE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".receivers.StartupReceiver"
             android:exported="true">
             <intent-filter>
