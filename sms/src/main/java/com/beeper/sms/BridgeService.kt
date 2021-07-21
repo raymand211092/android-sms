@@ -26,10 +26,6 @@ class BridgeService : Service() {
     private var channelIcon: Int = 0
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (!isDefaultSmsApp) {
-            stopSelf(startId)
-            return START_NOT_STICKY
-        }
         Log.d(TAG, "starting service")
         channelId = intent?.getStringExtra(CHANNEL_ID)
             ?: throw RuntimeException("Missing channel_id")
@@ -44,6 +40,11 @@ class BridgeService : Service() {
                 .setContentText(getString(R.string.notification_body))
                 .build()
         )
+        if (!isDefaultSmsApp) {
+            Log.e(TAG, "stopping service: not default SMS app")
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         val commandProcessor = CommandProcessor(applicationContext)
         restartOnInterrupt {
             Bridge.INSTANCE.forEachError {
