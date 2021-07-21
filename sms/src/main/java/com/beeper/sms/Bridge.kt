@@ -5,6 +5,7 @@ import android.os.Build
 import android.util.Log
 import com.beeper.sms.BridgeService.Companion.startBridge
 import com.beeper.sms.commands.Command
+import com.beeper.sms.commands.Error
 import com.beeper.sms.extensions.cacheDir
 import com.beeper.sms.extensions.env
 import com.google.gson.GsonBuilder
@@ -78,16 +79,20 @@ class Bridge private constructor() {
     fun forEachCommand(action: (String) -> Unit) =
         getProcess()?.inputStream?.forEach(action) ?: Log.e(TAG, "forEachCommand failed")
 
-    fun send(command: Command) = scope.launch(outgoing) {
+    fun send(error: Error) = send(error as Any)
+
+    fun send(command: Command) = send(command as Any)
+
+    private fun send(any: Any) = scope.launch(outgoing) {
         getProcess()
             ?.outputStream
             ?.writer()
             ?.apply {
-                Log.d(TAG, "send: $command")
-                append("${gson.toJson(command)}\n")
+                Log.d(TAG, "send: $any")
+                append("${gson.toJson(any)}\n")
                 flush()
             }
-            ?: Log.e(TAG, "failed to send: $command")
+            ?: Log.e(TAG, "failed to send: $any")
     }
 
     companion object {

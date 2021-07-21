@@ -3,4 +3,6 @@
     <string name="notification_channel">SMS Bridge Status</string>
     <string name="notification_title">Beeper SMS Bridge</string>
     <string name="notification_body">Bridge is running…</string>
+    <string name="app_name">Beeper SMS Bridge</string>
+    <string name="not_default_sms_app">%s is not the default SMS app</string>
 </resources>

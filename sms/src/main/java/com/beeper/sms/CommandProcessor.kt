@@ -3,8 +3,10 @@ package com.beeper.sms
 import android.content.Context
 import android.util.Log
 import com.beeper.sms.commands.Command
+import com.beeper.sms.commands.Error
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.extensions.getThread
+import com.beeper.sms.extensions.isDefaultSmsApp
 import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.SmsProvider
@@ -46,6 +48,10 @@ class CommandProcessor constructor(
                 )
             }
             "send_message" -> {
+                if (!context.isDefaultSmsApp) {
+                    noPermissionError(command.id!!)
+                    return
+                }
                 val data = gson.fromJson(dataTree, SendMessage::class.java)
                 val recipients = data.recipientList
                 Transaction(context, settings)
@@ -60,6 +66,10 @@ class CommandProcessor constructor(
                     )
             }
             "send_media" -> {
+                if (!context.isDefaultSmsApp) {
+                    noPermissionError(command.id!!)
+                    return
+                }
                 val data = gson.fromJson(dataTree, SendMedia::class.java)
                 val recipients = data.recipientList
                 val message =
@@ -111,6 +121,21 @@ class CommandProcessor constructor(
 
     private fun List<Pair<Long, Boolean>>.toMessages() = mapNotNull { (id, mms) ->
         if (mms) mmsProvider.getMessage(id) else smsProvider.getMessage(id)
+    }
+
+    private fun noPermissionError(commandId: Int) {
+        bridge.send(
+            Error(
+                commandId,
+                Error.Reason(
+                    "no_permission",
+                    context.getString(
+                        R.string.not_default_sms_app,
+                        context.getString(R.string.app_name)
+                    )
+                )
+            )
+        )
     }
 
     companion object {
