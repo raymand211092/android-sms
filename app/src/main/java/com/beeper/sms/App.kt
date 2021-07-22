@@ -10,9 +10,11 @@ class App : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
 
-        val config = File(cacheDir, "config.yaml")
-        assets.open("config.yaml").writeTo(config)
-        Bridge.INSTANCE.init(this) { config.absolutePath }
+        Bridge.INSTANCE.init(this) {
+            val config = File(cacheDir, "config.yaml")
+            assets.open("config.yaml").writeTo(config)
+            config.absolutePath
+        }
     }
 
     override fun getWorkManagerConfiguration(): Configuration = Configuration.Builder()
