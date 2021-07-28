@@ -13,7 +13,6 @@ import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.ThreadProvider
 import com.google.gson.Gson
-import com.klinker.android.send_message.Settings
 import com.klinker.android.send_message.Transaction
 import java.io.File
 
@@ -24,6 +23,7 @@ class CommandProcessor constructor(
     private val threadProvider: ThreadProvider = ThreadProvider(context),
     private val smsProvider: SmsProvider = SmsProvider(context),
     private val mmsProvider: MmsProvider = MmsProvider(context),
+    private val smsMmsSender: SmsMmsSender = SmsMmsSender(context),
 ) {
     fun handle(input: String) {
         val command = gson.fromJson(input, Command::class.java)
@@ -58,17 +58,12 @@ class CommandProcessor constructor(
                     return
                 }
                 val data = gson.fromJson(dataTree, SendMessage::class.java)
-                val recipients = data.recipientList
-                Transaction(context, settings)
-                    .sendNewMessage(
-                        com.klinker.android.send_message.Message(
-                            data.text,
-                            recipients.toTypedArray()
-                        ),
-                        context.getThread(data),
-                        command,
-                        null,
-                    )
+                smsMmsSender.sendMessage(
+                    data.text,
+                    data.recipientList,
+                    context.getThread(data),
+                    command
+                )
             }
             "send_media" -> {
                 if (!context.isDefaultSmsApp) {
@@ -77,17 +72,14 @@ class CommandProcessor constructor(
                 }
                 val data = gson.fromJson(dataTree, SendMedia::class.java)
                 val recipients = data.recipientList
-                val message =
-                    com.klinker.android.send_message.Message("", recipients.toTypedArray())
-                        .apply {
-                            addMedia(
-                                File(data.path_on_disk).readBytes(),
-                                data.mime_type,
-                                data.file_name
-                            )
-                        }
-                Transaction(context, settings)
-                    .sendNewMessage(message, context.getThread(data), command, null)
+                smsMmsSender.sendMessage(
+                    recipients,
+                    data.path_on_disk,
+                    data.mime_type,
+                    data.file_name,
+                    context.getThread(data),
+                    command
+                )
             }
             "get_chats" -> {
                 val data = gson.fromJson(dataTree, GetChats::class.java)
@@ -146,9 +138,5 @@ class CommandProcessor constructor(
     companion object {
         private const val TAG = "CommandProcessor"
         private val gson = Gson()
-        private val settings = Settings().apply {
-            deliveryReports = true
-            useSystemSending = true
-        }
     }
 }
