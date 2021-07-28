@@ -5,6 +5,7 @@ import android.util.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.Error
 import com.beeper.sms.commands.incoming.*
+import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
 import com.beeper.sms.extensions.getThread
 import com.beeper.sms.extensions.isDefaultSmsApp
 import com.beeper.sms.provider.ContactProvider
@@ -44,7 +45,11 @@ class CommandProcessor constructor(
             "get_contact" -> {
                 val data = gson.fromJson(dataTree, GetContact::class.java)
                 bridge.send(
-                    Command("response", contactProvider.getContact(data.user_guid), command.id)
+                    Command(
+                        "response",
+                        contactProvider.getContact(data.user_guid).asResponse,
+                        command.id
+                    )
                 )
             }
             "send_message" -> {
