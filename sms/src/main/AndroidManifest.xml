@@ -20,12 +20,12 @@
     <application android:extractNativeLibs="true">
         <activity
             android:name=".activity.NewChatActivity"
-            android:exported="true"
             android:theme="@style/Theme.BeeperSMSBridge.NoActionBar" />
 
         <receiver
             android:name=".receivers.SmsReceiver"
-            android:permission="android.permission.BROADCAST_SMS">
+            android:permission="android.permission.BROADCAST_SMS"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.provider.Telephony.SMS_DELIVER" />
             </intent-filter>
@@ -33,7 +33,8 @@
 
         <receiver
             android:name="com.android.mms.transaction.PushReceiver"
-            android:permission="android.permission.BROADCAST_WAP_PUSH">
+            android:permission="android.permission.BROADCAST_WAP_PUSH"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
                 <data android:mimeType="application/vnd.wap.mms-message" />
@@ -41,7 +42,9 @@
         </receiver>
 
         <!-- Activity that allows the user to send new SMS/MMS messages -->
-        <activity android:name=".ComposeSmsActivity">
+        <activity
+            android:name=".ComposeSmsActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <action android:name="android.intent.action.SENDTO" />
