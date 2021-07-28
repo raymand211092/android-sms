@@ -11,6 +11,11 @@ import android.provider.ContactsContract.PhoneLookup
 import com.beeper.sms.extensions.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.provider.MediaStore
+import android.util.Base64
+import java.io.ByteArrayOutputStream
 
 class ContactProvider constructor(private val context: Context) {
     private val cr = context.contentResolver
@@ -73,11 +78,26 @@ class ContactProvider constructor(private val context: Context) {
             ContactsContract.Data.CONTENT_URI,
             "${ContactsContract.Data.CONTACT_ID} = $id AND ${ContactsContract.Data.MIMETYPE} = '${StructuredName.CONTENT_ITEM_TYPE}'"
         ) { contact ->
+            val contactPhotoUri = contact.getString(StructuredName.PHOTO_URI)
+            val contactPhoto = if(contactPhotoUri !== null) {
+                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ImageDecoder.decodeBitmap(ImageDecoder.createSource(cr, Uri.parse(contactPhotoUri)))
+                } else {
+                    MediaStore.Images.Media.getBitmap(cr, Uri.parse(contactPhotoUri))
+                }
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)
+                    val byteArray: ByteArray = byteArrayOutputStream.toByteArray()
+                    Base64.encodeToString(byteArray,Base64.DEFAULT)
+                } else {
+                    null
+                }
             val givenName = contact.getString(StructuredName.GIVEN_NAME)
             val familyName = contact.getString(StructuredName.FAMILY_NAME)
             ContactRow(
                 first_name = givenName,
                 last_name = familyName,
+                avatar = contactPhoto,
                 nickname = contact.getString(StructuredName.DISPLAY_NAME)
                     ?: "$givenName $familyName".trim().takeIf { it.isNotBlank() }
             )
