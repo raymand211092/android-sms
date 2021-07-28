@@ -9,6 +9,20 @@ import android.util.Log
 import androidx.core.database.getStringOrNull
 import com.beeper.sms.BuildConfig
 
+fun <T> ContentResolver.flatMap(
+    uri: Uri,
+    where: String? = null,
+    projection: Array<String>? = null,
+    order: String? = null,
+    block: (Cursor) -> List<T>?
+): List<T> {
+    val result = ArrayList<T>()
+    map(uri, where, projection, order) {
+        block(it)?.let { l -> result.addAll(l)}
+    }
+    return result
+}
+
 fun <T> ContentResolver.map(
     uri: Uri,
     where: String? = null,
@@ -18,7 +32,7 @@ fun <T> ContentResolver.map(
 ): List<T> {
     val result = ArrayList<T>()
     query(uri, projection, where, null, order)?.use {
-        Log.d(TAG, "$uri where=$where: ${it.count} results\n${it.dumpToString()}")
+        Log.v(TAG, "$uri where=$where: ${it.count} results\n${it.dumpToString()}")
         while (it.moveToNext()) {
             block(it)?.let { t -> result.add(t) }
         }

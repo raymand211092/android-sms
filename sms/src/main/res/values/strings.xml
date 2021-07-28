@@ -5,4 +5,9 @@
     <string name="notification_body">Bridge is running…</string>
     <string name="app_name">Beeper SMS Bridge</string>
     <string name="not_default_sms_app">%s is not the default SMS app</string>
+    <string name="start_chat">Start chat</string>
+    <string name="new_conversation">New conversation</string>
+    <string name="new_conversation_to">To</string>
+    <string name="new_conversation_hint">Type a name, phone number, or email</string>
+    <string name="send_to">Send to %s</string>
 </resources>
