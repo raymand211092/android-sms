@@ -9,6 +9,8 @@ import com.klinker.android.send_message.MmsSentReceiver
 class MyMmsSentReceiver : MmsSentReceiver() {
     override fun onMessageStatusUpdated(context: Context?, intent: Intent?, resultCode: Int) {
         Log.d(TAG, "intent: ${intent.printExtras()}")
+
+        // TODO: send message response or new message
     }
 
     companion object {

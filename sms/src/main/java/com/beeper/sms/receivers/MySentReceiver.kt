@@ -9,6 +9,7 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.SmsProvider
+import com.beeper.sms.work.WorkManager
 import com.klinker.android.send_message.SentReceiver
 import com.klinker.android.send_message.Transaction.SENT_SMS_BUNDLE
 
@@ -18,17 +19,20 @@ class MySentReceiver : SentReceiver() {
         val uri = intent?.getStringExtra("message_uri")?.toUri()
         val commandId = (intent?.getParcelableExtra(SENT_SMS_BUNDLE) as? Command)?.id
         val message = uri?.let { SmsProvider(context).getMessage(it) }
-        if (uri == null || commandId == null || message == null) {
-            Log.e(TAG, "Unable to respond (command=$commandId uri=$uri)")
-            return
+        when {
+            uri == null -> Log.e(TAG, "Missing uri")
+            commandId == null ->
+                WorkManager(context).sendMessage(uri) // did not originate from mautrix-imessage
+            message != null ->
+                Bridge.INSTANCE.send(
+                    Command(
+                        "response",
+                        SendMessage.Response(message.guid, message.timestamp),
+                        commandId,
+                    )
+                )
+            else -> Log.e(TAG, "Unable to respond (command=$commandId uri=$uri)")
         }
-        Bridge.INSTANCE.send(
-            Command(
-                "response",
-                SendMessage.Response(message.guid, message.timestamp),
-                commandId,
-            )
-        )
     }
 
     companion object {

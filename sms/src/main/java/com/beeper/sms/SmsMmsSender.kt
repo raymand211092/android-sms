@@ -13,7 +13,7 @@ class SmsMmsSender(private val context: Context) {
         text: String,
         recipients: List<String>,
         thread: Long = 0,
-        sentMessageParcelable: Parcelable,
+        sentMessageParcelable: Parcelable? = null,
         subject: String? = null,
     ) = Transaction(context, settings).sendNewMessage(
         Message(text, recipients.toTypedArray()).apply {
