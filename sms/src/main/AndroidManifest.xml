@@ -80,17 +80,11 @@
 
         <service android:name="com.android.mms.transaction.TransactionService" />
 
-        <receiver
-            android:name=".receivers.MySentReceiver"
-            android:taskAffinity="${applicationId}.SMS_SENT" />
+        <receiver android:name=".receivers.MySentReceiver" />
 
-        <receiver
-            android:name=".receivers.MyDeliveredReceiver"
-            android:taskAffinity="${applicationId}.SMS_DELIVERED" />
+        <receiver android:name=".receivers.MyDeliveredReceiver" />
 
-        <receiver
-            android:name=".receivers.MyMmsSentReceiver"
-            android:taskAffinity="com.klinker.android.messaging.MMS_SENT" />
+        <receiver android:name=".receivers.MyMmsSentReceiver" />
 
         <receiver
             android:name=".receivers.MmsReceiver"
