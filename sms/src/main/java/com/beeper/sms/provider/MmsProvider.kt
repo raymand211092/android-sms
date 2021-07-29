@@ -2,10 +2,12 @@ package com.beeper.sms.provider
 
 import android.content.Context
 import android.net.Uri
+import android.provider.Telephony
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
+import com.google.android.mms.pdu_alt.PduHeaders
 
 class MmsProvider constructor(
     context: Context,
@@ -39,7 +41,10 @@ class MmsProvider constructor(
         }
 
     private fun getSender(message: Long): String? =
-        cr.firstOrNull("$CONTENT_URI/$message/addr".toUri()) {
+        cr.firstOrNull(
+            uri = "$CONTENT_URI/$message/addr".toUri(),
+            where = "${Addr.TYPE} = ${PduHeaders.FROM}"
+        ) {
             it.getString(Addr.ADDRESS)
         }
 
