@@ -1,3 +1,3 @@
 [submodule "mautrix-imessage"]
 	path = mautrix-imessage
-	url = https://github.com/tulir/mautrix-imessage
+	url = https://github.com/abaker/mautrix-imessage
