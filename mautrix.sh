@@ -55,6 +55,7 @@ build_mautrix() {
   cp "$NDK_ROOT/sources/cxx-stl/llvm-libc++/libs/$ANDROID_ARCH/libc++_shared.so" $APP_JNI
 }
 
+git submodule sync
 git submodule update --init
 
 pushd mautrix-imessage || exit
