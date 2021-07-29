@@ -21,6 +21,7 @@
     <application android:extractNativeLibs="true">
         <activity
             android:name=".activity.NewChatActivity"
+            android:exported="true"
             android:theme="@style/Theme.BeeperSMSBridge.NoActionBar" />
 
         <receiver
