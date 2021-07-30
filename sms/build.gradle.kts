@@ -98,6 +98,7 @@ afterEvaluate {
 dependencies {
     implementation("androidx.work:work-runtime-ktx:${Versions.work}")
     implementation("com.klinkerapps:android-smsmms:5.2.6")
+    implementation("org.yaml:snakeyaml:1.29")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.0")
     implementation("io.coil-kt:coil-compose:1.3.0")
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.14.0")

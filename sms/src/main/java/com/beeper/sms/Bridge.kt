@@ -14,6 +14,7 @@ import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.*
+import org.yaml.snakeyaml.Yaml
 import java.io.File
 import java.io.InputStream
 import java.math.BigDecimal
@@ -21,10 +22,10 @@ import java.util.concurrent.Executors.newSingleThreadExecutor
 
 class Bridge private constructor() {
     private lateinit var nativeLibDir: String
-    private lateinit var cacheDir: String
     private lateinit var channelId: String
     private var configPathProvider: (suspend () -> String?)? = null
     private var configPath: String? = null
+    private var cacheDir: String? = null
     private var channelIcon: Int? = null
     private var process: Process? = null
     private val outgoing = newSingleThreadExecutor().asCoroutineDispatcher()
@@ -61,14 +62,15 @@ class Bridge private constructor() {
 
     @Synchronized
     private fun getProcess(): Process? {
+        val cache = cacheDir ?: throw IllegalStateException("Must call init")
         if (process?.running != true) {
             Log.d(TAG, "Starting mautrix-imessage")
             process = ProcessBuilder()
                 .env(
                     "LD_LIBRARY_PATH" to nativeLibDir,
-                    "TMPDIR" to cacheDir,
+                    "TMPDIR" to cache,
                 )
-                .directory(File(nativeLibDir))
+                .directory(nativeLibDir.toFile())
                 .command("./libmautrix.so", "-c", configPath)
                 .start()
         }
@@ -78,7 +80,22 @@ class Bridge private constructor() {
     private suspend fun getConfig(): String? =
         configPath ?: configPathProvider?.invoke()?.takeIf { it.exists() }?.also { configPath = it }
 
+    fun signOut() {
+        Log.d(TAG, "Signing out")
+        stop()
+        configPath
+            ?.toFile()
+            ?.inputStream()
+            ?.use { Yaml().load(it) as Config }
+            ?.let {
+                it.appservice?.database?.delete()
+                it.logging?.directory?.delete()
+            }
+        cacheDir?.delete()
+    }
+
     fun stop() {
+        Log.d(TAG, "Killing mautrix-imessage")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             process?.destroyForcibly()
         } else {
@@ -117,7 +134,7 @@ class Bridge private constructor() {
             JsonSerializer<Double> { src, _, _ -> JsonPrimitive(BigDecimal.valueOf(src)) }
         val INSTANCE = Bridge()
 
-        val Process.running: Boolean
+        private val Process.running: Boolean
             get() = try {
                 exitValue()
                 false
@@ -125,10 +142,16 @@ class Bridge private constructor() {
                 true
             }
 
-        fun InputStream.forEach(action: (String) -> Unit) {
+        private fun InputStream.forEach(action: (String) -> Unit) {
             Log.d(TAG, "$this forEach")
             reader().forEachLine(action)
             Log.d(TAG, "$this closed")
+        }
+
+        private fun String.toFile(): File? = File(this).takeIf { it.exists() }
+
+        private fun String.delete() = toFile()?.deleteRecursively()?.let {
+            if (it) Log.d(TAG, "Deleted $this") else Log.e(TAG, "Failed to delete $this")
         }
 
         private fun String?.exists(): Boolean = this?.let { File(it) }?.exists() == true
