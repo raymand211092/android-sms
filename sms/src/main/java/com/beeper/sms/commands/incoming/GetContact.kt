@@ -11,6 +11,10 @@ data class GetContact(var user_guid: String) {
         var phones: List<String>? = null,
         var emails: List<String>? = null,
     ) {
+        override fun toString(): String {
+            return "Response(first_name=$first_name, last_name=$last_name, nickname=$nickname, avatar=${avatar?.byteSize}, phones=$phones, emails=$emails)"
+        }
+
         companion object {
             val ContactRow.asResponse: Response
                 get() = Response(
@@ -20,6 +24,9 @@ data class GetContact(var user_guid: String) {
                     avatar = avatar,
                     phones = listOfNotNull(phoneNumber),
                 )
+
+            private val String.byteSize: String
+                get() = "<${toByteArray().size} bytes>"
         }
     }
 }
