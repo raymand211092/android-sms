@@ -9,7 +9,7 @@ class ThreadProvider constructor(context: Context) {
     private val cr = context.contentResolver
 
     fun getRecentConversations(minTimestamp: Long): List<String> =
-        cr.map(URI_THREADS, "${Sms.Conversations.DATE} > $minTimestamp") {
+        cr.map(URI_THREADS, "${Sms.Conversations.DATE} > $minTimestamp AND ${ThreadsColumns.MESSAGE_COUNT} > 0") {
             getChatGuid(it.getLong(ThreadsColumns._ID))
         }
 
