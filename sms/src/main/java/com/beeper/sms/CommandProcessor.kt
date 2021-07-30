@@ -13,8 +13,6 @@ import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.ThreadProvider
 import com.google.gson.Gson
-import com.klinker.android.send_message.Transaction
-import java.io.File
 
 class CommandProcessor constructor(
     private val context: Context,

@@ -39,6 +39,7 @@ class Bridge private constructor() {
         channelIcon: Int? = null,
         configPathProvider: suspend () -> String?,
     ) {
+        Log.d(TAG, "init")
         this.configPathProvider = configPathProvider
         this.channelId = channelId
         this.channelIcon = channelIcon
@@ -62,7 +63,8 @@ class Bridge private constructor() {
 
     @Synchronized
     private fun getProcess(): Process? {
-        val cache = cacheDir ?: throw IllegalStateException("Must call init")
+        val config = configPath ?: return null
+        val cache = cacheDir ?: return null
         if (process?.running != true) {
             Log.d(TAG, "Starting mautrix-imessage")
             process = ProcessBuilder()
@@ -71,7 +73,7 @@ class Bridge private constructor() {
                     "TMPDIR" to cache,
                 )
                 .directory(nativeLibDir.toFile())
-                .command("./libmautrix.so", "-c", configPath)
+                .command("./libmautrix.so", "-c", config)
                 .start()
         }
         return process
@@ -86,12 +88,14 @@ class Bridge private constructor() {
         configPath
             ?.toFile()
             ?.inputStream()
-            ?.use { Yaml().load(it) as Config }
+            ?.use { Yaml().loadAs(it, Config::class.java) }
             ?.let {
                 it.appservice?.database?.delete()
                 it.logging?.directory?.delete()
             }
         cacheDir?.delete()
+        configPath = null
+        configPathProvider = null
     }
 
     fun stop() {
@@ -113,6 +117,9 @@ class Bridge private constructor() {
     fun send(error: Error) = send(error as Any)
 
     fun send(command: Command) = send(command as Any)
+
+    val running: Boolean
+        get() = getProcess()?.running == true
 
     private fun send(any: Any) = scope.launch(outgoing) {
         getProcess()

@@ -1,4 +1,4 @@
-package com.beeper.sms
+package com.beeper.sms.app
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,10 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
@@ -21,11 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.beeper.sms.Bridge
 import com.beeper.sms.activity.NewChatActivity
 import com.beeper.sms.activity.StartChatButton
+import com.beeper.sms.activity.ui.theme.BeeperSMSBridgeTheme
 import com.beeper.sms.extensions.isDefaultSmsApp
 import com.beeper.sms.extensions.requestSmsRoleIntent
-import com.beeper.sms.ui.theme.BeeperSMSBridgeTheme
 
 
 class MainActivity : ComponentActivity() {
@@ -35,7 +34,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             BeeperSMSBridgeTheme {
-                Body(isDefault.value) { Bridge.INSTANCE.stop() }
+                Body(
+                    isDefault = isDefault.value,
+                    signOut = { Bridge.INSTANCE.signOut() },
+                    killMautrix = { Bridge.INSTANCE.stop() },
+                )
             }
         }
     }
@@ -50,6 +53,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Body(
     isDefault: Boolean,
+    signOut: () -> Unit,
     killMautrix: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -78,6 +82,10 @@ fun Body(
             ) {
                 if (isDefault) {
                     KillButton(killMautrix)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = signOut) {
+                        Text(text = "Sign out")
+                    }
                 } else {
                     RequestPermissionButton()
                 }
@@ -111,7 +119,7 @@ fun RequestPermissionButton() {
 @Composable
 fun PreviewNotDefaultDark() {
     BeeperSMSBridgeTheme(darkTheme = true) {
-        Body(false) {}
+        Body(false, {}, {})
     }
 }
 
@@ -119,7 +127,7 @@ fun PreviewNotDefaultDark() {
 @Composable
 fun PreviewDefaultDark() {
     BeeperSMSBridgeTheme(darkTheme = true) {
-        Body(true) {}
+        Body(true, {}, {})
     }
 }
 
@@ -127,7 +135,7 @@ fun PreviewDefaultDark() {
 @Composable
 fun PreviewNotDefault() {
     BeeperSMSBridgeTheme {
-        Body(false) {}
+        Body(false, {}, {})
     }
 }
 
@@ -135,7 +143,7 @@ fun PreviewNotDefault() {
 @Composable
 fun PreviewDefault() {
     BeeperSMSBridgeTheme {
-        Body(true) {}
+        Body(true, {}, {})
     }
 }
 

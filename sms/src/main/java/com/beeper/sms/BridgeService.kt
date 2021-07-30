@@ -61,7 +61,12 @@ class BridgeService : Service() {
                 }
             }
         }
-        return START_REDELIVER_INTENT
+        return if (Bridge.INSTANCE.running) {
+            START_REDELIVER_INTENT
+        } else {
+            stopSelf(startId)
+            START_NOT_STICKY
+        }
     }
 
     private fun restartOnInterrupt(block: () -> Unit) = scope.launch {

@@ -9,7 +9,7 @@ android {
     buildToolsVersion = "30.0.3"
 
     defaultConfig {
-        applicationId = "com.beeper.sms"
+        applicationId = "com.beeper.sms.app"
         minSdk = 23
         targetSdk = 30
         versionCode = 1

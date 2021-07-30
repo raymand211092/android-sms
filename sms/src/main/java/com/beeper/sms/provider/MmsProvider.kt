@@ -2,7 +2,6 @@ package com.beeper.sms.provider
 
 import android.content.Context
 import android.net.Uri
-import android.provider.Telephony
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message

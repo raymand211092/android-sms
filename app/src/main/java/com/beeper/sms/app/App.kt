@@ -1,8 +1,9 @@
-package com.beeper.sms
+package com.beeper.sms.app
 
 import android.app.Application
 import android.util.Log
 import androidx.work.Configuration
+import com.beeper.sms.Bridge
 import com.beeper.sms.extensions.writeTo
 import java.io.File
 
