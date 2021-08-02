@@ -2,9 +2,11 @@ package com.beeper.sms.receivers
 
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.util.Log
 import androidx.core.net.toUri
 import com.beeper.sms.Bridge
+import com.beeper.sms.CommandProcessor.Companion.EXTRA_COMMAND_ID
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
 import com.beeper.sms.extensions.printExtras
@@ -17,7 +19,8 @@ class MySentReceiver : SentReceiver() {
     override fun onMessageStatusUpdated(context: Context, intent: Intent?, resultCode: Int) {
         Log.d(TAG, intent.printExtras())
         val uri = intent?.getStringExtra("message_uri")?.toUri()
-        val commandId = (intent?.getParcelableExtra(SENT_SMS_BUNDLE) as? Command)?.id
+        val commandId =
+            (intent?.getParcelableExtra(SENT_SMS_BUNDLE) as? Bundle)?.getInt(EXTRA_COMMAND_ID)
         val message = uri?.let { SmsProvider(context).getMessage(it) }
         when {
             uri == null -> Log.e(TAG, "Missing uri")

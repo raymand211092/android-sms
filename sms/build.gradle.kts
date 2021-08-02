@@ -3,7 +3,6 @@ plugins {
     id("kotlin-android")
     kotlin("android")
     kotlin("kapt")
-    id("kotlin-parcelize")
     id("maven-publish")
 }
 
@@ -97,7 +96,7 @@ afterEvaluate {
 
 dependencies {
     implementation("androidx.work:work-runtime-ktx:${Versions.work}")
-    implementation("com.klinkerapps:android-smsmms:5.2.6")
+    implementation("com.gitlab.beeper:android-smsmms:8028f78deb")
     implementation("org.yaml:snakeyaml:1.29")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.0")
     implementation("io.coil-kt:coil-compose:1.3.0")

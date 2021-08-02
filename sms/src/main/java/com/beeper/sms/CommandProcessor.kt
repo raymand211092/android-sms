@@ -1,6 +1,7 @@
 package com.beeper.sms
 
 import android.content.Context
+import android.os.Bundle
 import android.util.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.Error
@@ -60,7 +61,9 @@ class CommandProcessor constructor(
                     data.text,
                     data.recipientList,
                     context.getThread(data),
-                    command
+                    Bundle().apply {
+                        putInt(EXTRA_COMMAND_ID, command.id!!)
+                    },
                 )
             }
             "send_media" -> {
@@ -76,7 +79,9 @@ class CommandProcessor constructor(
                     data.mime_type,
                     data.file_name,
                     context.getThread(data),
-                    command
+                    Bundle().apply {
+                        putInt(EXTRA_COMMAND_ID, command.id!!)
+                    },
                 )
             }
             "get_chats" -> {
@@ -136,5 +141,6 @@ class CommandProcessor constructor(
     companion object {
         private const val TAG = "CommandProcessor"
         private val gson = Gson()
+        const val EXTRA_COMMAND_ID = "extra_command_id"
     }
 }
