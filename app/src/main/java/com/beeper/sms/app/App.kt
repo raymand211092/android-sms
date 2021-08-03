@@ -16,6 +16,7 @@ class App : Application(), Configuration.Provider {
             assets.open("config.yaml").writeTo(config)
             config.absolutePath
         }
+        Bridge.INSTANCE.start(this)
     }
 
     override fun getWorkManagerConfiguration(): Configuration = Configuration.Builder()

@@ -45,10 +45,10 @@ class Bridge private constructor() {
         this.channelIcon = channelIcon
         nativeLibDir = context.applicationInfo.nativeLibraryDir
         cacheDir = context.cacheDir("mautrix")
-        start(context)
     }
 
     fun start(context: Context?) = scope.launch {
+        Log.d(TAG, "start")
         try {
             if (context?.isDefaultSmsApp == true &&
                 getConfig().exists() &&
