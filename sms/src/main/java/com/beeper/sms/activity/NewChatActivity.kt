@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Patterns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,7 +14,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,60 +32,32 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberImagePainter
-import com.beeper.sms.Bridge
 import com.beeper.sms.R
 import com.beeper.sms.activity.NewChatActivity.Companion.isPhoneNumber
 import com.beeper.sms.activity.ui.theme.BeeperSMSBridgeTheme
-import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.outgoing.Chat
-import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.ContactRow
-import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 class NewChatActivity : ComponentActivity() {
-    private lateinit var contactProvider: ContactProvider
+    private val viewModel: NewChatActivityViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        contactProvider = ContactProvider(applicationContext)
 
         setContent {
             BeeperSMSBridgeTheme {
-                val scope = rememberCoroutineScope()
-                var currentJob by remember { mutableStateOf<Job?>(null) }
-                var text by remember { mutableStateOf("") }
-                var contacts by remember { mutableStateOf(emptyList<ContactRow>()) }
-                SideEffect {
-                    currentJob?.cancel()
-                    currentJob = scope.launch {
-                        contacts = contactProvider.searchContacts(text)
-                    }
-                }
+                val text by viewModel.text.observeAsState("")
+                val dialpad by viewModel.dialpad.observeAsState(false)
+                val contacts by viewModel.contacts.observeAsState(emptyList())
                 Body(
                     text = text,
+                    dialpad = dialpad,
                     contacts = contacts,
                     back = onBackPressedDispatcher::onBackPressed,
-                    search = { text = it },
-                    onClick = { c ->
-                        val room =
-                            contactProvider
-                                .getContacts(listOfNotNull(c.phoneNumber))
-                                .map { contact -> contact.nickname }
-                                .joinToString()
-                        Bridge.INSTANCE.send(
-                            Command(
-                                command = "chat",
-                                data = Chat(
-                                    chat_guid = listOfNotNull(c.phoneNumber!!).chatGuid,
-                                    title = room,
-                                    members = listOfNotNull(c.phoneNumber!!)
-                                )
-                            )
-                        )
+                    search = viewModel::searchContacts,
+                    toggleDialpad = viewModel::toggleDialpad,
+                    onSelect = { c ->
+                        c.phoneNumber?.let { viewModel.createChatRoom(it) }
                         finish()
                     }
                 )
@@ -99,11 +75,13 @@ class NewChatActivity : ComponentActivity() {
 
 @Composable
 fun Body(
-    text: String,
+    text: String = "",
+    dialpad: Boolean = false,
     contacts: List<ContactRow>,
-    back: () -> Unit,
-    search: (String) -> Unit,
-    onClick: (ContactRow) -> Unit,
+    back: () -> Unit = {},
+    search: (String) -> Unit = {},
+    toggleDialpad: () -> Unit = {},
+    onSelect: (ContactRow) -> Unit = {},
 ) {
     val systemUiController = rememberSystemUiController()
     val useDarkIcons = MaterialTheme.colors.isLight
@@ -137,7 +115,7 @@ fun Body(
                             color = MaterialTheme.colors.onSurface,
                             modifier = Modifier.padding(16.dp, 16.dp, 20.dp, 16.dp)
                         )
-                        SearchInput(text, search)
+                        SearchInput(text, dialpad, toggleDialpad, search)
                     }
                 }
             }
@@ -151,7 +129,7 @@ fun Body(
             }
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 items(sendTo + contacts) {
-                    Contact(it, onClick = onClick)
+                    Contact(it, onSelect = onSelect)
                 }
             }
         }
@@ -161,9 +139,10 @@ fun Body(
 @Composable
 fun SearchInput(
     text: String,
-    search: (String) -> Unit
+    dialpad: Boolean,
+    toggleDialpad: () -> Unit,
+    search: (String) -> Unit,
 ) {
-    var dialpad by remember { mutableStateOf(false) }
     TextField(
         modifier = Modifier.fillMaxWidth(),
         value = text,
@@ -179,7 +158,7 @@ fun SearchInput(
         onValueChange = { search(it) },
         placeholder = { Text(text = stringResource(R.string.new_conversation_hint)) },
         trailingIcon = {
-            IconButton(onClick = { dialpad = !dialpad }) {
+            IconButton(onClick = toggleDialpad) {
                 Icon(
                     painter = painterResource(
                         if (dialpad) {
@@ -197,11 +176,11 @@ fun SearchInput(
 }
 
 @Composable
-fun Contact(c: ContactRow, onClick: (ContactRow) -> Unit) {
+fun Contact(c: ContactRow, onSelect: (ContactRow) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick(c) }
+            .clickable { onSelect(c) }
             .padding(0.dp, 8.dp)
     ) {
         Column(
@@ -212,9 +191,7 @@ fun Contact(c: ContactRow, onClick: (ContactRow) -> Unit) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            c.avatar
-                ?.let { ContactAvatar(uri = it) }
-                ?: ContactLetter(c)
+            c.avatar?.let { ContactAvatar(uri = it) } ?: ContactLetter(c)
         }
         Column(modifier = Modifier.padding(0.dp, 0.dp, 16.dp, 0.dp)) {
             Text(text = c.displayName, style = MaterialTheme.typography.body1)
@@ -255,7 +232,7 @@ fun ContactLetter(c: ContactRow) {
     Box(
         modifier = Modifier
             .size(40.dp)
-            .background(colorResource(id = colors[abs(c.contactHash) % colors.size])),
+            .background(colorResource(id = c.contactColor)),
     ) {
         Text(
             text = c.contactLetter.toString(),
@@ -292,30 +269,6 @@ fun StartChatButton(onClick: () -> Unit) {
     )
 }
 
-private val colors = listOf(
-    R.color.tomato,
-    R.color.tangerine,
-    R.color.pumpkin,
-    R.color.mango,
-    R.color.banana,
-    R.color.citron,
-    R.color.avocado,
-    R.color.pistachio,
-    R.color.basil,
-    R.color.sage,
-    R.color.peacock,
-    R.color.cobalt,
-    R.color.lavender,
-    R.color.wisteria,
-    R.color.amethyst,
-    R.color.grape,
-    R.color.radicchio,
-    R.color.cherry_blossom,
-    R.color.flamingo,
-    R.color.graphite,
-    R.color.birch,
-)
-
 private val previewUser1 = ContactRow(
     first_name = "Test",
     last_name = "User",
@@ -326,7 +279,7 @@ private val previewUser1 = ContactRow(
 private val previewUser2 = ContactRow(
     first_name = "Test",
     last_name = "User",
-    phoneNumber = "+13125551234",
+    phoneNumber = "+13125555678",
     phoneType = "Work"
 )
 
@@ -334,7 +287,7 @@ private val previewUser2 = ContactRow(
 @Composable
 fun DefaultPreviewDark() {
     BeeperSMSBridgeTheme(darkTheme = true) {
-        Body("", listOf(previewUser1, previewUser2), {}, {}) {}
+        Body(contacts = listOf(previewUser1, previewUser2))
     }
 }
 
@@ -342,6 +295,6 @@ fun DefaultPreviewDark() {
 @Composable
 fun DefaultPreview() {
     BeeperSMSBridgeTheme {
-        Body("", listOf(previewUser1, previewUser2), {}, {}) {}
+        Body(contacts = listOf(previewUser1, previewUser2))
     }
 }
