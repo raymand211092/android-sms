@@ -10,6 +10,7 @@ import com.beeper.sms.commands.outgoing.Chat
 import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.ContactRow
 import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
+import com.beeper.sms.provider.ThreadProvider.Companion.normalize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -39,7 +40,11 @@ class NewChatActivityViewModel(application: Application) : AndroidViewModel(appl
             Bridge.INSTANCE.send(
                 Command(
                     command = "chat",
-                    data = Chat(chat_guid = numbers.chatGuid, title = room, members = numbers)
+                    data = Chat(
+                        chat_guid = numbers.chatGuid,
+                        title = room,
+                        members = numbers.map { it.normalize }
+                    )
                 )
             )
         }

@@ -6,6 +6,7 @@ import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
+import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
 import com.google.android.mms.pdu_alt.PduHeaders
 
 class MmsProvider constructor(
@@ -33,7 +34,7 @@ class MmsProvider constructor(
                 subject = it.getString(SUBJECT) ?: "",
                 text = attachments.mapNotNull { a -> a.text }.joinToString(""),
                 chat_guid = threadProvider.getChatGuid(it.getLong(THREAD_ID)) ?: return@map null,
-                sender_guid = if (isFromMe) null else "SMS;-;${getSender(id)}",
+                sender_guid = if (isFromMe) null else getSender(id)?.chatGuid,
                 is_from_me = isFromMe,
                 attachments = attachments.mapNotNull { a -> a.attachment },
             )

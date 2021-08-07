@@ -2,8 +2,10 @@ package com.beeper.sms.provider
 
 import android.content.Context
 import android.provider.Telephony.*
+import android.telephony.PhoneNumberUtils
 import androidx.core.net.toUri
 import com.beeper.sms.extensions.*
+import java.util.*
 
 class ThreadProvider constructor(context: Context) {
     private val cr = context.contentResolver
@@ -75,7 +77,17 @@ class ThreadProvider constructor(context: Context) {
         val Boolean.isMms: String
             get() = "${MmsSms.TYPE_DISCRIMINATOR_COLUMN} ${if (this) "=" else "!="} 'mms'"
 
+        internal val String.normalize: String
+            get() =
+                PhoneNumberUtils
+                    .formatNumberToE164(this, Locale.getDefault().country)
+                    ?.takeIf { it != this }
+                    ?: filterNot { it.isWhitespace() }
+
+        val String.chatGuid: String
+            get() = listOf(this).chatGuid
+
         val List<String>.chatGuid: String
-            get() = "SMS;${if (size == 1) "-" else "+"};${joinToString(" ")}"
+            get() = "SMS;${if (size == 1) "-" else "+"};${joinToString(" ") { it.normalize }}"
     }
 }

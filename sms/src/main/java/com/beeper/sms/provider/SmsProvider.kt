@@ -11,6 +11,7 @@ import android.text.TextUtils
 import android.util.Log
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
+import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
 
 
 class SmsProvider constructor(context: Context) {
@@ -27,13 +28,14 @@ class SmsProvider constructor(context: Context) {
                 MESSAGE_TYPE_OUTBOX, MESSAGE_TYPE_SENT -> true
                 else -> false
             }
+            val chatGuid = address!!.chatGuid
             Message(
                 guid = it.getInt(_ID).toString(),
                 timestamp = it.getLong(DATE) / 1000,
                 subject = it.getString(SUBJECT) ?: "",
                 text = it.getString(BODY) ?: "",
-                chat_guid = "SMS;-;$address",
-                sender_guid = if (isFromMe) null else "SMS;-;$address",
+                chat_guid = chatGuid,
+                sender_guid = if (isFromMe) null else chatGuid,
                 is_from_me = isFromMe,
             )
         }
