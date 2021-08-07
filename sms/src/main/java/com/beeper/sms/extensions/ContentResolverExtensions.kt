@@ -32,7 +32,7 @@ fun <T> ContentResolver.map(
 ): List<T> {
     val result = ArrayList<T>()
     query(uri, projection, where, null, order)?.use {
-        Log.v(TAG, "$uri where=$where: ${it.count} results\n${it.dumpToString()}")
+        Log.d(TAG, "$uri where=$where: ${it.count} results\n${it.dumpToString()}")
         while (it.moveToNext()) {
             block(it)?.let { t -> result.add(t) }
         }
