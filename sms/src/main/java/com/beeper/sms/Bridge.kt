@@ -85,15 +85,6 @@ class Bridge private constructor() {
     fun signOut() {
         Log.d(TAG, "Signing out")
         stop()
-        configPath
-            ?.toFile()
-            ?.inputStream()
-            ?.use { Yaml().loadAs(it, Config::class.java) }
-            ?.let {
-                it.appservice?.database?.delete()
-                it.logging?.directory?.delete()
-            }
-        cacheDir?.delete()
         configPath = null
         configPathProvider = null
     }
