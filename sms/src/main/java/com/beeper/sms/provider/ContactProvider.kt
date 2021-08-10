@@ -35,12 +35,8 @@ class ContactProvider constructor(private val context: Context) {
 
     suspend fun searchContacts(text: String): List<ContactRow> =
         withContext(Dispatchers.IO) {
-            val uri = Uri.withAppendedPath(
-                if (text.isBlank()) Contacts.CONTENT_URI else Contacts.CONTENT_FILTER_URI,
-                Uri.encode(text)
-            )
             cr
-                .flatMap(uri, where = "${Contacts.HAS_PHONE_NUMBER} = 1") { c ->
+                .flatMap(text.searchUri, where = "${Contacts.HAS_PHONE_NUMBER} = 1") { c ->
                     val id = c.getLong(Contacts._ID)
                     val contact = getContact(id) ?: return@flatMap emptyList<ContactRow>()
                     cr.map(
@@ -91,5 +87,12 @@ class ContactProvider constructor(private val context: Context) {
                 PhoneLookup.CONTENT_FILTER_URI,
                 Uri.encode("tel:${this}")
             )
+
+        internal val String.searchUri: Uri
+            get() = if (isBlank()) {
+                Contacts.CONTENT_URI
+            } else {
+                Uri.withAppendedPath(Contacts.CONTENT_FILTER_URI, Uri.encode(this))
+            }
     }
 }
