@@ -9,20 +9,6 @@ import android.util.Log
 import androidx.core.database.getStringOrNull
 import com.beeper.sms.BuildConfig
 
-fun <T> ContentResolver.flatMap(
-    uri: Uri,
-    where: String? = null,
-    projection: Array<String>? = null,
-    order: String? = null,
-    block: (Cursor) -> List<T>?
-): List<T> {
-    val result = ArrayList<T>()
-    map(uri, where, projection, order) {
-        block(it)?.let { l -> result.addAll(l)}
-    }
-    return result
-}
-
 fun <T> ContentResolver.map(
     uri: Uri,
     where: String? = null,
