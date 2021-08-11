@@ -31,6 +31,10 @@ class SendMessage constructor(
             Log.e(TAG, "Failed to find $uri")
             return Result.failure()
         }
+        if (message.sent_from_matrix) {
+            Log.d(TAG, "Message originated from Matrix: $uri")
+            return Result.success()
+        }
         Bridge.INSTANCE.send(Command("message", message))
         return Result.success()
     }

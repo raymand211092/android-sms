@@ -12,6 +12,7 @@ import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
 
 
 class SmsProvider constructor(context: Context) {
+    private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
     fun getMessage(uri: Uri) = uri.lastPathSegment?.toLongOrNull()?.let { getMessage(it) }
@@ -34,6 +35,7 @@ class SmsProvider constructor(context: Context) {
                 chat_guid = chatGuid,
                 sender_guid = if (isFromMe) null else chatGuid,
                 is_from_me = isFromMe,
+                sent_from_matrix = it.getString(CREATOR) == packageName
             )
         }
 }

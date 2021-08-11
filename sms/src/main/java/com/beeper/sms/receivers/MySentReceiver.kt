@@ -11,21 +11,18 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.SmsProvider
-import com.beeper.sms.work.WorkManager
 import com.klinker.android.send_message.SentReceiver
 import com.klinker.android.send_message.Transaction.SENT_SMS_BUNDLE
 
 class MySentReceiver : SentReceiver() {
     override fun onMessageStatusUpdated(context: Context, intent: Intent?, resultCode: Int) {
         Log.d(TAG, intent.printExtras())
-        val uri = intent?.getStringExtra("message_uri")?.toUri()
+        val uri = intent?.getStringExtra("uri")?.toUri()
         val commandId =
             (intent?.getParcelableExtra(SENT_SMS_BUNDLE) as? Bundle)?.getInt(EXTRA_COMMAND_ID)
         val message = uri?.let { SmsProvider(context).getMessage(it) }
         when {
             uri == null -> Log.e(TAG, "Missing uri")
-            commandId == null ->
-                WorkManager(context).sendMessage(uri) // did not originate from mautrix-imessage
             message != null ->
                 Bridge.INSTANCE.send(
                     Command(

@@ -53,6 +53,7 @@ class Bridge private constructor() {
                 getConfig().exists() &&
                 getProcess()?.running == true
             ) {
+                SmsObserver(context).registerObserver()
                 context.startBridge(channelId, channelIcon)
             }
         } catch (e: Exception) {
