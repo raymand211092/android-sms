@@ -1,4 +1,4 @@
-package com.beeper.sms.activity.ui.theme
+package com.beeper.sms.app.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.MaterialTheme

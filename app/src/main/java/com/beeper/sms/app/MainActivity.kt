@@ -1,6 +1,5 @@
 package com.beeper.sms.app
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -20,9 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.beeper.sms.Bridge
-import com.beeper.sms.activity.NewChatActivity
-import com.beeper.sms.activity.StartChatButton
-import com.beeper.sms.activity.ui.theme.BeeperSMSBridgeTheme
+import com.beeper.sms.app.theme.BeeperSMSBridgeTheme
 import com.beeper.sms.extensions.isDefaultSmsApp
 import com.beeper.sms.extensions.requestSmsRoleIntent
 
@@ -56,21 +53,11 @@ fun Body(
     signOut: () -> Unit,
     killMautrix: () -> Unit,
 ) {
-    val context = LocalContext.current
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(id = R.string.app_name)) }
             )
-        },
-        floatingActionButton = {
-            if (isDefault) {
-                StartChatButton {
-                    context.startActivity(
-                        Intent(context, NewChatActivity::class.java)
-                    )
-                }
-            }
         },
         content = {
             Column(

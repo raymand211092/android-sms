@@ -52,10 +52,14 @@ dependencies {
 
     implementation("androidx.compose.ui:ui:${Versions.compose}")
     implementation("androidx.work:work-runtime-ktx:${Versions.work}")
-    implementation("androidx.appcompat:appcompat:1.3.1")
     implementation("androidx.compose.ui:ui-tooling:${Versions.compose}")
     implementation("androidx.compose.material:material:${Versions.compose}")
-    implementation("androidx.activity:activity-compose:1.3.0-rc02")
+    implementation("androidx.activity:activity-compose:1.3.1")
+    implementation("androidx.compose.ui:ui:${Versions.compose}")
+    implementation("androidx.compose.material:material:${Versions.compose}")
+    implementation("com.google.android.material:material:1.4.0")
+    implementation("androidx.compose.ui:ui-tooling-preview:${Versions.compose}")
+
     testImplementation("junit:junit:4.+")
     androidTestImplementation("androidx.test.ext:junit:1.1.2")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.3.0")

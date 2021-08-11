@@ -18,11 +18,6 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application android:extractNativeLibs="true">
-        <activity
-            android:name=".activity.NewChatActivity"
-            android:exported="true"
-            android:theme="@style/Theme.BeeperSMSBridge.NoActionBar" />
-
         <receiver
             android:name=".receivers.SmsReceiver"
             android:permission="android.permission.BROADCAST_SMS"
