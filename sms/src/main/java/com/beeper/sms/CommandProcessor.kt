@@ -130,7 +130,7 @@ class CommandProcessor constructor(
                 Error.Reason(
                     "no_permission",
                     context.getString(
-                        R.string.not_default_sms_app,
+                        R.string.missing_sms_permissions,
                         context.getString(R.string.app_name)
                     )
                 )
