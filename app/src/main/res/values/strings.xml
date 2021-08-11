@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">SMS Bridge</string>
-    <string name="set_default_sms_app">Set default SMS app</string>
+    <string name="request_permissions">Request permissions</string>
 </resources>

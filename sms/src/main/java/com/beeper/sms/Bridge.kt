@@ -8,7 +8,7 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.Error
 import com.beeper.sms.extensions.cacheDir
 import com.beeper.sms.extensions.env
-import com.beeper.sms.extensions.isDefaultSmsApp
+import com.beeper.sms.extensions.hasPermissions
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
@@ -49,7 +49,7 @@ class Bridge private constructor() {
     fun start(context: Context?) = scope.launch {
         Log.d(TAG, "start")
         try {
-            if (context?.isDefaultSmsApp == true &&
+            if (context?.hasPermissions == true &&
                 getConfig().exists() &&
                 getProcess()?.running == true
             ) {

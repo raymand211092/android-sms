@@ -8,7 +8,7 @@ import com.beeper.sms.commands.Error
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
 import com.beeper.sms.extensions.getThread
-import com.beeper.sms.extensions.isDefaultSmsApp
+import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.SmsProvider
@@ -52,7 +52,7 @@ class CommandProcessor constructor(
                 )
             }
             "send_message" -> {
-                if (!context.isDefaultSmsApp) {
+                if (!context.hasPermissions) {
                     noPermissionError(command.id!!)
                     return
                 }
@@ -67,7 +67,7 @@ class CommandProcessor constructor(
                 )
             }
             "send_media" -> {
-                if (!context.isDefaultSmsApp) {
+                if (!context.hasPermissions) {
                     noPermissionError(command.id!!)
                     return
                 }

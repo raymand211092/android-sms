@@ -59,6 +59,7 @@ dependencies {
     implementation("androidx.compose.material:material:${Versions.compose}")
     implementation("com.google.android.material:material:1.4.0")
     implementation("androidx.compose.ui:ui-tooling-preview:${Versions.compose}")
+    implementation("com.google.accompanist:accompanist-permissions:0.16.1")
 
     testImplementation("junit:junit:4.+")
     androidTestImplementation("androidx.test.ext:junit:1.1.2")

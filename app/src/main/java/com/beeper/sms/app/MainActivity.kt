@@ -2,9 +2,7 @@ package com.beeper.sms.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.Scaffold
@@ -14,27 +12,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.beeper.sms.Bridge
 import com.beeper.sms.app.theme.BeeperSMSBridgeTheme
-import com.beeper.sms.extensions.isDefaultSmsApp
-import com.beeper.sms.extensions.requestSmsRoleIntent
+import com.beeper.sms.extensions.SMS_PERMISSIONS
+import com.beeper.sms.extensions.hasPermissions
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
 
 class MainActivity : ComponentActivity() {
     private var isDefault = mutableStateOf(false)
 
+    @ExperimentalPermissionsApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             BeeperSMSBridgeTheme {
+                val permissionsState =
+                    rememberMultiplePermissionsState(permissions = SMS_PERMISSIONS)
                 Body(
-                    isDefault = isDefault.value,
+                    hasPermission = permissionsState.allPermissionsGranted,
                     signOut = { Bridge.INSTANCE.signOut() },
                     killMautrix = { Bridge.INSTANCE.stop() },
+                    requestPermissions = { permissionsState.launchMultiplePermissionRequest() }
                 )
             }
         }
@@ -43,15 +46,16 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
 
-        isDefault.value = isDefaultSmsApp
+        isDefault.value = hasPermissions
     }
 }
 
 @Composable
 fun Body(
-    isDefault: Boolean,
+    hasPermission: Boolean,
     signOut: () -> Unit,
     killMautrix: () -> Unit,
+    requestPermissions: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -67,14 +71,14 @@ fun Body(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (isDefault) {
+                if (hasPermission) {
                     KillButton(killMautrix)
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = signOut) {
                         Text(text = "Sign out")
                     }
                 } else {
-                    RequestPermissionButton()
+                    RequestPermissionButton(requestPermissions)
                 }
             }
         }
@@ -91,14 +95,9 @@ fun KillButton(action: () -> Unit) {
 }
 
 @Composable
-fun RequestPermissionButton() {
-    val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-        onResult = {}
-    )
-    Button(onClick = { launcher.launch(context.requestSmsRoleIntent()) }) {
-        Text(text = stringResource(id = R.string.set_default_sms_app))
+fun RequestPermissionButton(requestPermissions: () -> Unit) {
+    Button(onClick = requestPermissions) {
+        Text(text = stringResource(id = R.string.request_permissions))
     }
 }
 

@@ -11,7 +11,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.beeper.sms.extensions.isDefaultSmsApp
+import com.beeper.sms.extensions.hasPermissions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,7 +40,7 @@ class BridgeService : Service() {
                 .setContentText(getString(R.string.notification_body))
                 .build()
         )
-        if (!isDefaultSmsApp) {
+        if (!hasPermissions) {
             Log.e(TAG, "stopping service: not default SMS app")
             stopSelf(startId)
             return START_NOT_STICKY
