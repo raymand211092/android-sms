@@ -1,14 +1,8 @@
 package com.beeper.sms.extensions
 
 import android.Manifest.permission.*
-import android.app.Activity
-import android.app.role.RoleManager
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.pm.PackageManager.PERMISSION_GRANTED
-import android.os.Build
-import android.provider.Telephony
 import android.provider.Telephony.Threads
 import androidx.core.content.ContextCompat
 import com.beeper.sms.commands.incoming.GroupMessaging
