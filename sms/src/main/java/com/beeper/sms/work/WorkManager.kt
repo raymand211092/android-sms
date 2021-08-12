@@ -15,6 +15,7 @@ class WorkManager constructor(context: Context) {
         Log.d(TAG, uri.toString())
         OneTimeWorkRequest
             .Builder(SendMessage::class.java)
+            .setBackoffCriteria(BackoffPolicy.LINEAR, 10L, TimeUnit.SECONDS)
             .setInputData(Data.Builder().putString(SendMessage.URI, uri.toString()).build())
             .setConstraints(
                 Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()

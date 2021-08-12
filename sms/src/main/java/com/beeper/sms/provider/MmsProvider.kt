@@ -41,7 +41,8 @@ class MmsProvider constructor(
                 sender_guid = if (isFromMe) null else getSender(id)?.chatGuid,
                 is_from_me = isFromMe,
                 attachments = attachments.mapNotNull { a -> a.attachment },
-                sent_from_matrix = it.getString(CREATOR) == packageName
+                sent_from_matrix = it.getString(CREATOR) == packageName,
+                is_text_only = it.getInt(TEXT_ONLY) == 1,
             )
         }
 
