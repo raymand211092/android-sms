@@ -100,7 +100,7 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:${Versions.work}")
     implementation("com.gitlab.beeper:android-smsmms:8028f78deb")
     implementation("org.yaml:snakeyaml:1.29")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.1")
     implementation("androidx.core:core-ktx:1.6.0")
     implementation("com.google.code.gson:gson:2.8.7")
 

@@ -1,6 +1,7 @@
 package com.beeper.sms.provider
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
@@ -20,6 +21,7 @@ class ContactProvider constructor(private val context: Context) {
 
     fun getContacts(phones: List<String>) = phones.map { getContact(it) }
 
+    @SuppressLint("InlinedApi")
     fun getContact(phone: String): ContactRow = when {
         !context.hasPermission(Manifest.permission.READ_CONTACTS) -> phone.defaultResponse
         Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> phone.defaultResponse
