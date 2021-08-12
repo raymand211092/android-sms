@@ -20,14 +20,16 @@ class SmsMmsSender(private val context: Context) {
         thread: Long = 0,
         sentMessageParcelable: Parcelable? = null,
         subject: String? = null,
-    ) = newTransaction().sendNewMessage(
-        Message(text, recipients.toTypedArray()).apply {
+    ) {
+        val transaction = newTransaction()
+        val message = Message(text, recipients.toTypedArray()).apply {
             this.subject = subject
-        },
-        thread,
-        sentMessageParcelable,
-        null
-    )
+            if (transaction.checkMMS(this)) {
+                setupMms()
+            }
+        }
+        transaction.sendNewMessage(message, thread, sentMessageParcelable, null)
+    }
 
     fun sendMessage(
         recipients: List<String>,
@@ -39,8 +41,7 @@ class SmsMmsSender(private val context: Context) {
     ) = newTransaction().sendNewMessage(
         Message("", recipients.toTypedArray()).apply {
             addMedia(File(path).readBytes(), mimeType, filename)
-            save = false
-            messageUri = Telephony.Sms.Conversations.CONTENT_URI
+            setupMms()
         },
         thread,
         sentMessageParcelable,
@@ -57,6 +58,11 @@ class SmsMmsSender(private val context: Context) {
         private val settings = Settings().apply {
             deliveryReports = true
             useSystemSending = true
+        }
+
+        private fun Message.setupMms() = this.apply {
+            save = false
+            messageUri = Telephony.Sms.Conversations.CONTENT_URI
         }
     }
 }
