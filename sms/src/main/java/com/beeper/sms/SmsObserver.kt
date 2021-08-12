@@ -25,12 +25,13 @@ class SmsObserver(private val context: Context) : ContentObserver(getHandler()) 
     override fun onChange(selfChange: Boolean, uri: Uri?) {
         super.onChange(selfChange, uri)
         when(uriMatcher.match(uri)) {
-            URI_SMS, URI_MMS -> {
+            URI_SEND -> {
                 Log.v(TAG, "${hashCode()} new message: $uri")
                 workManager.sendMessage(uri!!)
             }
-            URI_MMS_SMS -> {
-                Log.d(TAG, "${hashCode()} CHECK FOR NEW OUTGOING MMS: $uri)")
+            URI_BACKFILL -> {
+                Log.v(TAG, "${hashCode()} schedule check for new outgoing")
+                workManager.backfillSentMMS()
             }
             URI_IGNORE -> Log.v(TAG, "${hashCode()} Ignored $uri")
             else -> Log.d(TAG, "${hashCode()} Unhandled $uri")
@@ -48,13 +49,12 @@ class SmsObserver(private val context: Context) : ContentObserver(getHandler()) 
         private const val AUTH_MMS = "mms"
         private const val AUTH_MMS_SMS = "mms-sms"
         private const val URI_IGNORE = 1
-        private const val URI_SMS = 2
-        private const val URI_MMS = 3
-        private const val URI_MMS_SMS = 4
+        private const val URI_SEND = 2
+        private const val URI_BACKFILL = 4
         private val uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
-            addURI(AUTH_SMS, "/#", URI_SMS)
-            addURI(AUTH_MMS, "/inbox/#", URI_MMS)
-            addURI(AUTH_MMS_SMS, "/", URI_MMS_SMS)
+            addURI(AUTH_SMS, "/#", URI_SEND)
+            addURI(AUTH_MMS, "/inbox/#", URI_SEND)
+            addURI(AUTH_MMS_SMS, "/", URI_BACKFILL)
             addURI(AUTH_MMS_SMS, "/conversations/", URI_IGNORE)
             addURI(AUTH_SMS, "/", URI_IGNORE)
             addURI(AUTH_SMS, "/raw", URI_IGNORE)

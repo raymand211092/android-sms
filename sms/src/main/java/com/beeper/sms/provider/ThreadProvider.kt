@@ -1,13 +1,19 @@
 package com.beeper.sms.provider
 
 import android.content.Context
+import android.net.Uri
 import android.provider.Telephony.*
+import android.provider.Telephony.BaseMmsColumns.*
 import android.telephony.PhoneNumberUtils
 import androidx.core.net.toUri
-import com.beeper.sms.extensions.*
+import com.beeper.sms.extensions.firstOrNull
+import com.beeper.sms.extensions.getLong
+import com.beeper.sms.extensions.getString
+import com.beeper.sms.extensions.map
 import java.util.*
 
 class ThreadProvider constructor(context: Context) {
+    private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
     fun getRecentConversations(minTimestamp: Long): List<String> =
@@ -20,6 +26,22 @@ class ThreadProvider constructor(context: Context) {
             .plus(getMessagesAfter(thread, timestampSeconds, true))
             .sortedBy { it.first }
             .map { Pair(it.second, it.third) }
+
+    fun getMmsMessagesAfter(timestampSeconds: Long): List<Long> =
+        cr.map(
+            Mms.CONTENT_URI,
+            where = and(
+                "${Mms.CREATOR} != '$packageName'",
+                or(
+                    "$MESSAGE_BOX = $MESSAGE_BOX_OUTBOX",
+                    "$MESSAGE_BOX = $MESSAGE_BOX_SENT"
+                ),
+                "${Mms.DATE} > $timestampSeconds"
+            ),
+            order = "${Sms.Conversations.DATE} DESC"
+        ) {
+            it.getLong(Sms.Conversations._ID)
+        }
 
     fun getRecentMessages(thread: Long, limit: Int): List<Pair<Long, Boolean>> =
         getRecentMessages(thread, limit, false)
@@ -42,7 +64,7 @@ class ThreadProvider constructor(context: Context) {
 
     private fun getMessages(thread: Long, where: String, limit: String = "") =
         cr.map(
-            "${MmsSms.CONTENT_CONVERSATIONS_URI}/$thread".toUri(),
+            Uri.withAppendedPath(MmsSms.CONTENT_CONVERSATIONS_URI, thread.toString()),
             where = where,
             projection = PROJECTION,
             order = "${Sms.Conversations.DATE} DESC $limit"
@@ -89,5 +111,16 @@ class ThreadProvider constructor(context: Context) {
 
         val List<String>.chatGuid: String
             get() = "SMS;${if (size == 1) "-" else "+"};${joinToString(" ") { it.normalize }}"
+
+        private fun and(vararg criteria: String) = joinCriteria(" AND ", criteria)
+
+        private fun or(vararg criteria: String) = joinCriteria(" OR ", criteria)
+
+        private fun joinCriteria(separator: String, criteria: Array<out String>) =
+            if (criteria.size == 1) {
+                criteria.first()
+            } else {
+                criteria.joinToString(separator, "(", ")")
+            }
     }
 }

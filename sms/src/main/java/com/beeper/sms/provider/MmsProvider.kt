@@ -2,6 +2,7 @@ package com.beeper.sms.provider
 
 import android.content.Context
 import android.net.Uri
+import android.provider.Telephony
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message
@@ -14,9 +15,12 @@ class MmsProvider constructor(
     private val partProvider: PartProvider = PartProvider(context),
     private val threadProvider: ThreadProvider = ThreadProvider(context),
 ) {
+    private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
     fun getMessage(uri: Uri) = uri.lastPathSegment?.toLongOrNull()?.let { getMessage(it) }
+
+    fun getMessages(ids: List<Long>) = ids.mapNotNull(this::getMessage)
 
     fun getMessage(id: Long) = getMms(where = "_id = $id").firstOrNull()
 
@@ -37,6 +41,7 @@ class MmsProvider constructor(
                 sender_guid = if (isFromMe) null else getSender(id)?.chatGuid,
                 is_from_me = isFromMe,
                 attachments = attachments.mapNotNull { a -> a.attachment },
+                sent_from_matrix = it.getString(CREATOR) == packageName
             )
         }
 

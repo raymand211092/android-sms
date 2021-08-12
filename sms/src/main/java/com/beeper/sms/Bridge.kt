@@ -9,6 +9,7 @@ import com.beeper.sms.commands.Error
 import com.beeper.sms.extensions.cacheDir
 import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
+import com.beeper.sms.work.BackfillSentMMS
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
@@ -53,6 +54,7 @@ class Bridge private constructor() {
                 getConfig().exists() &&
                 getProcess()?.running == true
             ) {
+                BackfillSentMMS.lastTimestamp = System.currentTimeMillis() / 1000
                 SmsObserver(context).registerObserver()
                 context.startBridge(channelId, channelIcon)
             }
