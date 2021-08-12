@@ -8,7 +8,7 @@ import androidx.core.net.toUri
 import com.beeper.sms.Bridge
 import com.beeper.sms.CommandProcessor.Companion.EXTRA_COMMAND_ID
 import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.incoming.SendMessage
+import com.beeper.sms.commands.incoming.SendMedia
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.work.WorkManager
@@ -30,7 +30,7 @@ class MyMmsSentReceiver : MmsSentReceiver() {
                 Bridge.INSTANCE.send(
                     Command(
                         "response",
-                        SendMessage.Response(message.guid, message.timestamp),
+                        SendMedia.Response(message.guid, message.timestamp),
                         commandId,
                     )
                 )

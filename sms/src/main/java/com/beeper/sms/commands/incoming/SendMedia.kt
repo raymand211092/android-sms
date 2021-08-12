@@ -6,8 +6,8 @@ data class SendMedia(
     var file_name: String,
     var mime_type: String,
 ) : GroupMessaging {
-    data class Reponse(
+    data class Response(
         var guid: String,
-        var timestamp: String,
+        var timestamp: Long,
     )
 }
