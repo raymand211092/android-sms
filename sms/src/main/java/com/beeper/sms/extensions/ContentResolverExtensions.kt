@@ -45,7 +45,7 @@ private fun Cursor.dumpToString(): String {
     return sb.toString()
 }
 
-private fun Cursor.dumpCurrentRow(): List<String> =
+internal fun Cursor.dumpCurrentRow(): List<String> =
     columnNames.mapIndexed { i, name ->
         val value = try {
             getStringOrNull(i)
