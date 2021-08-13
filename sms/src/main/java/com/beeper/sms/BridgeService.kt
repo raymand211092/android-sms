@@ -12,10 +12,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.beeper.sms.extensions.hasPermissions
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import java.io.IOException
 import java.io.InterruptedIOException
 
@@ -24,6 +21,8 @@ class BridgeService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var channelId: String
     private var channelIcon: Int = 0
+    private var errorHandling: Job? = null
+    private var commandHandling: Job? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "starting service")
@@ -46,12 +45,14 @@ class BridgeService : Service() {
             return START_NOT_STICKY
         }
         val commandProcessor = CommandProcessor(applicationContext)
-        restartOnInterrupt {
+        errorHandling?.cancel()
+        errorHandling = restartOnInterrupt {
             Bridge.INSTANCE.forEachError {
                 Log.e(TAG, it)
             }
         }
-        restartOnInterrupt {
+        commandHandling?.cancel()
+        commandHandling = restartOnInterrupt {
             Bridge.INSTANCE.forEachCommand {
                 if (COMMAND.matches(it)) {
                     Log.d(TAG, "receive: $it")
@@ -69,11 +70,19 @@ class BridgeService : Service() {
         }
     }
 
+    override fun onDestroy() {
+        Log.d(TAG, "onDestroy()")
+        errorHandling?.cancel()
+        commandHandling?.cancel()
+        Bridge.INSTANCE.killProcess()
+    }
+
     private fun restartOnInterrupt(block: () -> Unit) = scope.launch {
         try {
             block()
         } catch (e: InterruptedIOException) {
             Log.e(TAG, e.message ?: "", e)
+            yield()
             startBridge(channelId, channelIcon)
         } catch (e: IOException) {
             Log.e(TAG, e.message ?: "", e)
@@ -97,11 +106,16 @@ class BridgeService : Service() {
             }
             ContextCompat.startForegroundService(
                 this,
-                Intent(this, BridgeService::class.java)
+                bridgeIntent
                     .putExtra(CHANNEL_ID, channelId)
                     .putExtra(CHANNEL_ICON, channelIcon)
             )
         }
+
+        internal fun Context.stopBridge() = stopService(bridgeIntent)
+
+        private val Context.bridgeIntent: Intent
+            get() = Intent(this, BridgeService::class.java)
 
         @RequiresApi(Build.VERSION_CODES.O)
         private fun Context.createNotificationChannel(channelId: String) =

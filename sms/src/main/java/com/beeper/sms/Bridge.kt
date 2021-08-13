@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import com.beeper.sms.BridgeService.Companion.startBridge
+import com.beeper.sms.BridgeService.Companion.stopBridge
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.Error
 import com.beeper.sms.extensions.cacheDir
@@ -63,6 +64,17 @@ class Bridge private constructor() {
         }
     }
 
+    fun stop(context: Context) = context.stopBridge().apply {
+        Log.d(TAG, "stop success=$this")
+    }
+
+    fun signOut(context: Context) {
+        Log.d(TAG, "Signing out")
+        stop(context)
+        configPath = null
+        configPathProvider = null
+    }
+
     @Synchronized
     private fun getProcess(): Process? {
         val config = configPath ?: return null
@@ -84,15 +96,7 @@ class Bridge private constructor() {
     private suspend fun getConfig(): String? =
         configPath ?: configPathProvider?.invoke()?.takeIf { it.exists() }?.also { configPath = it }
 
-    fun signOut() {
-        Log.d(TAG, "Signing out")
-        stop()
-        configPath = null
-        configPathProvider = null
-    }
-
-    fun stop() {
-        Log.d(TAG, "Killing mautrix-imessage")
+    fun killProcess() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             process?.destroyForcibly()
         } else {
@@ -101,17 +105,17 @@ class Bridge private constructor() {
         process = null
     }
 
-    fun forEachError(action: (String) -> Unit) =
+    internal fun forEachError(action: (String) -> Unit) =
         getProcess()?.errorStream?.forEach(action) ?: Log.e(TAG, "forEachError failed")
 
-    fun forEachCommand(action: (String) -> Unit) =
+    internal fun forEachCommand(action: (String) -> Unit) =
         getProcess()?.inputStream?.forEach(action) ?: Log.e(TAG, "forEachCommand failed")
 
-    fun send(error: Error) = send(error as Any)
+    internal fun send(error: Error) = send(error as Any)
 
-    fun send(command: Command) = send(command as Any)
+    internal fun send(command: Command) = send(command as Any)
 
-    val running: Boolean
+    internal val running: Boolean
         get() = getProcess()?.running == true
 
     private fun send(any: Any) = scope.launch(outgoing) {

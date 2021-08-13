@@ -3,6 +3,7 @@ package com.beeper.sms.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.Scaffold
@@ -29,15 +30,22 @@ class MainActivity : ComponentActivity() {
     @ExperimentalPermissionsApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val permissionResult = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            if (result.values.all { it }) {
+                Bridge.INSTANCE.start(this)
+            }
+        }
         setContent {
             BeeperSMSBridgeTheme {
                 val permissionsState =
                     rememberMultiplePermissionsState(permissions = SMS_PERMISSIONS)
                 Body(
                     hasPermission = permissionsState.allPermissionsGranted,
-                    signOut = { Bridge.INSTANCE.signOut() },
-                    killMautrix = { Bridge.INSTANCE.stop() },
-                    requestPermissions = { permissionsState.launchMultiplePermissionRequest() }
+                    signOut = { Bridge.INSTANCE.signOut(this@MainActivity) },
+                    stopBridge = { Bridge.INSTANCE.stop(this@MainActivity) },
+                    startBridge = { Bridge.INSTANCE.start(this@MainActivity) },
+                    killBridge = { Bridge.INSTANCE.killProcess() },
+                    requestPermissions = { permissionResult.launch(SMS_PERMISSIONS.toTypedArray()) }
                 )
             }
         }
@@ -53,8 +61,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Body(
     hasPermission: Boolean,
-    signOut: () -> Unit,
-    killMautrix: () -> Unit,
+    signOut: () -> Unit = {},
+    stopBridge: () -> Unit = {},
+    startBridge: () -> Unit = {},
+    killBridge: () -> Unit = {},
     requestPermissions: () -> Unit = {},
 ) {
     Scaffold(
@@ -72,11 +82,12 @@ fun Body(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (hasPermission) {
-                    KillButton(killMautrix)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = signOut) {
-                        Text(text = "Sign out")
+                    Button("Start bridge", action = startBridge)
+                    Button("Stop bridge", action = stopBridge)
+                    if (BuildConfig.DEBUG) {
+                        Button("Kill bridge", action = killBridge)
                     }
+                    Button("Sign out", spacer = false, action = signOut)
                 } else {
                     RequestPermissionButton(requestPermissions)
                 }
@@ -86,11 +97,12 @@ fun Body(
 }
 
 @Composable
-fun KillButton(action: () -> Unit) {
-    if (BuildConfig.DEBUG) {
-        Button(onClick = action) {
-            Text(text = "Kill mautrix-imessage")
-        }
+fun Button(text: String, spacer: Boolean = true, action: () -> Unit) {
+    Button(onClick = action) {
+        Text(text = text)
+    }
+    if (spacer) {
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -105,7 +117,7 @@ fun RequestPermissionButton(requestPermissions: () -> Unit) {
 @Composable
 fun PreviewNotDefaultDark() {
     BeeperSMSBridgeTheme(darkTheme = true) {
-        Body(false, {}, {})
+        Body(false)
     }
 }
 
@@ -113,7 +125,7 @@ fun PreviewNotDefaultDark() {
 @Composable
 fun PreviewDefaultDark() {
     BeeperSMSBridgeTheme(darkTheme = true) {
-        Body(true, {}, {})
+        Body(true)
     }
 }
 
@@ -121,7 +133,7 @@ fun PreviewDefaultDark() {
 @Composable
 fun PreviewNotDefault() {
     BeeperSMSBridgeTheme {
-        Body(false, {}, {})
+        Body(false)
     }
 }
 
@@ -129,7 +141,7 @@ fun PreviewNotDefault() {
 @Composable
 fun PreviewDefault() {
     BeeperSMSBridgeTheme {
-        Body(true, {}, {})
+        Body(true)
     }
 }
 

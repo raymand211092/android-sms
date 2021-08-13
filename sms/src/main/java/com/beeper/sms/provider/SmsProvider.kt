@@ -21,7 +21,6 @@ class SmsProvider constructor(context: Context) {
         cr.map(CONTENT_URI, where) {
             val address = it.getString(ADDRESS)
             if (address == null) {
-                // TODO: try to lookup address w/ThreadProvider?
                 Log.w(TAG, "Missing address: ${it.dumpCurrentRow()}")
                 return@map null
             }
