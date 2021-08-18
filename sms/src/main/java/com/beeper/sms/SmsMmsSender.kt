@@ -3,7 +3,6 @@ package com.beeper.sms
 import android.content.Context
 import android.content.Intent
 import android.os.Parcelable
-import android.provider.Telephony
 import com.beeper.sms.receivers.MyDeliveredReceiver
 import com.beeper.sms.receivers.MyMmsSentReceiver
 import com.beeper.sms.receivers.MySentReceiver
@@ -62,7 +61,6 @@ class SmsMmsSender(private val context: Context) {
 
         private fun Message.setupMms() = this.apply {
             save = false
-            messageUri = Telephony.Sms.Conversations.CONTENT_URI
         }
     }
 }
