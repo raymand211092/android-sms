@@ -54,7 +54,6 @@ class BridgeService : Service() {
         commandHandling = restartOnInterrupt {
             Bridge.INSTANCE.forEachCommand {
                 if (COMMAND.matches(it)) {
-                    Log.d(TAG, "receive: $it")
                     commandProcessor.handle(it)
                 } else {
                     Log.d(TAG, it)

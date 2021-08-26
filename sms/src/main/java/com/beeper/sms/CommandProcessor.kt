@@ -13,6 +13,7 @@ import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.ThreadProvider
 import com.google.gson.Gson
+import com.google.gson.JsonElement
 
 class CommandProcessor constructor(
     private val context: Context,
@@ -29,7 +30,8 @@ class CommandProcessor constructor(
         when (command.command) {
             "get_chat" -> {
                 val recipients =
-                    gson.fromJson(dataTree, GetChat::class.java)
+                    dataTree
+                        .deserialize(GetChat::class.java)
                         .recipientList
                 val room =
                     contactProvider
@@ -41,7 +43,7 @@ class CommandProcessor constructor(
                 )
             }
             "get_contact" -> {
-                val data = gson.fromJson(dataTree, GetContact::class.java)
+                val data = dataTree.deserialize(GetContact::class.java)
                 bridge.send(
                     Command(
                         "response",
@@ -55,7 +57,7 @@ class CommandProcessor constructor(
                     noPermissionError(command.id!!)
                     return
                 }
-                val data = gson.fromJson(dataTree, SendMessage::class.java)
+                val data = dataTree.deserialize(SendMessage::class.java)
                 smsMmsSender.sendMessage(
                     data.text,
                     data.recipientList,
@@ -70,7 +72,7 @@ class CommandProcessor constructor(
                     noPermissionError(command.id!!)
                     return
                 }
-                val data = gson.fromJson(dataTree, SendMedia::class.java)
+                val data = dataTree.deserialize(SendMedia::class.java)
                 val recipients = data.recipientList
                 smsMmsSender.sendMessage(
                     recipients,
@@ -84,7 +86,7 @@ class CommandProcessor constructor(
                 )
             }
             "get_chats" -> {
-                val data = gson.fromJson(dataTree, GetChats::class.java)
+                val data = dataTree.deserialize(GetChats::class.java)
                 bridge.send(
                     Command(
                         "response",
@@ -94,7 +96,7 @@ class CommandProcessor constructor(
                 )
             }
             "get_messages_after" -> {
-                val data = gson.fromJson(dataTree, GetMessagesAfter::class.java)
+                val data = dataTree.deserialize(GetMessagesAfter::class.java)
                 val messages =
                     threadProvider
                         .getMessagesAfter(context.getThread(data), data.timestamp)
@@ -102,7 +104,7 @@ class CommandProcessor constructor(
                 bridge.send(Command("response", messages, command.id))
             }
             "get_recent_messages" -> {
-                val data = gson.fromJson(dataTree, GetRecentMessages::class.java)
+                val data = dataTree.deserialize(GetRecentMessages::class.java)
                 val messages =
                     threadProvider
                         .getRecentMessages(context.getThread(data), data.limit.toInt())
@@ -117,6 +119,10 @@ class CommandProcessor constructor(
             }
         }
     }
+
+    private fun <T> JsonElement.deserialize(c: Class<T>): T =
+        gson.fromJson(this, c)
+            .apply { Log.d(TAG, "receive: $this") }
 
     private fun List<Pair<Long, Boolean>>.toMessages() = mapNotNull { (id, mms) ->
         if (mms) mmsProvider.getMessage(id) else smsProvider.getMessage(id)
