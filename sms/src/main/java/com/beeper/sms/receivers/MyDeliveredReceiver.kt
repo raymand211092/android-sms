@@ -2,7 +2,7 @@ package com.beeper.sms.receivers
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
+import com.beeper.sms.Log
 import com.beeper.sms.extensions.printExtras
 import com.klinker.android.send_message.DeliveredReceiver
 

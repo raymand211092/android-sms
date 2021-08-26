@@ -2,7 +2,6 @@ package com.beeper.sms
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.Error
 import com.beeper.sms.commands.incoming.*

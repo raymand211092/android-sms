@@ -3,7 +3,7 @@ package com.beeper.sms.provider
 import android.content.Context
 import android.net.Uri
 import android.provider.Telephony.Sms.*
-import android.util.Log
+import com.beeper.sms.Log
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
 import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid

@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -81,11 +80,11 @@ class BridgeService : Service() {
         try {
             block()
         } catch (e: InterruptedIOException) {
-            Log.e(TAG, e.message ?: "", e)
+            Log.e(TAG, e)
             yield()
             startBridge(channelId, channelIcon)
         } catch (e: IOException) {
-            Log.e(TAG, e.message ?: "", e)
+            Log.e(TAG, e)
         }
     }
 

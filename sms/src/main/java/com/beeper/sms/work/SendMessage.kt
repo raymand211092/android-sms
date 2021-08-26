@@ -1,11 +1,11 @@
 package com.beeper.sms.work
 
 import android.content.Context
-import android.util.Log
 import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.beeper.sms.Bridge
+import com.beeper.sms.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.MmsProvider.Companion.isMms

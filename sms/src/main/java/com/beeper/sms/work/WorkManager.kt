@@ -2,9 +2,9 @@ package com.beeper.sms.work
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import androidx.work.*
 import androidx.work.WorkManager
+import com.beeper.sms.Log
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 

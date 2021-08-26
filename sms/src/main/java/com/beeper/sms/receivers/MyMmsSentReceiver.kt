@@ -3,10 +3,10 @@ package com.beeper.sms.receivers
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.core.net.toUri
 import com.beeper.sms.Bridge
 import com.beeper.sms.CommandProcessor.Companion.EXTRA_COMMAND_ID
+import com.beeper.sms.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMedia
 import com.beeper.sms.extensions.printExtras

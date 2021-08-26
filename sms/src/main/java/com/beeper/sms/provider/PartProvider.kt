@@ -3,8 +3,8 @@ package com.beeper.sms.provider
 import android.content.Context
 import android.provider.Telephony
 import android.provider.Telephony.Mms.Part.*
-import android.util.Log
 import androidx.core.net.toUri
+import com.beeper.sms.Log
 import com.beeper.sms.commands.outgoing.Message.Attachment
 import com.beeper.sms.extensions.*
 import java.io.File

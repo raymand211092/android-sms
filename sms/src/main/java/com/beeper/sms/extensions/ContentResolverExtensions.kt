@@ -5,9 +5,9 @@ import android.content.ContentValues.TAG
 import android.database.Cursor
 import android.database.sqlite.SQLiteException
 import android.net.Uri
-import android.util.Log
 import androidx.core.database.getStringOrNull
 import com.beeper.sms.BuildConfig
+import com.beeper.sms.Log
 
 fun <T> ContentResolver.map(
     uri: Uri,

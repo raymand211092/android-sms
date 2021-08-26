@@ -3,9 +3,9 @@ package com.beeper.sms.work
 import android.content.Context
 import android.net.Uri
 import android.provider.Telephony
-import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.beeper.sms.Log
 import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.ThreadProvider
 

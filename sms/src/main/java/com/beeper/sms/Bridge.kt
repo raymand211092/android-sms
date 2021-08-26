@@ -2,7 +2,6 @@ package com.beeper.sms
 
 import android.content.Context
 import android.os.Build
-import android.util.Log
 import com.beeper.sms.BridgeService.Companion.startBridge
 import com.beeper.sms.BridgeService.Companion.stopBridge
 import com.beeper.sms.commands.Command

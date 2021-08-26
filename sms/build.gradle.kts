@@ -9,7 +9,7 @@ plugins {
 object Version {
     const val major = 0
     const val minor = 1
-    const val patch = 22
+    const val patch = 23
 }
 
 android {
@@ -103,6 +103,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.1")
     implementation("androidx.core:core-ktx:1.6.0")
     implementation("com.google.code.gson:gson:2.8.7")
+    implementation("com.jakewharton.timber:timber:4.7.1")
 
     testImplementation("junit:junit:4.+")
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
