@@ -60,6 +60,7 @@ dependencies {
     implementation("com.google.android.material:material:1.4.0")
     implementation("androidx.compose.ui:ui-tooling-preview:${Versions.compose}")
     implementation("com.google.accompanist:accompanist-permissions:0.16.1")
+    implementation("com.jakewharton.timber:timber:4.7.1")
 
     testImplementation("junit:junit:4.+")
     androidTestImplementation("androidx.test.ext:junit:1.1.3")

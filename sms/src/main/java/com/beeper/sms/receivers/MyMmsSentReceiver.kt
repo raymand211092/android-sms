@@ -1,5 +1,6 @@
 package com.beeper.sms.receivers
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -11,11 +12,10 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMedia
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.MmsProvider
-import com.klinker.android.send_message.MmsSentReceiver
 import com.klinker.android.send_message.Transaction.SENT_MMS_BUNDLE
 
-class MyMmsSentReceiver : MmsSentReceiver() {
-    override fun onMessageStatusUpdated(context: Context, intent: Intent?, resultCode: Int) {
+class MyMmsSentReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent?) {
         Log.d(TAG, "intent: ${intent.printExtras()}")
         val uri = intent?.getStringExtra(EXTRA_URI)?.toUri()
         val commandId =

@@ -5,11 +5,14 @@ import android.util.Log
 import androidx.work.Configuration
 import com.beeper.sms.Bridge
 import com.beeper.sms.extensions.writeTo
+import timber.log.Timber
 import java.io.File
 
 class App : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
+
+        Timber.plant(Timber.DebugTree())
 
         Bridge.INSTANCE.init(this) {
             val config = File(cacheDir, "config.yaml")
