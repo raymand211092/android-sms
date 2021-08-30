@@ -52,6 +52,7 @@ class SmsObserver(private val context: Context) : ContentObserver(getHandler()) 
         private const val URI_BACKFILL = 4
         private val uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
             addURI(AUTH_SMS, "/#", URI_SEND)
+            addURI(AUTH_SMS, "/inbox/#", URI_SEND)
             addURI(AUTH_MMS, "/inbox/#", URI_SEND)
             addURI(AUTH_MMS_SMS, "/", URI_BACKFILL)
             addURI(AUTH_MMS_SMS, "/conversations/", URI_IGNORE)
