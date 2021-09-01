@@ -2,7 +2,6 @@ package com.beeper.sms.provider
 
 import android.content.Context
 import android.net.Uri
-import android.provider.Telephony
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.commands.outgoing.Message
@@ -42,7 +41,6 @@ class MmsProvider constructor(
                 is_from_me = isFromMe,
                 attachments = attachments.mapNotNull { a -> a.attachment },
                 sent_from_matrix = it.getString(CREATOR) == packageName,
-                is_text_only = it.getInt(TEXT_ONLY) == 1,
             )
         }
 

@@ -24,7 +24,7 @@ class SendMessage constructor(
         }
         val message = if (uri.isMms) {
             MmsProvider(context).getMessage(uri)?.apply {
-                if (attachments.isNullOrEmpty() && !is_text_only) {
+                if (attachments.isNullOrEmpty() && text.isEmpty()) {
                     Log.d(TAG, "Waiting for attachment: $uri -> $this")
                     return Result.retry()
                 }

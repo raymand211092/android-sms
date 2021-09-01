@@ -17,7 +17,6 @@ data class Message(
     var group_action_type: Int? = null,
     var new_group_title: String? = null,
     @Transient var sent_from_matrix: Boolean = false,
-    @Transient var is_text_only: Boolean = false,
 ) {
     data class Attachment(
         var mime_type: String?,
