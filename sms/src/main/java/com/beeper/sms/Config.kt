@@ -37,10 +37,12 @@ data class Config(
         var username_template: String? = null,
         var displayname_template: String? = null,
         var delivery_receipts: Boolean? = null,
+        var sync_with_custom_puppets: Boolean? = null,
         var sync_direct_chat_list: Boolean? = null,
         var login_shared_secret: String? = null,
         var chat_sync_max_age: Float? = null,
         var initial_backfill_limit: Int? = null,
+        var periodic_sync: Boolean? = null,
         var command_prefix: String? = null,
         var encryption: Encryption? = null,
     )
