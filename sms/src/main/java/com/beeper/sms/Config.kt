@@ -43,6 +43,7 @@ data class Config(
         var chat_sync_max_age: Float? = null,
         var initial_backfill_limit: Int? = null,
         var periodic_sync: Boolean? = null,
+        var find_portals_if_db_empty: Boolean? = null,
         var command_prefix: String? = null,
         var encryption: Encryption? = null,
     )
