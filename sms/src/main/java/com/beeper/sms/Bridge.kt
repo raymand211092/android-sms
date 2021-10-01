@@ -6,6 +6,7 @@ import com.beeper.sms.BridgeService.Companion.startBridge
 import com.beeper.sms.BridgeService.Companion.stopBridge
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.Error
+import com.beeper.sms.commands.outgoing.BridgeStatus
 import com.beeper.sms.extensions.cacheDir
 import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
@@ -69,6 +70,7 @@ class Bridge private constructor() {
 
     fun signOut(context: Context) {
         Log.d(TAG, "Signing out")
+        send(BridgeStatus.State.LOGGED_OUT)
         stop(context)
         configPath = null
         configPathProvider = null
@@ -109,6 +111,8 @@ class Bridge private constructor() {
 
     internal fun forEachCommand(action: (String) -> Unit) =
         getProcess()?.inputStream?.forEach(action) ?: Log.e(TAG, "forEachCommand failed")
+
+    internal fun send(state: BridgeStatus.State) = send(Command("", BridgeStatus(state)))
 
     internal fun send(error: Error) = send(error as Any)
 
