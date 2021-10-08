@@ -17,7 +17,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.beeper.sms.Bridge
-import com.beeper.sms.app.theme.BeeperSMSBridgeTheme
+import com.beeper.sms.app.ui.theme.BeeperSMSBridgeTheme
 import com.beeper.sms.extensions.SMS_PERMISSIONS
 import com.beeper.sms.extensions.hasPermissions
 import com.google.accompanist.permissions.ExperimentalPermissionsApi

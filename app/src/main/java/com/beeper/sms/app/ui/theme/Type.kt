@@ -1,4 +1,4 @@
-package com.beeper.sms.app.theme
+package com.beeper.sms.app.ui.theme
 
 import androidx.compose.material.Typography
 import androidx.compose.ui.text.TextStyle
