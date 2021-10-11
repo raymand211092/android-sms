@@ -69,8 +69,8 @@ class Bridge private constructor() {
     }
 
     fun signOut(context: Context) {
-        Log.d(TAG, "Signing out")
-        send(BridgeStatus.State.LOGGED_OUT)
+        Log.d(TAG, "Stopping bridge")
+        send(BridgeStatus.State.STOPPED)
         stop(context)
         configPath = null
         configPathProvider = null

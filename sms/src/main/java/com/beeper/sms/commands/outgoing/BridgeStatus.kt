@@ -18,7 +18,8 @@ data class BridgeStatus(
         TRANSIENT_DISCONNECT("TRANSIENT_DISCONNECT"),
         BAD_CREDENTIALS("BAD_CREDENTIALS"),
         UNKNOWN_ERROR("UNKNOWN_ERROR"),
-        LOGGED_OUT("LOGGED_OUT");
+        LOGGED_OUT("LOGGED_OUT"),
+        STOPPED("STOPPED");
 
         override fun toString() = state
     }
