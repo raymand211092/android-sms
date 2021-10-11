@@ -64,13 +64,15 @@ class Bridge private constructor() {
         }
     }
 
-    fun stop(context: Context) = context.stopBridge().apply {
-        Log.d(TAG, "stop success=$this")
+    fun stop(context: Context) {
+        send(BridgeStatus.State.STOPPED)
+        context
+            .stopBridge()
+            .apply { Log.d(TAG, "stop success=$this") }
     }
 
     fun signOut(context: Context) {
         Log.d(TAG, "Stopping bridge")
-        send(BridgeStatus.State.STOPPED)
         stop(context)
         configPath = null
         configPathProvider = null
@@ -112,7 +114,8 @@ class Bridge private constructor() {
     internal fun forEachCommand(action: (String) -> Unit) =
         getProcess()?.inputStream?.forEach(action) ?: Log.e(TAG, "forEachCommand failed")
 
-    internal fun send(state: BridgeStatus.State) = send(Command("", BridgeStatus(state)))
+    private fun send(state: BridgeStatus.State) =
+        send(Command("bridge_status", BridgeStatus(state)))
 
     internal fun send(error: Error) = send(error as Any)
 
