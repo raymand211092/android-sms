@@ -37,7 +37,8 @@ class SmsProvider constructor(context: Context) {
                 chat_guid = chatGuid,
                 sender_guid = if (isFromMe) null else chatGuid,
                 is_from_me = isFromMe,
-                sent_from_matrix = it.getString(CREATOR) == packageName
+                sent_from_matrix = it.getString(CREATOR) == packageName,
+                is_mms = false,
             )
         }
 

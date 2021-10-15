@@ -41,6 +41,8 @@ class MmsProvider constructor(
                 is_from_me = isFromMe,
                 attachments = attachments.mapNotNull { a -> a.attachment },
                 sent_from_matrix = it.getString(CREATOR) == packageName,
+                is_mms = true,
+                resp_st = it.getIntOrNull(RESPONSE_STATUS),
             )
         }
 

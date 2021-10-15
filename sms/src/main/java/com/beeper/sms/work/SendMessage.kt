@@ -10,6 +10,7 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.MmsProvider.Companion.isMms
 import com.beeper.sms.provider.SmsProvider
+import com.google.android.mms.pdu_alt.PduHeaders.RESPONSE_STATUS_OK
 
 class SendMessage constructor(
     private val context: Context,
@@ -39,6 +40,10 @@ class SendMessage constructor(
         if (message.sent_from_matrix) {
             Log.d(TAG, "Message originated from Matrix: $uri")
             return Result.success()
+        }
+        if (message.is_from_me && message.is_mms && message.resp_st == null) {
+            Log.w(TAG, "Retrying $uri because resp_st=${message.resp_st}")
+            return Result.retry()
         }
         Bridge.INSTANCE.send(Command("message", message))
         return Result.success()
