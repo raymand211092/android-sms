@@ -19,6 +19,7 @@ data class Message(
     @Transient var sent_from_matrix: Boolean = false,
     @Transient var is_mms: Boolean = false,
     @Transient var resp_st: Int? = null,
+    @Transient var creator: String? = null,
 ) {
     data class Attachment(
         var mime_type: String?,

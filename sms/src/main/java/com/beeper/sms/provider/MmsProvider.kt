@@ -31,6 +31,7 @@ class MmsProvider constructor(
                 MESSAGE_BOX_OUTBOX, MESSAGE_BOX_SENT -> true
                 else -> false
             }
+            val creator = it.getString(CREATOR)
             Message(
                 guid = it.getInt(_ID).toString(),
                 timestamp = it.getLong(DATE),
@@ -40,9 +41,10 @@ class MmsProvider constructor(
                 sender_guid = if (isFromMe) null else getSender(id)?.chatGuid,
                 is_from_me = isFromMe,
                 attachments = attachments.mapNotNull { a -> a.attachment },
-                sent_from_matrix = it.getString(CREATOR) == packageName,
+                sent_from_matrix = creator == packageName,
                 is_mms = true,
                 resp_st = it.getIntOrNull(RESPONSE_STATUS),
+                creator = creator,
             )
         }
 
