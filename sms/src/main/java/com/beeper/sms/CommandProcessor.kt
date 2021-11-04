@@ -87,10 +87,17 @@ class CommandProcessor constructor(
             }
             "get_chats" -> {
                 val data = dataTree.deserialize(GetChats::class.java)
+                val recentMessages =
+                    smsProvider
+                        .getMessagesAfter(data.min_timestamp * 1000)
+                        .plus(mmsProvider.getMessagesAfter(data.min_timestamp))
                 bridge.send(
                     Command(
                         "response",
-                        threadProvider.getRecentConversations(data.min_timestamp * 1000),
+                        recentMessages
+                            .mapNotNull { it.thread }
+                            .toSet()
+                            .mapNotNull { threadProvider.getChatGuid(it) },
                         command.id
                     )
                 )

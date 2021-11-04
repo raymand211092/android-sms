@@ -16,11 +16,6 @@ class ThreadProvider constructor(context: Context) {
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
-    fun getRecentConversations(minTimestamp: Long): List<String> =
-        cr.map(URI_THREADS, "${Sms.Conversations.DATE} > $minTimestamp AND ${ThreadsColumns.MESSAGE_COUNT} > 0") {
-            getChatGuid(it.getLong(ThreadsColumns._ID))
-        }
-
     fun getMessagesAfter(thread: Long, timestampSeconds: Long): List<Pair<Long, Boolean>> =
         getMessagesAfter(thread, timestampSeconds * 1000, false)
             .plus(getMessagesAfter(thread, timestampSeconds, true))

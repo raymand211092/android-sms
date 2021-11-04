@@ -13,6 +13,8 @@ class SmsProvider constructor(context: Context) {
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
+    fun getMessagesAfter(timestamp: Long) = getSms(where = "$DATE > $timestamp")
+
     fun getMessage(uri: Uri) = uri.lastPathSegment?.toLongOrNull()?.let { getMessage(it) }
 
     fun getMessage(id: Long) = getSms(where = "_id = $id").firstOrNull()
@@ -39,6 +41,7 @@ class SmsProvider constructor(context: Context) {
                 is_from_me = isFromMe,
                 sent_from_matrix = it.getString(CREATOR) == packageName,
                 is_mms = false,
+                thread = it.getLong(THREAD_ID),
             )
         }
 

@@ -17,6 +17,8 @@ class MmsProvider constructor(
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
+    fun getMessagesAfter(timestamp: Long) = getMms(where = "$DATE > $timestamp")
+
     fun getMessage(uri: Uri) = uri.lastPathSegment?.toLongOrNull()?.let { getMessage(it) }
 
     fun getMessages(ids: List<Long>) = ids.mapNotNull(this::getMessage)
@@ -45,6 +47,7 @@ class MmsProvider constructor(
                 is_mms = true,
                 resp_st = it.getIntOrNull(RESPONSE_STATUS),
                 creator = creator,
+                thread = it.getLong(THREAD_ID),
             )
         }
 
