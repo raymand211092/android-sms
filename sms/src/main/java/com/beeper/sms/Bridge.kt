@@ -45,6 +45,7 @@ class Bridge private constructor() {
         this.channelIcon = channelIcon
         nativeLibDir = context.applicationInfo.nativeLibraryDir
         cacheDir = context.cacheDir("mautrix")
+        SmsObserver(context).registerObserver()
     }
 
     fun start(context: Context?) = scope.launch {
@@ -55,7 +56,6 @@ class Bridge private constructor() {
                 getProcess()?.running == true
             ) {
                 BackfillSentMMS.lastTimestamp = System.currentTimeMillis() / 1000
-                SmsObserver(context).registerObserver()
                 context.startBridge(channelId, channelIcon)
             }
         } catch (e: Exception) {
