@@ -2,6 +2,7 @@ package com.beeper.sms.work
 
 import android.content.Context
 import androidx.core.net.toUri
+import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.beeper.sms.Bridge
@@ -26,8 +27,13 @@ class SendMessage constructor(
         val message = if (uri.isMms) {
             MmsProvider(context).getMessage(uri)?.apply {
                 if (attachments.isNullOrEmpty() && text.isEmpty()) {
-                    Log.d(TAG, "Waiting for attachment: $uri -> $this")
-                    return Result.retry()
+                    return if (runAttemptCount > MAX_RETRY) {
+                        Log.e(TAG, "Gave up waiting for attachment: $uri")
+                        Result.failure()
+                    } else {
+                        Log.d(TAG, "Waiting for attachment: $uri -> $this, runAttemptCount: $runAttemptCount")
+                        Result.retry()
+                    }
                 }
             }
         } else {
@@ -55,6 +61,9 @@ class SendMessage constructor(
 
     companion object {
         private const val TAG = "SendMessage"
+        val RETRY_POLICY = BackoffPolicy.LINEAR
+        const val RETRY_INTERVAL_MS = 10_000L
+        private const val MAX_RETRY = 30
         const val URI = "uri"
     }
 }

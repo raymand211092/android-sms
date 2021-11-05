@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.work.*
 import androidx.work.WorkManager
 import com.beeper.sms.Log
-import java.time.Duration
 import java.util.concurrent.TimeUnit
 
 class WorkManager constructor(context: Context) {
@@ -15,7 +14,11 @@ class WorkManager constructor(context: Context) {
         Log.d(TAG, uri.toString())
         OneTimeWorkRequest
             .Builder(SendMessage::class.java)
-            .setBackoffCriteria(BackoffPolicy.LINEAR, 10L, TimeUnit.SECONDS)
+            .setBackoffCriteria(
+                SendMessage.RETRY_POLICY,
+                SendMessage.RETRY_INTERVAL_MS,
+                TimeUnit.MILLISECONDS
+            )
             .setInputData(Data.Builder().putString(SendMessage.URI, uri.toString()).build())
             .setConstraints(
                 Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
