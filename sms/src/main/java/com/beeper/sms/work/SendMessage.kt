@@ -11,7 +11,6 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.MmsProvider.Companion.isMms
 import com.beeper.sms.provider.SmsProvider
-import com.google.android.mms.pdu_alt.PduHeaders.RESPONSE_STATUS_OK
 
 class SendMessage constructor(
     private val context: Context,

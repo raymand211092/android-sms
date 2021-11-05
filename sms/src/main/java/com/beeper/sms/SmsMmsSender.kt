@@ -9,7 +9,6 @@ import com.beeper.sms.receivers.MySentReceiver
 import com.klinker.android.send_message.Message
 import com.klinker.android.send_message.Settings
 import com.klinker.android.send_message.Transaction
-import java.io.File
 
 class SmsMmsSender(private val context: Context) {
 
@@ -32,14 +31,14 @@ class SmsMmsSender(private val context: Context) {
 
     fun sendMessage(
         recipients: List<String>,
-        path: String,
+        bytes: ByteArray,
         mimeType: String,
         filename: String,
         thread: Long = 0,
         sentMessageParcelable: Parcelable,
     ) = newTransaction().sendNewMessage(
         Message("", recipients.toTypedArray()).apply {
-            addMedia(File(path).readBytes(), mimeType, filename)
+            addMedia(bytes, mimeType, filename)
             setupMms()
         },
         thread,

@@ -5,4 +5,5 @@
     <string name="notification_body">Bridge is running…</string>
     <string name="app_name">Beeper SMS Bridge</string>
     <string name="missing_sms_permissions">%s is missing permissions</string>
+    <string name="attachment_too_large">Attachment size (%1$s) exceeds MMS limit (%2$s)</string>
 </resources>

@@ -2,8 +2,9 @@ package com.beeper.sms
 
 import android.content.Context
 import android.os.Bundle
+import android.text.format.Formatter.formatShortFileSize
 import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.Error
+import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
 import com.beeper.sms.extensions.getThread
@@ -14,6 +15,7 @@ import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.ThreadProvider
 import com.google.gson.Gson
 import com.google.gson.JsonElement
+import java.io.File
 
 class CommandProcessor constructor(
     private val context: Context,
@@ -74,16 +76,32 @@ class CommandProcessor constructor(
                 }
                 val data = dataTree.deserialize(SendMedia::class.java)
                 val recipients = data.recipientList
-                smsMmsSender.sendMessage(
-                    recipients,
-                    data.path_on_disk,
-                    data.mime_type,
-                    data.file_name,
-                    context.getThread(data),
-                    Bundle().apply {
-                        putInt(EXTRA_COMMAND_ID, command.id!!)
-                    },
-                )
+                val file = File(data.path_on_disk)
+                val size = file.length()
+                if (size > MAX_FILE_SIZE) {
+                    bridge.send(
+                        command.id!!,
+                        Error(
+                            "size_limit_exceeded",
+                            context.getString(
+                                R.string.attachment_too_large,
+                                formatShortFileSize(context, size),
+                                formatShortFileSize(context, MAX_FILE_SIZE),
+                            )
+                        )
+                    )
+                } else {
+                    smsMmsSender.sendMessage(
+                        recipients,
+                        file.readBytes(),
+                        data.mime_type,
+                        data.file_name,
+                        context.getThread(data),
+                        Bundle().apply {
+                            putInt(EXTRA_COMMAND_ID, command.id!!)
+                        },
+                    )
+                }
             }
             "get_chats" -> {
                 val data = dataTree.deserialize(GetChats::class.java)
@@ -137,14 +155,12 @@ class CommandProcessor constructor(
 
     private fun noPermissionError(commandId: Int) {
         bridge.send(
+            commandId,
             Error(
-                commandId,
-                Error.Reason(
-                    "no_permission",
-                    context.getString(
-                        R.string.missing_sms_permissions,
-                        context.getString(R.string.app_name)
-                    )
+                "no_permission",
+                context.getString(
+                    R.string.missing_sms_permissions,
+                    context.getString(R.string.app_name)
                 )
             )
         )
@@ -152,6 +168,7 @@ class CommandProcessor constructor(
 
     companion object {
         private const val TAG = "CommandProcessor"
+        private const val MAX_FILE_SIZE = 400_000L
         private val gson = Gson()
         const val EXTRA_COMMAND_ID = "extra_command_id"
     }

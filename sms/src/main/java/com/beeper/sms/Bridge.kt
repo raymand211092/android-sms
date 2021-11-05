@@ -5,7 +5,7 @@ import android.os.Build
 import com.beeper.sms.BridgeService.Companion.startBridge
 import com.beeper.sms.BridgeService.Companion.stopBridge
 import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.Error
+import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.extensions.cacheDir
 import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
@@ -111,7 +111,7 @@ class Bridge private constructor() {
     internal fun forEachCommand(action: (String) -> Unit) =
         getProcess()?.inputStream?.forEach(action) ?: Log.e(TAG, "forEachCommand failed")
 
-    internal fun send(error: Error) = send(error as Any)
+    internal fun send(id: Int, error: Error) = send(Command("error", error, id))
 
     internal fun send(command: Command) = send(command as Any)
 
