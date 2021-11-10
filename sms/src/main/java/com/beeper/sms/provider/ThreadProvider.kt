@@ -52,11 +52,12 @@ class ThreadProvider constructor(context: Context) {
             .takeLast(limit)
             .map { Pair(it.second, it.third) }
 
-    fun getChatGuid(thread: Long): String? =
+    fun getChatGuid(thread: Long): String? = getPhoneNumbers(thread)?.chatGuid
+
+    fun getPhoneNumbers(thread: Long): List<String>? =
         getAddresses(thread)
             ?.mapNotNull { addr -> getPhoneNumber(addr) }
             ?.takeIf { it.isNotEmpty() }
-            ?.chatGuid
 
     private fun getRecentMessages(thread: Long, limit: Int, mms: Boolean) =
         getMessages(thread, mms.isMms, "LIMIT $limit")
@@ -77,6 +78,11 @@ class ThreadProvider constructor(context: Context) {
                 it.getLong(Sms.Conversations._ID),
                 mms
             )
+        }
+
+    fun getThreads(): List<Long> =
+        cr.map(URI_THREADS) {
+            it.getLong(ThreadsColumns._ID)
         }
 
     private fun getAddresses(thread: Long): List<String>? =
@@ -113,7 +119,12 @@ class ThreadProvider constructor(context: Context) {
             get() = listOf(this).chatGuid
 
         val List<String>.chatGuid: String
-            get() = "SMS;${if (size == 1) "-" else "+"};${joinToString(" ") { it.normalize }}"
+            get() =
+                if (size == 1) {
+                    "SMS;-;${first().normalize}"
+                } else {
+                    "SMS;+;${map { it.normalize }.sorted().joinToString(" ")}"
+                }
 
         private fun and(vararg criteria: String) = joinCriteria(" AND ", criteria)
 

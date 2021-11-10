@@ -16,12 +16,10 @@ fun Context.cacheDir(subdir: String): String =
 fun Context.hasPermission(permission: String): Boolean =
     ContextCompat.checkSelfPermission(this, permission) == PERMISSION_GRANTED
 
-fun Context.getThread(group: GroupMessaging) = getThread(group.recipientList)
-
-fun Context.getThread(recipients: List<String>) = try {
-    Threads.getOrCreateThreadId(this, recipients.toSet())
+fun Context.getThread(group: GroupMessaging) = try {
+    Threads.getOrCreateThreadId(this, group.recipientList.toSet())
 } catch (ignored: Exception) {
-    0L
+    null
 }
 
 val Context.hasPermissions: Boolean

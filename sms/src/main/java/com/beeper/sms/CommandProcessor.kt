@@ -3,11 +3,12 @@ package com.beeper.sms
 import android.content.Context
 import android.os.Bundle
 import android.text.format.Formatter.formatShortFileSize
-import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_MMS_GUIDS
 import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
+import com.beeper.sms.commands.outgoing.ChatId
+import com.beeper.sms.commands.outgoing.Error
+import com.beeper.sms.extensions.PREF_USE_OLD_MMS_GUIDS
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
 import com.beeper.sms.extensions.hasPermissions
@@ -15,6 +16,8 @@ import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.ThreadProvider
+import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
+import com.beeper.sms.provider.ThreadProvider.Companion.normalize
 import com.google.gson.Gson
 import com.google.gson.JsonElement
 import java.io.File
@@ -68,7 +71,7 @@ class CommandProcessor constructor(
                 smsMmsSender.sendMessage(
                     data.text,
                     data.recipientList,
-                    context.getThread(data),
+                    context.getThread(data) ?: 0L,
                     Bundle().apply {
                         putInt(EXTRA_COMMAND_ID, command.id!!)
                     },
@@ -101,7 +104,7 @@ class CommandProcessor constructor(
                         file.readBytes(),
                         data.mime_type,
                         data.file_name,
-                        context.getThread(data),
+                        context.getThread(data) ?: 0L,
                         Bundle().apply {
                             putInt(EXTRA_COMMAND_ID, command.id!!)
                         },
@@ -127,10 +130,13 @@ class CommandProcessor constructor(
             }
             "get_messages_after" -> {
                 val data = dataTree.deserialize(GetMessagesAfter::class.java)
-                val messages =
-                    threadProvider
-                        .getMessagesAfter(context.getThread(data), data.timestamp)
-                        .toMessages()
+                val messages = getThread(data)
+                    ?.let {
+                        threadProvider
+                            .getMessagesAfter(it, data.timestamp)
+                            .toMessages()
+                    }
+                    ?: emptyList()
                 if (data.timestamp < oldBackfillSeconds) {
                     messages
                         .filter { it.timestamp < oldBackfillSeconds }
@@ -141,9 +147,13 @@ class CommandProcessor constructor(
             "get_recent_messages" -> {
                 val data = dataTree.deserialize(GetRecentMessages::class.java)
                 val messages =
-                    threadProvider
-                        .getRecentMessages(context.getThread(data), data.limit.toInt())
-                        .toMessages()
+                    getThread(data)
+                        ?.let {
+                            threadProvider
+                                .getRecentMessages(it, data.limit.toInt())
+                                .toMessages()
+                        }
+                        ?: emptyList()
                 bridge.send(Command("response", messages, command.id))
             }
             "get_chat_avatar" -> {
@@ -153,6 +163,16 @@ class CommandProcessor constructor(
                 Log.e(TAG, "unhandled command: $command")
             }
         }
+    }
+
+    private fun getThread(data: GroupMessaging): Long? {
+        val thread = context.getThread(data) ?: return null
+        val numbers = threadProvider.getPhoneNumbers(thread) ?: return null
+        val chatGuid = numbers.chatGuid
+        if (data.chat_guid != chatGuid) {
+            fixChatGuid(data.chat_guid, chatGuid)
+        }
+        return thread
     }
 
     private fun <T> JsonElement.deserialize(c: Class<T>): T =
@@ -176,10 +196,27 @@ class CommandProcessor constructor(
         )
     }
 
+    fun fixChatGuids() {
+        threadProvider.getThreads().forEach { thread ->
+            val numbers =
+                threadProvider.getPhoneNumbers(thread)?.takeIf { it.size > 1 } ?: return@forEach
+            fixChatGuid(numbers.legacyChatGuid, numbers.chatGuid)
+        }
+    }
+
+    private fun fixChatGuid(oldGuid: String, newGuid: String) {
+        if (oldGuid != newGuid) {
+            bridge.send(Command("chat_id", ChatId(oldGuid, newGuid)))
+        }
+    }
+
     companion object {
         private const val TAG = "CommandProcessor"
         private const val MAX_FILE_SIZE = 400_000L
         private val gson = Gson()
         const val EXTRA_COMMAND_ID = "extra_command_id"
+
+        private val List<String>.legacyChatGuid: String
+            get() = "SMS;${if (size == 1) "-" else "+"};${joinToString(" ") { it.normalize }}"
     }
 }
