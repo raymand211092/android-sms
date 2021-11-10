@@ -1,3 +1,5 @@
 package com.beeper.sms.commands.incoming
 
-data class GetChats(var min_timestamp: Long)
+import com.beeper.sms.commands.TimeSeconds
+
+data class GetChats(var min_timestamp: TimeSeconds)

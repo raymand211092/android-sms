@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.text.format.Formatter.formatShortFileSize
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_MMS_GUIDS
 import com.beeper.sms.commands.Command
+import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
 import com.beeper.sms.commands.outgoing.Error
@@ -12,11 +13,11 @@ import com.beeper.sms.commands.outgoing.PushKey
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
 import com.beeper.sms.extensions.hasPermissions
+import com.beeper.sms.helpers.newGson
 import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.ThreadProvider
-import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.klinker.android.send_message.Transaction.COMMAND_ID
 import java.io.File
@@ -32,9 +33,13 @@ class CommandProcessor constructor(
     private val smsMmsSender: SmsMmsSender = SmsMmsSender(context),
 ) {
     private val oldBackfillSeconds =
-        context.getSharedPreferences().getLong(PREF_USE_OLD_MMS_GUIDS, 0L) / 1000
+        context
+            .getSharedPreferences()
+            .getLong(PREF_USE_OLD_MMS_GUIDS, 0L)
+            .toSeconds()
 
     fun handle(input: String) {
+        Log.v(TAG, input)
         val command = gson.fromJson(input, Command::class.java)
         when (command.command) {
             "pre_startup_sync" -> {
@@ -119,7 +124,7 @@ class CommandProcessor constructor(
                 val data = command.deserialize(GetChats::class.java)
                 val recentMessages =
                     smsProvider
-                        .getMessagesAfter(data.min_timestamp * 1000)
+                        .getMessagesAfter(data.min_timestamp.toMillis())
                         .plus(mmsProvider.getMessagesAfter(data.min_timestamp))
                 bridge.send(
                     Command(
@@ -195,6 +200,6 @@ class CommandProcessor constructor(
     companion object {
         private const val TAG = "CommandProcessor"
         private const val MAX_FILE_SIZE = 400_000L
-        private val gson = Gson()
+        private val gson = newGson()
     }
 }

@@ -8,12 +8,12 @@ import com.beeper.sms.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.outgoing.MessageIdsAfterTime
 import com.beeper.sms.extensions.getSharedPreferences
-import com.beeper.sms.extensions.putLong
+import com.beeper.sms.extensions.getTimeSeconds
+import com.beeper.sms.extensions.putTimeSeconds
 import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.MmsProvider.Companion.MMS_PREFIX
 import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.ThreadProvider
-import kotlin.math.max
 
 class DatabaseSyncWork constructor(
     private val context: Context,
@@ -24,14 +24,14 @@ class DatabaseSyncWork constructor(
     private val threadProvider = ThreadProvider(context)
 
     override suspend fun doWork(): Result {
-        val lastTimestamp = prefs.getLong(PREF_LATEST_SYNC, 0L)
-        if (lastTimestamp <= 0) {
+        val lastTimestamp = prefs.getTimeSeconds(PREF_LATEST_SYNC)
+        if (lastTimestamp == null) {
             Log.e(TAG, "sync not initialized")
             return Result.failure()
         }
         val messages =
-            MmsProvider(context).getMessagesAfter(lastTimestamp / 1000)
-                .plus(SmsProvider(context).getMessagesAfter(lastTimestamp))
+            MmsProvider(context).getMessagesAfter(lastTimestamp)
+                .plus(SmsProvider(context).getMessagesAfter(lastTimestamp.toMillis()))
                 .sortedBy { it.timestamp }
                 .groupBy { it.thread }
         for ((thread, messageList) in messages) {
@@ -42,7 +42,7 @@ class DatabaseSyncWork constructor(
             val response = Bridge.INSTANCE.await(
                 Command(
                     "message_ids_after_time",
-                    MessageIdsAfterTime(chatGuid, lastTimestamp / 1000)
+                    MessageIdsAfterTime(chatGuid, lastTimestamp)
                 )
             )
             val ids =
@@ -57,9 +57,9 @@ class DatabaseSyncWork constructor(
                 .also { Log.d(TAG, "bridging ${it.size} messages: ${it.joinToString(",")}") }
                 .forEach { workManager.sendMessage(it) }
         }
-        prefs.putLong(
+        prefs.putTimeSeconds(
             PREF_LATEST_SYNC,
-            max(lastTimestamp, messages.values.flatten().maxOf { it.timestamp } * 1000)
+            lastTimestamp.max(messages.values.flatten().maxOf { it.timestamp })
         )
         return Result.success()
     }

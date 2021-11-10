@@ -5,6 +5,8 @@ import android.content.Context
 import android.net.Uri
 import android.provider.Telephony.Sms.*
 import com.beeper.sms.Log
+import com.beeper.sms.commands.TimeMillis
+import com.beeper.sms.commands.TimeMillis.Companion.toMillis
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
 import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
@@ -14,8 +16,8 @@ class SmsProvider constructor(context: Context) {
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
-    fun getMessagesAfter(timestamp: Long): List<Message> {
-        val selection = "$DATE > $timestamp"
+    fun getMessagesAfter(timestamp: TimeMillis): List<Message> {
+        val selection = "$DATE > ${timestamp.toLong()}"
         return getSms(where = selection)
             .plus(getSms(uri = Inbox.CONTENT_URI, where = selection))
             .plus(getSms(uri = Sent.CONTENT_URI, where = selection))
@@ -41,7 +43,7 @@ class SmsProvider constructor(context: Context) {
             val rowId = it.getLong(_ID)
             Message(
                 guid = rowId.toString(),
-                timestamp = it.getLong(DATE) / 1000,
+                timestamp = it.getLong(DATE).toMillis().toSeconds(),
                 subject = it.getString(SUBJECT) ?: "",
                 text = it.getString(BODY) ?: "",
                 chat_guid = chatGuid,

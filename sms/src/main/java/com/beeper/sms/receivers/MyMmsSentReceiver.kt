@@ -13,10 +13,10 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMedia
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.extensions.printExtras
+import com.beeper.sms.helpers.currentTimeSeconds
 import com.beeper.sms.provider.MmsProvider
 import com.klinker.android.send_message.Transaction.COMMAND_ID
 import com.klinker.android.send_message.Transaction.SENT_MMS_BUNDLE
-import java.lang.System.currentTimeMillis
 import java.util.*
 
 class MyMmsSentReceiver : BroadcastReceiver() {
@@ -39,7 +39,7 @@ class MyMmsSentReceiver : BroadcastReceiver() {
                 return
             }
             message != null -> Pair(message.guid, message.timestamp)
-            else -> Pair(UUID.randomUUID().toString(), currentTimeMillis())
+            else -> Pair(UUID.randomUUID().toString(), currentTimeSeconds())
         }
         Bridge.INSTANCE.send(
             Command("response", SendMedia.Response(guid, timestamp), commandId)

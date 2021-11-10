@@ -5,6 +5,8 @@ import android.net.Uri
 import android.provider.Telephony.*
 import android.telephony.PhoneNumberUtils
 import androidx.core.net.toUri
+import com.beeper.sms.commands.TimeSeconds
+import com.beeper.sms.commands.Timestamp
 import com.beeper.sms.extensions.firstOrNull
 import com.beeper.sms.extensions.getLong
 import com.beeper.sms.extensions.getString
@@ -14,8 +16,8 @@ import java.util.*
 class ThreadProvider constructor(context: Context) {
     private val cr = context.contentResolver
 
-    fun getMessagesAfter(thread: Long, timestampSeconds: Long): List<Pair<Long, Boolean>> =
-        getMessagesAfter(thread, timestampSeconds * 1000, false)
+    fun getMessagesAfter(thread: Long, timestampSeconds: TimeSeconds): List<Pair<Long, Boolean>> =
+        getMessagesAfter(thread, timestampSeconds.toMillis(), false)
             .plus(getMessagesAfter(thread, timestampSeconds, true))
             .sortedBy { it.first }
             .map { Pair(it.second, it.third) }
@@ -36,8 +38,8 @@ class ThreadProvider constructor(context: Context) {
     private fun getRecentMessages(thread: Long, limit: Int, mms: Boolean) =
         getMessages(thread, mms.isMms, "LIMIT $limit")
 
-    private fun getMessagesAfter(thread: Long, timestamp: Long, mms: Boolean) =
-        getMessages(thread, "${mms.isMms} AND ${Sms.Conversations.DATE} > $timestamp")
+    private fun getMessagesAfter(thread: Long, timestamp: Timestamp, mms: Boolean) =
+        getMessages(thread, "${mms.isMms} AND ${Sms.Conversations.DATE} > ${timestamp.toLong()}")
 
     private fun getMessages(thread: Long, where: String, limit: String = "") =
         cr.map(

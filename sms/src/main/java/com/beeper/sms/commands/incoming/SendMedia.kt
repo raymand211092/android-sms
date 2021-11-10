@@ -1,5 +1,7 @@
 package com.beeper.sms.commands.incoming
 
+import com.beeper.sms.commands.TimeSeconds
+
 data class SendMedia(
     override var chat_guid: String,
     var path_on_disk: String,
@@ -8,6 +10,6 @@ data class SendMedia(
 ) : GroupMessaging {
     data class Response(
         var guid: String,
-        var timestamp: Long,
+        var timestamp: TimeSeconds,
     )
 }

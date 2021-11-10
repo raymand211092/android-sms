@@ -10,18 +10,14 @@ import com.beeper.sms.commands.outgoing.PushKey
 import com.beeper.sms.extensions.cacheDir
 import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
-import com.google.gson.GsonBuilder
+import com.beeper.sms.helpers.newGson
 import com.google.gson.JsonElement
-import com.google.gson.JsonPrimitive
-import com.google.gson.JsonSerializer
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onSubscription
 import java.io.File
 import java.io.InputStream
-import java.math.BigDecimal
 import java.util.concurrent.Executors.newSingleThreadExecutor
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.suspendCoroutine
@@ -36,8 +32,6 @@ class Bridge private constructor() {
     private var pushKey: PushKey? = null
     private var process: Process? = null
     private val outgoing = newSingleThreadExecutor().asCoroutineDispatcher()
-    private val gson =
-        GsonBuilder().registerTypeAdapter(DOUBLE_SERIALIZER_TYPE, DOUBLE_SERIALIZER).create()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val responseFlow = MutableSharedFlow<Pair<Int, JsonElement>>()
     private val requestId = AtomicInteger(0)
@@ -160,9 +154,7 @@ class Bridge private constructor() {
     companion object {
         private const val TAG = "Bridge"
         private const val DEFAULT_CHANNEL_ID = "sms_bridge_service"
-        private val DOUBLE_SERIALIZER_TYPE = object : TypeToken<Double>() {}.type
-        private val DOUBLE_SERIALIZER =
-            JsonSerializer<Double> { src, _, _ -> JsonPrimitive(BigDecimal.valueOf(src)) }
+        private val gson = newGson()
         val INSTANCE = Bridge()
 
         private val Process.running: Boolean

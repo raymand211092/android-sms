@@ -6,10 +6,13 @@ import android.net.Uri
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.Log
+import com.beeper.sms.commands.TimeSeconds
+import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
 import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
 import com.google.android.mms.pdu_alt.PduHeaders
+import java.math.BigDecimal
 
 class MmsProvider constructor(
     context: Context,
@@ -19,8 +22,8 @@ class MmsProvider constructor(
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
-    fun getMessagesAfter(timestamp: Long): List<Message> {
-        val selection = "$DATE > $timestamp"
+    fun getMessagesAfter(timestamp: TimeSeconds): List<Message> {
+        val selection = "$DATE > ${timestamp.toLong()}"
         return getMms(where = selection)
             .plus(getMms(uri = Inbox.CONTENT_URI, where = selection))
             .plus(getMms(uri = Sent.CONTENT_URI, where = selection))
@@ -52,7 +55,7 @@ class MmsProvider constructor(
             }
             Message(
                 guid = "$MMS_PREFIX$rowId",
-                timestamp = it.getLong(DATE),
+                timestamp = it.getLong(DATE).toSeconds(),
                 subject = it.getString(SUBJECT) ?: "",
                 text = attachments.mapNotNull { a -> a.text }.joinToString(""),
                 chat_guid = chatGuid,

@@ -2,10 +2,11 @@ package com.beeper.sms.commands.outgoing
 
 import android.net.Uri
 import com.beeper.sms.BuildConfig
+import com.beeper.sms.commands.TimeSeconds
 
 data class Message(
     var guid: String,
-    var timestamp: Long,
+    var timestamp: TimeSeconds,
     var subject: String,
     var text: String,
     var chat_guid: String,

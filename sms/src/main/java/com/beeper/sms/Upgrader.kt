@@ -3,6 +3,8 @@ package com.beeper.sms
 import android.content.Context
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.putLong
+import com.beeper.sms.extensions.putTimeSeconds
+import com.beeper.sms.helpers.currentTimeSeconds
 import com.beeper.sms.work.DatabaseSyncWork
 
 class Upgrader(context: Context) {
@@ -23,11 +25,11 @@ class Upgrader(context: Context) {
              */
             preferences.putLong(PREF_USE_OLD_MMS_GUIDS, System.currentTimeMillis())
         }
-        upgrade(from, 158) {
+        upgrade(from, 159) {
             /*
-             * v158 adds new database sync logic
+             * v159 adds new database sync logic
              */
-            preferences.putLong(DatabaseSyncWork.PREF_LATEST_SYNC, System.currentTimeMillis())
+            preferences.putTimeSeconds(DatabaseSyncWork.PREF_LATEST_SYNC, currentTimeSeconds())
         }
         preferences.putLong(PREF_CURRENT_VERSION, to)
         Log.d(TAG, "Finished upgrade from $from to $to")
