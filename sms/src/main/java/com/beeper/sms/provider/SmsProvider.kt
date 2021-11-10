@@ -31,8 +31,9 @@ class SmsProvider constructor(context: Context) {
                 else -> false
             }
             val chatGuid = address.chatGuid
+            val rowId = it.getLong(_ID)
             Message(
-                guid = it.getInt(_ID).toString(),
+                guid = "sms_$rowId",
                 timestamp = it.getLong(DATE) / 1000,
                 subject = it.getString(SUBJECT) ?: "",
                 text = it.getString(BODY) ?: "",
@@ -42,6 +43,7 @@ class SmsProvider constructor(context: Context) {
                 sent_from_matrix = it.getString(CREATOR) == packageName,
                 is_mms = false,
                 thread = it.getLong(THREAD_ID),
+                rowId = rowId,
             )
         }
 

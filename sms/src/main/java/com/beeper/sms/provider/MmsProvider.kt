@@ -27,20 +27,20 @@ class MmsProvider constructor(
 
     private fun getMms(where: String? = null): List<Message> =
         cr.map(CONTENT_URI, where) {
-            val id = it.getLong(_ID)
-            val attachments = partProvider.getAttachment(id)
+            val rowId = it.getLong(_ID)
+            val attachments = partProvider.getAttachment(rowId)
             val isFromMe = when (it.getInt(MESSAGE_BOX)) {
                 MESSAGE_BOX_OUTBOX, MESSAGE_BOX_SENT -> true
                 else -> false
             }
             val creator = it.getString(CREATOR)
             Message(
-                guid = it.getInt(_ID).toString(),
+                guid = "mms_$rowId",
                 timestamp = it.getLong(DATE),
                 subject = it.getString(SUBJECT) ?: "",
                 text = attachments.mapNotNull { a -> a.text }.joinToString(""),
                 chat_guid = threadProvider.getChatGuid(it.getLong(THREAD_ID)) ?: return@map null,
-                sender_guid = if (isFromMe) null else getSender(id)?.chatGuid,
+                sender_guid = if (isFromMe) null else getSender(rowId)?.chatGuid,
                 is_from_me = isFromMe,
                 attachments = attachments.mapNotNull { a -> a.attachment },
                 sent_from_matrix = creator == packageName,
@@ -48,6 +48,7 @@ class MmsProvider constructor(
                 resp_st = it.getIntOrNull(RESPONSE_STATUS),
                 creator = creator,
                 thread = it.getLong(THREAD_ID),
+                rowId = rowId
             )
         }
 

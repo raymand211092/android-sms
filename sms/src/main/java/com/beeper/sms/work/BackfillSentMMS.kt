@@ -22,7 +22,7 @@ class BackfillSentMMS constructor(
         }
         val workManager = WorkManager(context)
         messages
-            .map { Uri.withAppendedPath(Telephony.Mms.CONTENT_URI, it.guid) }
+            .map { Uri.withAppendedPath(Telephony.Mms.CONTENT_URI, it.rowId.toString()) }
             .forEach(workManager::sendMessage)
         messages.maxOfOrNull { it.timestamp }?.let { lastTimestamp = it }
         return Result.success()
