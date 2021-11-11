@@ -28,7 +28,8 @@ class CommandProcessor constructor(
     private val mmsProvider: MmsProvider = MmsProvider(context),
     private val smsMmsSender: SmsMmsSender = SmsMmsSender(context),
 ) {
-    private val preferences = context.getSharedPreferences()
+    private val oldBackfillSeconds =
+        context.getSharedPreferences().getLong(PREF_USE_OLD_MMS_GUIDS, 0L) / 1000
 
     fun handle(input: String) {
         val command = gson.fromJson(input, Command::class.java)
@@ -130,10 +131,10 @@ class CommandProcessor constructor(
                     threadProvider
                         .getMessagesAfter(context.getThread(data), data.timestamp)
                         .toMessages()
-                if (data.timestamp * 1000 < preferences.getLong(PREF_USE_OLD_MMS_GUIDS, 0L)) {
-                    messages.forEach {
-                        it.guid = it.guid.removePrefix("mms_")
-                    }
+                if (data.timestamp < oldBackfillSeconds) {
+                    messages
+                        .filter { it.timestamp < oldBackfillSeconds }
+                        .forEach { it.guid = it.guid.removePrefix("mms_") }
                 }
                 bridge.send(Command("response", messages, command.id))
             }
