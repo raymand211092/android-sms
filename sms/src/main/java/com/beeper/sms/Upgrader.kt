@@ -14,6 +14,14 @@ class Upgrader(context: Context) {
             return
         }
         Log.d(TAG, "Beginning upgrade from $from to $to")
+        upgrade(from, 140) {
+            /*
+             * v140 adds an "mms_" prefix to MMS guids to prevent clashing with SMS
+             * This can lead to duplicate messages when the latest message in a thread
+             * was an MMS sent before this change
+             */
+            preferences.putLong(PREF_USE_OLD_MMS_GUIDS, System.currentTimeMillis())
+        }
         preferences.putLong(PREF_CURRENT_VERSION, to)
         Log.d(TAG, "Finished upgrade from $from to $to")
     }
@@ -29,5 +37,6 @@ class Upgrader(context: Context) {
     companion object {
         private const val TAG = "Upgrader"
         private const val PREF_CURRENT_VERSION = "current_version"
+        const val PREF_USE_OLD_MMS_GUIDS = "use_old_mms_guids"
     }
 }

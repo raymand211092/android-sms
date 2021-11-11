@@ -3,10 +3,12 @@ package com.beeper.sms
 import android.content.Context
 import android.os.Bundle
 import android.text.format.Formatter.formatShortFileSize
+import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_MMS_GUIDS
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
+import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
 import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.provider.ContactProvider
@@ -26,6 +28,8 @@ class CommandProcessor constructor(
     private val mmsProvider: MmsProvider = MmsProvider(context),
     private val smsMmsSender: SmsMmsSender = SmsMmsSender(context),
 ) {
+    private val preferences = context.getSharedPreferences()
+
     fun handle(input: String) {
         val command = gson.fromJson(input, Command::class.java)
         val dataTree = gson.toJsonTree(command.data)
@@ -126,6 +130,11 @@ class CommandProcessor constructor(
                     threadProvider
                         .getMessagesAfter(context.getThread(data), data.timestamp)
                         .toMessages()
+                if (data.timestamp * 1000 < preferences.getLong(PREF_USE_OLD_MMS_GUIDS, 0L)) {
+                    messages.forEach {
+                        it.guid = it.guid.removePrefix("mms_")
+                    }
+                }
                 bridge.send(Command("response", messages, command.id))
             }
             "get_recent_messages" -> {
