@@ -56,6 +56,7 @@ build_mautrix() {
 }
 
 git submodule foreach git reset --hard
+git submodule update --init
 
 pushd mautrix-imessage || exit
 
