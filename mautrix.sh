@@ -55,14 +55,11 @@ build_mautrix() {
   cp "$NDK_ROOT/sources/cxx-stl/llvm-libc++/libs/$ANDROID_ARCH/libc++_shared.so" $APP_JNI
 }
 
-git submodule sync
 git submodule update --init
 
 pushd mautrix-imessage || exit
 
 git checkout go.mod
-echo "replace github.com/lib/pq => github.com/lib/pq v1.10.1" >> go.mod
-go mod download github.com/lib/pq
 
 build_mautrix armeabi-v7a armv7a-linux-androideabi arm 7
 build_mautrix arm64-v8a aarch64-linux-android arm64
