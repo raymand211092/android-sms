@@ -33,7 +33,7 @@ class SmsProvider constructor(context: Context) {
             val chatGuid = address.chatGuid
             val rowId = it.getLong(_ID)
             Message(
-                guid = "sms_$rowId",
+                guid = rowId.toString(),
                 timestamp = it.getLong(DATE) / 1000,
                 subject = it.getString(SUBJECT) ?: "",
                 text = it.getString(BODY) ?: "",
