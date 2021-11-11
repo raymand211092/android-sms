@@ -55,11 +55,9 @@ build_mautrix() {
   cp "$NDK_ROOT/sources/cxx-stl/llvm-libc++/libs/$ANDROID_ARCH/libc++_shared.so" $APP_JNI
 }
 
-git submodule update --init
+git submodule foreach git reset --hard
 
 pushd mautrix-imessage || exit
-
-git checkout go.mod
 
 build_mautrix armeabi-v7a armv7a-linux-androideabi arm 7
 build_mautrix arm64-v8a aarch64-linux-android arm64
