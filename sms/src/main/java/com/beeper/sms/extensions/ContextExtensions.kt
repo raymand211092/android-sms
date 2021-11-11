@@ -8,6 +8,8 @@ import androidx.core.content.ContextCompat
 import com.beeper.sms.commands.incoming.GroupMessaging
 import java.io.File
 
+fun Context.getSharedPreferences() = getSharedPreferences("sms_bridge", Context.MODE_PRIVATE)
+
 fun Context.cacheDir(subdir: String): String =
     File(cacheDir, subdir).apply { mkdirs() }.absolutePath
 

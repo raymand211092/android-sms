@@ -40,6 +40,7 @@ class Bridge private constructor() {
         configPathProvider: suspend () -> String?,
     ) {
         Log.d(TAG, "init")
+        Upgrader(context).upgrade()
         this.configPathProvider = configPathProvider
         this.channelId = channelId
         this.channelIcon = channelIcon
