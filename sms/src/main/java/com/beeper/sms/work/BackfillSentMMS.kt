@@ -8,6 +8,7 @@ import androidx.work.WorkerParameters
 import com.beeper.sms.Log
 import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.ThreadProvider
+import kotlin.math.max
 
 class BackfillSentMMS constructor(
     private val context: Context,
@@ -30,10 +31,10 @@ class BackfillSentMMS constructor(
 
     companion object {
         private const val TAG = "BackfillSentMMS"
-        internal var lastTimestamp = 0L
+        internal var lastTimestamp = System.currentTimeMillis() / 1000
             set(value) {
                 Log.d(TAG, "lastTimestamp $field -> $value")
-                field = value
+                field = max(field, value)
             }
     }
 }

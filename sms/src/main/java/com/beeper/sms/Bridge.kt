@@ -56,7 +56,6 @@ class Bridge private constructor() {
                 getConfig().exists() &&
                 getProcess()?.running == true
             ) {
-                BackfillSentMMS.lastTimestamp = System.currentTimeMillis() / 1000
                 context.startBridge(channelId, channelIcon)
             }
         } catch (e: Exception) {
