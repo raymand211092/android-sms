@@ -10,7 +10,6 @@ import com.beeper.sms.CommandProcessor.Companion.EXTRA_COMMAND_ID
 import com.beeper.sms.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMedia
-import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.MmsProvider
 import com.klinker.android.send_message.Transaction.SENT_MMS_BUNDLE
@@ -39,13 +38,7 @@ class MyMmsSentReceiver : BroadcastReceiver() {
                 Pair(UUID.randomUUID().toString(), currentTimeMillis())
             }
             else -> {
-                Bridge.INSTANCE.send(
-                    commandId,
-                    Error(
-                        "missing_mms",
-                        "Message not found in Android's MMS database (uri=$uri, failureCause=$failureCause, handledByCarrierApp=$handledByCarrierApp)"
-                    )
-                )
+                Log.e(TAG, "message not found (commandId=$commandId, uri=$uri, failureCause=$failureCause, handledByCarrierApp=$handledByCarrierApp)")
                 return
             }
         }
