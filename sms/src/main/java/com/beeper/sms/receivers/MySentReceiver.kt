@@ -9,6 +9,7 @@ import com.beeper.sms.CommandProcessor.Companion.EXTRA_COMMAND_ID
 import com.beeper.sms.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
+import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.SmsProvider
 import com.klinker.android.send_message.SentReceiver
@@ -22,7 +23,10 @@ class MySentReceiver : SentReceiver() {
             (intent?.getParcelableExtra(SENT_SMS_BUNDLE) as? Bundle)?.getInt(EXTRA_COMMAND_ID)
         val message = uri?.let { SmsProvider(context).getMessage(it) }
         when {
-            uri == null -> Log.e(TAG, "Missing uri")
+            uri == null -> {
+                // Another broadcast may be received with the URI set, can't fail here
+                Log.w(TAG, "Missing uri")
+            }
             message != null ->
                 Bridge.INSTANCE.send(
                     Command(
@@ -31,7 +35,14 @@ class MySentReceiver : SentReceiver() {
                         commandId,
                     )
                 )
-            else -> Log.e(TAG, "Unable to respond (command=$commandId uri=$uri)")
+            commandId != null ->
+                Bridge.INSTANCE.send(
+                    commandId,
+                    Error("missing_sms", "Message not found in Android's SMS database")
+                )
+            else -> {
+                Log.e(TAG, "Unable to respond (command=$commandId uri=$uri)")
+            }
         }
     }
 
