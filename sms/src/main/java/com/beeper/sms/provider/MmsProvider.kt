@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
+import com.beeper.sms.Log
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
 import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
@@ -34,20 +35,30 @@ class MmsProvider constructor(
                 else -> false
             }
             val creator = it.getString(CREATOR)
+            val thread = it.getLong(THREAD_ID)
+            val chatGuid = threadProvider.getChatGuid(thread)
+            if (chatGuid.isNullOrBlank()) {
+                Log.e(TAG, "Error generating guid for $thread")
+                return@map null
+            }
+            val sender = when {
+                isFromMe -> null
+                else -> getSender(rowId)?.chatGuid ?: chatGuid.takeIf { cg -> cg.isDm }
+            }
             Message(
                 guid = "mms_$rowId",
                 timestamp = it.getLong(DATE),
                 subject = it.getString(SUBJECT) ?: "",
                 text = attachments.mapNotNull { a -> a.text }.joinToString(""),
-                chat_guid = threadProvider.getChatGuid(it.getLong(THREAD_ID)) ?: return@map null,
-                sender_guid = if (isFromMe) null else getSender(rowId)?.chatGuid,
+                chat_guid = chatGuid,
+                sender_guid = sender,
                 is_from_me = isFromMe,
                 attachments = attachments.mapNotNull { a -> a.attachment },
                 sent_from_matrix = creator == packageName,
                 is_mms = true,
                 resp_st = it.getIntOrNull(RESPONSE_STATUS),
                 creator = creator,
-                thread = it.getLong(THREAD_ID),
+                thread = thread,
                 rowId = rowId
             )
         }
@@ -61,7 +72,12 @@ class MmsProvider constructor(
         }
 
     companion object {
+        private const val TAG = "MmsProvider"
+
         val Uri.isMms: Boolean
             get() = toString().startsWith("$CONTENT_URI")
+
+        private val String.isDm: Boolean
+            get() = startsWith("SMS;-;")
     }
 }
