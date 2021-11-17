@@ -75,6 +75,10 @@ class Bridge private constructor() {
         configPathProvider = null
     }
 
+    fun ping() {
+        send(Command("ping_server", null))
+    }
+
     @Synchronized
     private fun getProcess(): Process? {
         val config = configPath ?: return null

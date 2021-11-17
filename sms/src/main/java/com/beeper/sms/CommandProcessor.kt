@@ -149,6 +149,9 @@ class CommandProcessor constructor(
             "get_chat_avatar" -> {
                 bridge.send(Command("response", null, command.id))
             }
+            "response" -> {
+                Log.d(TAG, "unhandled response: command=${command.id} dataTree=$dataTree")
+            }
             else -> {
                 Log.e(TAG, "unhandled command: $command")
             }

@@ -45,7 +45,8 @@ class MainActivity : ComponentActivity() {
                     stopBridge = { Bridge.INSTANCE.stop(this@MainActivity) },
                     startBridge = { Bridge.INSTANCE.start(this@MainActivity) },
                     killBridge = { Bridge.INSTANCE.killProcess() },
-                    requestPermissions = { permissionResult.launch(SMS_PERMISSIONS.toTypedArray()) }
+                    requestPermissions = { permissionResult.launch(SMS_PERMISSIONS.toTypedArray()) },
+                    pingBridge = { Bridge.INSTANCE.ping() },
                 )
             }
         }
@@ -66,6 +67,7 @@ fun Body(
     startBridge: () -> Unit = {},
     killBridge: () -> Unit = {},
     requestPermissions: () -> Unit = {},
+    pingBridge: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -83,6 +85,7 @@ fun Body(
             ) {
                 if (hasPermission) {
                     Button("Start bridge", action = startBridge)
+                    Button("Ping bridge", action = pingBridge)
                     Button("Stop bridge", action = stopBridge)
                     if (BuildConfig.DEBUG) {
                         Button("Kill bridge", action = killBridge)
