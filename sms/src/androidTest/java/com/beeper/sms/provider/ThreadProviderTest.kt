@@ -1,6 +1,5 @@
 package com.beeper.sms.provider
 
-import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
 import com.beeper.sms.provider.ThreadProvider.Companion.normalize
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -31,19 +30,5 @@ class ThreadProviderTest {
     fun emailAddress() {
         // Address isn't necessarily a phone number, e.g. e-mail to SMS gateways
         assertEquals("user@example.com", "user@example.com".normalize)
-    }
-
-    @Test
-    fun groupMessageGuid() {
-        val user1 = "+18915554567"
-        val user2 = "+16175556543"
-        val user3 = "+13125554301"
-        val guid = "SMS;+;+13125554301 +16175556543 +18915554567"
-        assertEquals(guid, listOf(user1, user2, user3).chatGuid)
-        assertEquals(guid, listOf(user1, user3, user2).chatGuid)
-        assertEquals(guid, listOf(user2, user1, user3).chatGuid)
-        assertEquals(guid, listOf(user2, user3, user1).chatGuid)
-        assertEquals(guid, listOf(user3, user1, user2).chatGuid)
-        assertEquals(guid, listOf(user3, user2, user1).chatGuid)
     }
 }

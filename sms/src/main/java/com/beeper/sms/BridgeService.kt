@@ -10,10 +10,7 @@ import android.os.IBinder
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.beeper.sms.extensions.PREF_FIXED_ROOM_IDS
-import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.hasPermissions
-import com.beeper.sms.extensions.putBoolean
 import kotlinx.coroutines.*
 import java.io.IOException
 import java.io.InterruptedIOException
@@ -55,12 +52,6 @@ class BridgeService : Service() {
         }
         commandHandling?.cancel()
         commandHandling = restartOnInterrupt {
-            with (getSharedPreferences()) {
-                if (!getBoolean(PREF_FIXED_ROOM_IDS, true)) {
-                    commandProcessor.fixChatGuids()
-                    putBoolean(PREF_FIXED_ROOM_IDS, true)
-                }
-            }
             Bridge.INSTANCE.forEachCommand {
                 if (COMMAND.matches(it)) {
                     commandProcessor.handle(it)
