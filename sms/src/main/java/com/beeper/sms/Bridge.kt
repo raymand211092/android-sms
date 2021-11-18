@@ -6,10 +6,10 @@ import com.beeper.sms.BridgeService.Companion.startBridge
 import com.beeper.sms.BridgeService.Companion.stopBridge
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.outgoing.Error
+import com.beeper.sms.commands.outgoing.PushKey
 import com.beeper.sms.extensions.cacheDir
 import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
-import com.beeper.sms.work.BackfillSentMMS
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
@@ -27,6 +27,7 @@ class Bridge private constructor() {
     private var configPath: String? = null
     private var cacheDir: String? = null
     private var channelIcon: Int? = null
+    private var pushKey: PushKey? = null
     private var process: Process? = null
     private val outgoing = newSingleThreadExecutor().asCoroutineDispatcher()
     private val gson =
@@ -37,6 +38,7 @@ class Bridge private constructor() {
         context: Context,
         channelId: String = DEFAULT_CHANNEL_ID,
         channelIcon: Int? = null,
+        pushKey: PushKey? = null,
         configPathProvider: suspend () -> String?,
     ) {
         Log.d(TAG, "init")
@@ -44,6 +46,7 @@ class Bridge private constructor() {
         this.configPathProvider = configPathProvider
         this.channelId = channelId
         this.channelIcon = channelIcon
+        this.pushKey = pushKey
         nativeLibDir = context.applicationInfo.nativeLibraryDir
         cacheDir = context.cacheDir("mautrix")
         SmsObserver(context).registerObserver()
@@ -56,7 +59,7 @@ class Bridge private constructor() {
                 getConfig().exists() &&
                 getProcess()?.running == true
             ) {
-                context.startBridge(channelId, channelIcon)
+                context.startBridge(channelId, channelIcon, pushKey)
             }
         } catch (e: Exception) {
             Log.e(TAG, e.message ?: "Error")

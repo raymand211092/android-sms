@@ -10,6 +10,8 @@ import android.os.IBinder
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.beeper.sms.commands.Command
+import com.beeper.sms.commands.outgoing.PushKey
 import com.beeper.sms.extensions.hasPermissions
 import kotlinx.coroutines.*
 import java.io.IOException
@@ -19,6 +21,7 @@ class BridgeService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var channelId: String
+    private var pushKey: PushKey? = null
     private var channelIcon: Int = 0
     private var errorHandling: Job? = null
     private var commandHandling: Job? = null
@@ -27,6 +30,7 @@ class BridgeService : Service() {
         Log.d(TAG, "starting service")
         channelId = intent?.getStringExtra(CHANNEL_ID)
             ?: throw RuntimeException("Missing channel_id")
+        pushKey = intent.getSerializableExtra(PUSH_KEY) as PushKey?
         channelIcon = intent.getIntExtra(CHANNEL_ICON, DEFAULT_CHANNEL_ICON)
         startForeground(
             ONGOING_NOTIFICATION_ID,
@@ -52,6 +56,7 @@ class BridgeService : Service() {
         }
         commandHandling?.cancel()
         commandHandling = restartOnInterrupt {
+            pushKey?.let { Bridge.INSTANCE.send(Command("push_key", it)) }
             Bridge.INSTANCE.forEachCommand {
                 if (COMMAND.matches(it)) {
                     commandProcessor.handle(it)
@@ -81,7 +86,7 @@ class BridgeService : Service() {
         } catch (e: InterruptedIOException) {
             Log.e(TAG, e)
             yield()
-            startBridge(channelId, channelIcon)
+            startBridge(channelId, channelIcon, pushKey)
         } catch (e: IOException) {
             Log.e(TAG, e)
         }
@@ -94,11 +99,16 @@ class BridgeService : Service() {
         private const val ONGOING_NOTIFICATION_ID = 10681
         private const val CHANNEL_ID = "channel_id"
         private const val CHANNEL_ICON = "channel_icon"
+        private const val PUSH_KEY = "push_key"
         private val DEFAULT_CHANNEL_ICON = R.drawable.ic_status_bar_beeper
         @Suppress("RegExpRedundantEscape")
         private val COMMAND = "^\\{.*\\}$".toRegex()
 
-        internal fun Context.startBridge(channelId: String, channelIcon: Int? = null) {
+        internal fun Context.startBridge(
+            channelId: String,
+            channelIcon: Int? = null,
+            pushKey: PushKey? = null,
+        ) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 createNotificationChannel(channelId)
             }
@@ -107,6 +117,7 @@ class BridgeService : Service() {
                 bridgeIntent
                     .putExtra(CHANNEL_ID, channelId)
                     .putExtra(CHANNEL_ICON, channelIcon)
+                    .putExtra(PUSH_KEY, pushKey)
             )
         }
 
