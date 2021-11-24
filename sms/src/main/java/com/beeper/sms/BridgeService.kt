@@ -47,7 +47,10 @@ class BridgeService : Service() {
             stopSelf(startId)
             return START_NOT_STICKY
         }
-        val commandProcessor = CommandProcessor(applicationContext)
+        val commandProcessor = CommandProcessor(
+            applicationContext,
+            pushKey
+        )
         errorHandling?.cancel()
         errorHandling = restartOnInterrupt {
             Bridge.INSTANCE.forEachError {
@@ -56,7 +59,6 @@ class BridgeService : Service() {
         }
         commandHandling?.cancel()
         commandHandling = restartOnInterrupt {
-            pushKey?.let { Bridge.INSTANCE.send(Command("push_key", it)) }
             Bridge.INSTANCE.forEachCommand {
                 if (COMMAND.matches(it)) {
                     commandProcessor.handle(it)

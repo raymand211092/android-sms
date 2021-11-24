@@ -8,6 +8,7 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
+import com.beeper.sms.commands.outgoing.PushKey
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
 import com.beeper.sms.extensions.hasPermissions
@@ -17,10 +18,12 @@ import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.ThreadProvider
 import com.google.gson.Gson
 import com.google.gson.JsonElement
+import timber.log.Timber
 import java.io.File
 
 class CommandProcessor constructor(
     private val context: Context,
+    private val pushKey: PushKey?,
     private val contactProvider: ContactProvider = ContactProvider(context),
     private val bridge: Bridge = Bridge.INSTANCE,
     private val threadProvider: ThreadProvider = ThreadProvider(context),
@@ -35,6 +38,11 @@ class CommandProcessor constructor(
         val command = gson.fromJson(input, Command::class.java)
         val dataTree = gson.toJsonTree(command.data)
         when (command.command) {
+            "pre_startup_sync" -> {
+                Timber.d("receive: $command")
+                pushKey?.let { bridge.send(Command("push_key", it, 666)) }
+                bridge.send(Command("response", null, command.id))
+            }
             "get_chat" -> {
                 val recipients =
                     dataTree
