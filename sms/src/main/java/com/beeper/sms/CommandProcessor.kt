@@ -40,7 +40,7 @@ class CommandProcessor constructor(
         when (command.command) {
             "pre_startup_sync" -> {
                 Timber.d("receive: $command")
-                pushKey?.let { bridge.send(Command("push_key", it, 666)) }
+                pushKey?.let { bridge.send(Command("push_key", it)) }
                 bridge.send(Command("response", null, command.id))
             }
             "get_chat" -> {
