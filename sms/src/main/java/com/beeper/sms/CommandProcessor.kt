@@ -5,9 +5,9 @@ import android.os.Bundle
 import android.text.format.Formatter.formatShortFileSize
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_MMS_GUIDS
 import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
+import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.outgoing.PushKey
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
@@ -18,7 +18,6 @@ import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.ThreadProvider
 import com.google.gson.Gson
 import com.google.gson.JsonElement
-import timber.log.Timber
 import java.io.File
 
 class CommandProcessor constructor(
@@ -39,7 +38,7 @@ class CommandProcessor constructor(
         val dataTree = gson.toJsonTree(command.data)
         when (command.command) {
             "pre_startup_sync" -> {
-                Timber.d("receive: $command")
+                Log.d(TAG, "receive: $command")
                 pushKey?.let { bridge.send(Command("push_key", it)) }
                 bridge.send(Command("response", null, command.id))
             }
