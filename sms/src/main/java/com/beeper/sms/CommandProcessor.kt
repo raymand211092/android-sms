@@ -35,7 +35,6 @@ class CommandProcessor constructor(
 
     fun handle(input: String) {
         val command = gson.fromJson(input, Command::class.java)
-        val dataTree = gson.toJsonTree(command.data)
         when (command.command) {
             "pre_startup_sync" -> {
                 Log.d(TAG, "receive: $command")
@@ -44,7 +43,7 @@ class CommandProcessor constructor(
             }
             "get_chat" -> {
                 val recipients =
-                    dataTree
+                    command
                         .deserialize(GetChat::class.java)
                         .recipientList
                 val room =
@@ -57,7 +56,7 @@ class CommandProcessor constructor(
                 )
             }
             "get_contact" -> {
-                val data = dataTree.deserialize(GetContact::class.java)
+                val data = command.deserialize(GetContact::class.java)
                 bridge.send(
                     Command(
                         "response",
@@ -71,7 +70,7 @@ class CommandProcessor constructor(
                     noPermissionError(command.id!!)
                     return
                 }
-                val data = dataTree.deserialize(SendMessage::class.java)
+                val data = command.deserialize(SendMessage::class.java)
                 smsMmsSender.sendMessage(
                     data.text,
                     data.recipientList,
@@ -86,7 +85,7 @@ class CommandProcessor constructor(
                     noPermissionError(command.id!!)
                     return
                 }
-                val data = dataTree.deserialize(SendMedia::class.java)
+                val data = command.deserialize(SendMedia::class.java)
                 val recipients = data.recipientList
                 val file = File(data.path_on_disk)
                 val size = file.length()
@@ -116,7 +115,7 @@ class CommandProcessor constructor(
                 }
             }
             "get_chats" -> {
-                val data = dataTree.deserialize(GetChats::class.java)
+                val data = command.deserialize(GetChats::class.java)
                 val recentMessages =
                     smsProvider
                         .getMessagesAfter(data.min_timestamp * 1000)
@@ -133,7 +132,7 @@ class CommandProcessor constructor(
                 )
             }
             "get_messages_after" -> {
-                val data = dataTree.deserialize(GetMessagesAfter::class.java)
+                val data = command.deserialize(GetMessagesAfter::class.java)
                 val messages =
                     threadProvider
                         .getMessagesAfter(context.getThread(data), data.timestamp)
@@ -146,7 +145,7 @@ class CommandProcessor constructor(
                 bridge.send(Command("response", messages, command.id))
             }
             "get_recent_messages" -> {
-                val data = dataTree.deserialize(GetRecentMessages::class.java)
+                val data = command.deserialize(GetRecentMessages::class.java)
                 val messages =
                     threadProvider
                         .getRecentMessages(context.getThread(data), data.limit.toInt())
@@ -157,7 +156,7 @@ class CommandProcessor constructor(
                 bridge.send(Command("response", null, command.id))
             }
             "response" -> {
-                Log.d(TAG, "unhandled response: command=${command.id} dataTree=$dataTree")
+                Log.d(TAG, "unhandled response: command=${command.id} dataTree=${command.dataTree}")
             }
             else -> {
                 Log.e(TAG, "unhandled command: $command")
@@ -165,9 +164,12 @@ class CommandProcessor constructor(
         }
     }
 
-    private fun <T> JsonElement.deserialize(c: Class<T>): T =
-        gson.fromJson(this, c)
-            .apply { Log.d(TAG, "receive: $this") }
+    private val Command.dataTree: JsonElement
+        get() = gson.toJsonTree(data)
+
+    private fun <T> Command.deserialize(c: Class<T>): T =
+        gson.fromJson(dataTree, c)
+            .apply { Log.d(TAG, "receive #$id: $this") }
 
     private fun List<Pair<Long, Boolean>>.toMessages() = mapNotNull { (id, mms) ->
         if (mms) mmsProvider.getMessage(id) else smsProvider.getMessage(id)
