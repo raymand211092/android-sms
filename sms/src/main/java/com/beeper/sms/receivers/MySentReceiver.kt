@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.telephony.SmsManager.*
 import androidx.core.net.toUri
 import com.beeper.sms.Bridge
-import com.beeper.sms.CommandProcessor.Companion.EXTRA_COMMAND_ID
 import com.beeper.sms.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
@@ -15,6 +14,7 @@ import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.SmsProvider
 import com.klinker.android.send_message.SentReceiver
+import com.klinker.android.send_message.Transaction.COMMAND_ID
 import com.klinker.android.send_message.Transaction.SENT_SMS_BUNDLE
 
 class MySentReceiver : SentReceiver() {
@@ -22,7 +22,7 @@ class MySentReceiver : SentReceiver() {
         Log.d(TAG, "result: $resultCode extras: ${intent.printExtras()}")
         val uri = intent?.getStringExtra("uri")?.toUri()
         val commandId =
-            (intent?.getParcelableExtra(SENT_SMS_BUNDLE) as? Bundle)?.getInt(EXTRA_COMMAND_ID)
+            (intent?.getParcelableExtra(SENT_SMS_BUNDLE) as? Bundle)?.getInt(COMMAND_ID)
         val message = uri?.let { SmsProvider(context).getMessage(it) }
         when {
             commandId == null -> {

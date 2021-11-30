@@ -18,6 +18,7 @@ import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.ThreadProvider
 import com.google.gson.Gson
 import com.google.gson.JsonElement
+import com.klinker.android.send_message.Transaction.COMMAND_ID
 import java.io.File
 
 class CommandProcessor constructor(
@@ -76,7 +77,7 @@ class CommandProcessor constructor(
                     data.recipientList,
                     context.getThread(data),
                     Bundle().apply {
-                        putInt(EXTRA_COMMAND_ID, command.id!!)
+                        putInt(COMMAND_ID, command.id!!)
                     },
                 )
             }
@@ -109,7 +110,7 @@ class CommandProcessor constructor(
                         data.file_name,
                         context.getThread(data),
                         Bundle().apply {
-                            putInt(EXTRA_COMMAND_ID, command.id!!)
+                            putInt(COMMAND_ID, command.id!!)
                         },
                     )
                 }
@@ -192,6 +193,5 @@ class CommandProcessor constructor(
         private const val TAG = "CommandProcessor"
         private const val MAX_FILE_SIZE = 400_000L
         private val gson = Gson()
-        const val EXTRA_COMMAND_ID = "extra_command_id"
     }
 }

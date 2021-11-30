@@ -6,13 +6,13 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.core.net.toUri
 import com.beeper.sms.Bridge
-import com.beeper.sms.CommandProcessor.Companion.EXTRA_COMMAND_ID
 import com.beeper.sms.Log
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMedia
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.MmsProvider
+import com.klinker.android.send_message.Transaction.COMMAND_ID
 import com.klinker.android.send_message.Transaction.SENT_MMS_BUNDLE
 import java.lang.System.currentTimeMillis
 import java.util.*
@@ -22,7 +22,7 @@ class MyMmsSentReceiver : BroadcastReceiver() {
         Log.d(TAG, "intent: ${intent.printExtras()}")
         val uri = intent?.getStringExtra(EXTRA_URI)?.toUri()
         val commandId =
-            (intent?.getParcelableExtra(SENT_MMS_BUNDLE) as? Bundle)?.getInt(EXTRA_COMMAND_ID)
+            (intent?.getParcelableExtra(SENT_MMS_BUNDLE) as? Bundle)?.getInt(COMMAND_ID)
         val message = uri?.let { MmsProvider(context).getMessage(it) }
         val failureCause =
             intent?.getIntExtra(EXTRA_LAST_CONNECTION_FAILURE_CAUSE_CODE, 0)
