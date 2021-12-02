@@ -15,12 +15,12 @@ class SmsProvider constructor(context: Context) {
 
     fun getMessagesAfter(timestamp: Long) = getSms(where = "$DATE > $timestamp")
 
-    fun getMessage(uri: Uri) = uri.lastPathSegment?.toLongOrNull()?.let { getMessage(it) }
+    fun getMessage(uri: Uri) = getSms(uri).firstOrNull()
 
     fun getMessage(id: Long) = getSms(where = "_id = $id").firstOrNull()
 
-    private fun getSms(where: String? = null): List<Message> =
-        cr.map(CONTENT_URI, where) {
+    private fun getSms(uri: Uri = CONTENT_URI, where: String? = null): List<Message> =
+        cr.map(uri, where) {
             val address = it.getString(ADDRESS)
             if (address == null) {
                 Log.w(TAG, "Missing address: ${it.dumpCurrentRow()}")

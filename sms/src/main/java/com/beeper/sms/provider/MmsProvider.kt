@@ -20,14 +20,14 @@ class MmsProvider constructor(
 
     fun getMessagesAfter(timestamp: Long) = getMms(where = "$DATE > $timestamp")
 
-    fun getMessage(uri: Uri) = uri.lastPathSegment?.toLongOrNull()?.let { getMessage(it) }
+    fun getMessage(uri: Uri) = getMms(uri).firstOrNull()
 
     fun getMessages(ids: List<Long>) = ids.mapNotNull(this::getMessage)
 
     fun getMessage(id: Long) = getMms(where = "_id = $id").firstOrNull()
 
-    private fun getMms(where: String? = null): List<Message> =
-        cr.map(CONTENT_URI, where) {
+    private fun getMms(uri: Uri = CONTENT_URI, where: String? = null): List<Message> =
+        cr.map(uri, where) {
             val rowId = it.getLong(_ID)
             val attachments = partProvider.getAttachment(rowId)
             val isFromMe = when (it.getInt(MESSAGE_BOX)) {
