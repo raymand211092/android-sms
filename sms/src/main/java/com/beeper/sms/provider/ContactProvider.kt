@@ -7,6 +7,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.provider.ContactsContract
+import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsContract.CommonDataKinds.StructuredName
 import android.provider.ContactsContract.Contacts
 import android.provider.ContactsContract.PhoneLookup
@@ -32,6 +33,16 @@ class ContactProvider constructor(private val context: Context) {
                         phoneNumber = phone
                     }
                 }
+                ?: cr
+                    .firstOrNull(
+                        Phone.CONTENT_URI,
+                        // hack to match short codes
+                        where = "REPLACE(${Phone.NUMBER}, '-', '') == '$phone'"
+                    ) {
+                        getContact(it.getLong(Phone.CONTACT_ID))?.apply {
+                            phoneNumber = phone
+                        }
+                    }
                 ?: phone.defaultResponse
     }
 
