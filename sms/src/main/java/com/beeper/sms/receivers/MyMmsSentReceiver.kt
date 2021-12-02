@@ -1,9 +1,11 @@
 package com.beeper.sms.receivers
 
+import android.app.Activity.RESULT_OK
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.telephony.SmsManager.*
 import androidx.core.net.toUri
 import com.beeper.sms.Bridge
 import com.beeper.sms.Log
@@ -24,30 +26,20 @@ class MyMmsSentReceiver : BroadcastReceiver() {
         val commandId =
             (intent?.getParcelableExtra(SENT_MMS_BUNDLE) as? Bundle)?.getInt(COMMAND_ID)
         val message = uri?.let { MmsProvider(context).getMessage(it) }
-        val failureCause =
-            intent?.getIntExtra(EXTRA_LAST_CONNECTION_FAILURE_CAUSE_CODE, 0)
-        val handledByCarrierApp =
-            intent?.getBooleanExtra(EXTRA_HANDLED_BY_CARRIER_APP, false) ?: false
         val (guid, timestamp) = when {
             commandId == null -> {
                 Log.e(TAG, "missing command")
                 return
             }
-            message != null -> Pair(message.guid, message.timestamp)
-            failureCause == 0 && handledByCarrierApp -> {
-                Log.w(TAG, "$commandId handled by carrier app")
-                Pair(UUID.randomUUID().toString(), currentTimeMillis())
-            }
-            else -> {
+            resultCode != RESULT_OK -> {
                 Bridge.INSTANCE.send(
                     commandId,
-                    Error(
-                        "missing_mms",
-                        "Message not found in Android's MMS database (uri=$uri, failureCause=$failureCause, handledByCarrierApp=$handledByCarrierApp)"
-                    )
+                    Error("network_error", errorToString(resultCode, intent))
                 )
                 return
             }
+            message != null -> Pair(message.guid, message.timestamp)
+            else -> Pair(UUID.randomUUID().toString(), currentTimeMillis())
         }
         Bridge.INSTANCE.send(
             Command("response", SendMedia.Response(guid, timestamp), commandId)
@@ -57,9 +49,26 @@ class MyMmsSentReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "MyMmsSentReceiver"
         private const val EXTRA_URI = "uri"
-        private const val EXTRA_LAST_CONNECTION_FAILURE_CAUSE_CODE =
-            "android.telephony.extra.LAST_CONNECTION_FAILURE_CAUSE_CODE"
-        private const val EXTRA_HANDLED_BY_CARRIER_APP =
-            "android.telephony.extra.HANDLED_BY_CARRIER_APP"
+
+        private val Intent.httpError: Int?
+            get() = if (hasExtra(EXTRA_MMS_HTTP_STATUS)) {
+                getIntExtra(EXTRA_MMS_HTTP_STATUS, 0)
+            } else {
+                null
+            }
+
+        private fun errorToString(rc: Int, intent: Intent?): String {
+            return when (rc) {
+                MMS_ERROR_UNSPECIFIED -> "MMS_ERROR_UNSPECIFIED"
+                MMS_ERROR_INVALID_APN -> "MMS_ERROR_INVALID_APN"
+                MMS_ERROR_UNABLE_CONNECT_MMS -> "MMS_ERROR_UNABLE_CONNECT_MMS"
+                MMS_ERROR_HTTP_FAILURE -> "MMS_ERROR_HTTP_FAILURE (${intent?.httpError})"
+                MMS_ERROR_IO_ERROR -> "MMS_ERROR_IO_ERROR"
+                MMS_ERROR_RETRY -> "MMS_ERROR_RETRY"
+                MMS_ERROR_CONFIGURATION_ERROR -> "MMS_ERROR_CONFIGURATION_ERROR"
+                MMS_ERROR_NO_DATA_NETWORK -> "MMS_ERROR_NO_DATA_NETWORK"
+                else -> "Unknown error ($rc)"
+            }
+        }
     }
 }
