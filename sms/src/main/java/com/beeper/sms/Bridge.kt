@@ -11,14 +11,20 @@ import com.beeper.sms.extensions.cacheDir
 import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onSubscription
 import java.io.File
 import java.io.InputStream
 import java.math.BigDecimal
 import java.util.concurrent.Executors.newSingleThreadExecutor
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.suspendCoroutine
 
 class Bridge private constructor() {
     private lateinit var nativeLibDir: String
@@ -33,6 +39,8 @@ class Bridge private constructor() {
     private val gson =
         GsonBuilder().registerTypeAdapter(DOUBLE_SERIALIZER_TYPE, DOUBLE_SERIALIZER).create()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val responseFlow = MutableSharedFlow<Pair<Int, JsonElement>>()
+    private val requestId = AtomicInteger(0)
 
     fun init(
         context: Context,
@@ -117,6 +125,20 @@ class Bridge private constructor() {
 
     internal fun forEachCommand(action: (String) -> Unit) =
         getProcess()?.inputStream?.forEach(action) ?: Log.e(TAG, "forEachCommand failed")
+
+    internal fun publishResponse(id: Int, dataTree: JsonElement) = scope.launch {
+        responseFlow.emit(Pair(id, dataTree))
+    }
+
+    internal suspend fun await(command: Command): JsonElement = suspendCoroutine { continuation ->
+        scope.launch {
+            command.id = requestId.addAndGet(1)
+            responseFlow
+                .onSubscription { send(command) }
+                .first { it.first == command.id }
+                .let { continuation.resumeWith(Result.success(it.second)) }
+        }
+    }
 
     internal fun send(id: Int, error: Error) = send(Command("error", error, id))
 
