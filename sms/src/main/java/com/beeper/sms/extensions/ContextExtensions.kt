@@ -2,13 +2,15 @@ package com.beeper.sms.extensions
 
 import android.Manifest.permission.*
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.provider.Telephony.Threads
 import androidx.core.content.ContextCompat
 import com.beeper.sms.commands.incoming.GroupMessaging
 import java.io.File
 
-fun Context.getSharedPreferences() = getSharedPreferences("sms_bridge", Context.MODE_PRIVATE)
+fun Context.getSharedPreferences(): SharedPreferences =
+    getSharedPreferences("sms_bridge", Context.MODE_PRIVATE)
 
 fun Context.cacheDir(subdir: String): String =
     File(cacheDir, subdir).apply { mkdirs() }.absolutePath
