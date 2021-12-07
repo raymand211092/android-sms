@@ -142,21 +142,19 @@ class Bridge private constructor() {
 
     internal fun send(id: Int, error: Error) = send(Command("error", error, id))
 
-    internal fun send(command: Command) = send(command as Any)
-
     internal val running: Boolean
         get() = getProcess()?.running == true
 
-    private fun send(any: Any) = scope.launch(outgoing) {
+    internal fun send(command: Command) = scope.launch(outgoing) {
         getProcess()
             ?.outputStream
             ?.writer()
             ?.apply {
-                Log.d(TAG, "send: $any")
-                append("${gson.toJson(any)}\n")
+                Log.d(TAG, "send: $command")
+                append("${gson.toJson(command)}\n")
                 flush()
             }
-            ?: Log.e(TAG, "failed to send: $any")
+            ?: Log.e(TAG, "failed to send: $command")
     }
 
     companion object {
