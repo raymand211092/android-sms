@@ -1,5 +1,6 @@
 package com.beeper.sms.provider
 
+import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
 import android.provider.Telephony.Mms.*
@@ -59,7 +60,8 @@ class MmsProvider constructor(
                 resp_st = it.getIntOrNull(RESPONSE_STATUS),
                 creator = creator,
                 thread = thread,
-                rowId = rowId
+                rowId = rowId,
+                uri = if (where == null) uri else ContentUris.withAppendedId(uri, rowId),
             )
         }
 
