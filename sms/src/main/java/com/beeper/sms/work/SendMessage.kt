@@ -23,6 +23,7 @@ class SendMessage constructor(
             Log.e(TAG, "Missing uri")
             return Result.failure()
         }
+        Log.d(TAG, uri.toString())
         val message = if (uri.isMms) {
             MmsProvider(context).getMessage(uri)?.apply {
                 if (attachments.isNullOrEmpty() && text.isEmpty()) {
@@ -54,7 +55,8 @@ class SendMessage constructor(
             Log.w(TAG, "Retrying $uri because resp_st=${message.resp_st}")
             return Result.retry()
         }
-        Bridge.INSTANCE.send(Command("message", message))
+        // waiting for response from mautrix-imessage before returning success
+        Bridge.INSTANCE.await(Command("message", message))
         return Result.success()
     }
 

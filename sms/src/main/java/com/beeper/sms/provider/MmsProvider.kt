@@ -19,11 +19,15 @@ class MmsProvider constructor(
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
-    fun getMessagesAfter(timestamp: Long) = getMms(where = "$DATE > $timestamp")
+    fun getMessagesAfter(timestamp: Long): List<Message> {
+        val selection = "$DATE > $timestamp"
+        return getMms(where = selection)
+            .plus(getMms(uri = Inbox.CONTENT_URI, where = selection))
+            .plus(getMms(uri = Sent.CONTENT_URI, where = selection))
+            .distinctBy { it.guid }
+    }
 
     fun getMessage(uri: Uri) = getMms(uri).firstOrNull()
-
-    fun getMessages(ids: List<Long>) = ids.mapNotNull(this::getMessage)
 
     fun getMessage(id: Long) = getMms(where = "_id = $id").firstOrNull()
 
@@ -47,7 +51,7 @@ class MmsProvider constructor(
                 else -> getSender(rowId)?.chatGuid ?: chatGuid.takeIf { cg -> cg.isDm }
             }
             Message(
-                guid = "mms_$rowId",
+                guid = "$MMS_PREFIX$rowId",
                 timestamp = it.getLong(DATE),
                 subject = it.getString(SUBJECT) ?: "",
                 text = attachments.mapNotNull { a -> a.text }.joinToString(""),
@@ -75,6 +79,7 @@ class MmsProvider constructor(
 
     companion object {
         private const val TAG = "MmsProvider"
+        const val MMS_PREFIX = "mms_"
 
         val Uri.isMms: Boolean
             get() = toString().startsWith("$CONTENT_URI")

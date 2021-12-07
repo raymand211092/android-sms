@@ -3,6 +3,7 @@ package com.beeper.sms
 import android.content.Context
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.putLong
+import com.beeper.sms.work.DatabaseSyncWork
 
 class Upgrader(context: Context) {
     private val preferences = context.getSharedPreferences()
@@ -21,6 +22,12 @@ class Upgrader(context: Context) {
              * was an MMS sent before this change
              */
             preferences.putLong(PREF_USE_OLD_MMS_GUIDS, System.currentTimeMillis())
+        }
+        upgrade(from, 158) {
+            /*
+             * v158 adds new database sync logic
+             */
+            preferences.putLong(DatabaseSyncWork.PREF_LATEST_SYNC, System.currentTimeMillis())
         }
         preferences.putLong(PREF_CURRENT_VERSION, to)
         Log.d(TAG, "Finished upgrade from $from to $to")

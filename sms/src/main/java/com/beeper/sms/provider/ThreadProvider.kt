@@ -3,10 +3,8 @@ package com.beeper.sms.provider
 import android.content.Context
 import android.net.Uri
 import android.provider.Telephony.*
-import android.provider.Telephony.BaseMmsColumns.*
 import android.telephony.PhoneNumberUtils
 import androidx.core.net.toUri
-import com.beeper.sms.Log
 import com.beeper.sms.extensions.firstOrNull
 import com.beeper.sms.extensions.getLong
 import com.beeper.sms.extensions.getString
@@ -14,7 +12,6 @@ import com.beeper.sms.extensions.map
 import java.util.*
 
 class ThreadProvider constructor(context: Context) {
-    private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
     fun getMessagesAfter(thread: Long, timestampSeconds: Long): List<Pair<Long, Boolean>> =
@@ -22,28 +19,6 @@ class ThreadProvider constructor(context: Context) {
             .plus(getMessagesAfter(thread, timestampSeconds, true))
             .sortedBy { it.first }
             .map { Pair(it.second, it.third) }
-
-    fun getMmsMessagesAfter(timestampSeconds: Long): List<Long> {
-        return if (timestampSeconds > 0) {
-            cr.map(
-                Mms.CONTENT_URI,
-                where = and(
-                    "${Mms.CREATOR} != '$packageName'",
-                    or(
-                        "$MESSAGE_BOX = $MESSAGE_BOX_OUTBOX",
-                        "$MESSAGE_BOX = $MESSAGE_BOX_SENT"
-                    ),
-                    "${Mms.DATE} > $timestampSeconds"
-                ),
-                order = "${Sms.Conversations.DATE} DESC"
-            ) {
-                it.getLong(Sms.Conversations._ID)
-            }
-        } else {
-            Log.e(TAG, "timestampSeconds must be greater than zero")
-            emptyList()
-        }
-    }
 
     fun getRecentMessages(thread: Long, limit: Int): List<Pair<Long, Boolean>> =
         getRecentMessages(thread, limit, false)
@@ -90,7 +65,6 @@ class ThreadProvider constructor(context: Context) {
         }
 
     companion object {
-        private const val TAG = "ThreadProvider"
         val URI_THREADS = "${MmsSms.CONTENT_CONVERSATIONS_URI}?simple=true".toUri()
         private val URI_ADDRESSES = "${MmsSms.CONTENT_URI}/canonical-addresses".toUri()
         private val PROJECTION = arrayOf(
@@ -114,16 +88,5 @@ class ThreadProvider constructor(context: Context) {
 
         val List<String>.chatGuid: String
             get() = "SMS;${if (size == 1) "-" else "+"};${joinToString(" ") { it.normalize }}"
-
-        private fun and(vararg criteria: String) = joinCriteria(" AND ", criteria)
-
-        private fun or(vararg criteria: String) = joinCriteria(" OR ", criteria)
-
-        private fun joinCriteria(separator: String, criteria: Array<out String>) =
-            if (criteria.size == 1) {
-                criteria.first()
-            } else {
-                criteria.joinToString(separator, "(", ")")
-            }
     }
 }

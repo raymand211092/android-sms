@@ -14,7 +14,13 @@ class SmsProvider constructor(context: Context) {
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
-    fun getMessagesAfter(timestamp: Long) = getSms(where = "$DATE > $timestamp")
+    fun getMessagesAfter(timestamp: Long): List<Message> {
+        val selection = "$DATE > $timestamp"
+        return getSms(where = selection)
+            .plus(getSms(uri = Inbox.CONTENT_URI, where = selection))
+            .plus(getSms(uri = Sent.CONTENT_URI, where = selection))
+            .distinctBy { it.guid }
+    }
 
     fun getMessage(uri: Uri) = getSms(uri).firstOrNull()
 
