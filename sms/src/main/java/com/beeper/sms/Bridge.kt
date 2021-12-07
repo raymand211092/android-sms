@@ -150,7 +150,7 @@ class Bridge private constructor() {
             ?.outputStream
             ?.writer()
             ?.apply {
-                Log.d(TAG, "send: $command")
+                Log.d(TAG, "send${command.requestId}: $command")
                 append("${gson.toJson(command)}\n")
                 flush()
             }
@@ -182,5 +182,8 @@ class Bridge private constructor() {
         private fun String.toFile(): File? = File(this).takeIf { it.exists() }
 
         private fun String?.exists(): Boolean = this?.let { File(it) }?.exists() == true
+
+        private val Command.requestId: String
+            get() = if (id != null && command != "response") " #$id" else ""
     }
 }
