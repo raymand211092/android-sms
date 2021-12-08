@@ -158,7 +158,9 @@ class CommandProcessor constructor(
             }
             "response" -> {
                 Log.d(TAG, "response #${command.id}: ${command.dataTree}")
-                bridge.publishResponse(command.id!!, command.dataTree)
+                if (command.id != null) {
+                    bridge.publishResponse(command.id!!, command.dataTree)
+                }
             }
             else -> {
                 Log.e(TAG, "unhandled command: $command")
