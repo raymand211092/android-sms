@@ -11,7 +11,6 @@ import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getTimeSeconds
 import com.beeper.sms.extensions.putTimeSeconds
 import com.beeper.sms.provider.MmsProvider
-import com.beeper.sms.provider.MmsProvider.Companion.MMS_PREFIX
 import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.ThreadProvider
 
@@ -52,7 +51,7 @@ class DatabaseSyncWork constructor(
                     ?.map { it.asString }
                     ?: emptyList()
             messageList
-                .filterNot { ids.contains(it.guid.removePrefix(MMS_PREFIX)) }
+                .filterNot { ids.contains(it.guid) }
                 .mapNotNull { it.uri }
                 .also { Log.d(TAG, "bridging ${it.size} messages: ${it.joinToString(",")}") }
                 .forEach { workManager.sendMessage(it) }
