@@ -6,6 +6,7 @@ import android.text.format.Formatter.formatShortFileSize
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_MMS_GUIDS
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_SMS_GUIDS
 import com.beeper.sms.commands.Command
+import com.beeper.sms.commands.TimeMillis.Companion.toMillis
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
@@ -13,6 +14,7 @@ import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.outgoing.PushKey
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
+import com.beeper.sms.extensions.getTimeMilliseconds
 import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.helpers.newGson
 import com.beeper.sms.provider.ContactProvider
@@ -38,12 +40,12 @@ class CommandProcessor constructor(
     private val oldMmsBackfillSeconds =
         context
             .getSharedPreferences()
-            .getLong(PREF_USE_OLD_MMS_GUIDS, 0L)
+            .getTimeMilliseconds(PREF_USE_OLD_MMS_GUIDS)
             .toSeconds()
     private val oldSmsBackfillSeconds =
         context
             .getSharedPreferences()
-            .getLong(PREF_USE_OLD_SMS_GUIDS, 0L)
+            .getTimeMilliseconds(PREF_USE_OLD_SMS_GUIDS)
             .toSeconds()
 
 

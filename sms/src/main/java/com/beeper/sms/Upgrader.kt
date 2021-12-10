@@ -3,7 +3,9 @@ package com.beeper.sms
 import android.content.Context
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.putLong
+import com.beeper.sms.extensions.putTimeMilliseconds
 import com.beeper.sms.extensions.putTimeSeconds
+import com.beeper.sms.helpers.currentTimeMillis
 import com.beeper.sms.helpers.currentTimeSeconds
 import com.beeper.sms.work.DatabaseSyncWork
 
@@ -23,7 +25,7 @@ class Upgrader(context: Context) {
              * Backfilling messages sent before this change need to use the old guid
              * to prevent sending duplicate messages
              */
-            preferences.putLong(PREF_USE_OLD_MMS_GUIDS, System.currentTimeMillis())
+            preferences.putTimeMilliseconds(PREF_USE_OLD_MMS_GUIDS, currentTimeMillis())
         }
         upgrade(from, 159) {
             /*
@@ -31,13 +33,13 @@ class Upgrader(context: Context) {
              */
             preferences.putTimeSeconds(DatabaseSyncWork.PREF_LATEST_SYNC, currentTimeSeconds())
         }
-        upgrade(from, 161) {
+        upgrade(from, 162) {
             /*
-             * v161 adds an "sms_" prefix to SMS guids to prevent clashing with MMS
+             * v162 adds an "sms_" prefix to SMS guids to prevent clashing with MMS
              * Backfilling messages sent before this change need to use the old guid
              * to prevent sending duplicate messages
              */
-            preferences.putLong(PREF_USE_OLD_SMS_GUIDS, System.currentTimeMillis())
+            preferences.putTimeMilliseconds(PREF_USE_OLD_SMS_GUIDS, currentTimeMillis())
         }
         preferences.putLong(PREF_CURRENT_VERSION, to)
         Log.d(TAG, "Finished upgrade from $from to $to")
