@@ -42,7 +42,7 @@ class SmsProvider constructor(context: Context) {
             val chatGuid = address.chatGuid
             val rowId = it.getLong(_ID)
             Message(
-                guid = rowId.toString(),
+                guid = "$SMS_PREFIX$rowId",
                 timestamp = it.getLong(DATE).toMillis().toSeconds(),
                 subject = it.getString(SUBJECT) ?: "",
                 text = it.getString(BODY) ?: "",
@@ -59,5 +59,6 @@ class SmsProvider constructor(context: Context) {
 
     companion object {
         private const val TAG = "SmsProvider"
+        const val SMS_PREFIX = "sms_"
     }
 }

@@ -20,8 +20,8 @@ class Upgrader(context: Context) {
         upgrade(from, 140) {
             /*
              * v140 adds an "mms_" prefix to MMS guids to prevent clashing with SMS
-             * This can lead to duplicate messages when the latest message in a thread
-             * was an MMS sent before this change
+             * Backfilling messages sent before this change need to use the old guid
+             * to prevent sending duplicate messages
              */
             preferences.putLong(PREF_USE_OLD_MMS_GUIDS, System.currentTimeMillis())
         }
@@ -30,6 +30,14 @@ class Upgrader(context: Context) {
              * v159 adds new database sync logic
              */
             preferences.putTimeSeconds(DatabaseSyncWork.PREF_LATEST_SYNC, currentTimeSeconds())
+        }
+        upgrade(from, 161) {
+            /*
+             * v161 adds an "sms_" prefix to SMS guids to prevent clashing with MMS
+             * Backfilling messages sent before this change need to use the old guid
+             * to prevent sending duplicate messages
+             */
+            preferences.putLong(PREF_USE_OLD_SMS_GUIDS, System.currentTimeMillis())
         }
         preferences.putLong(PREF_CURRENT_VERSION, to)
         Log.d(TAG, "Finished upgrade from $from to $to")
@@ -47,5 +55,6 @@ class Upgrader(context: Context) {
         private const val TAG = "Upgrader"
         private const val PREF_CURRENT_VERSION = "current_version"
         const val PREF_USE_OLD_MMS_GUIDS = "use_old_mms_guids"
+        const val PREF_USE_OLD_SMS_GUIDS = "use_old_sms_guids"
     }
 }

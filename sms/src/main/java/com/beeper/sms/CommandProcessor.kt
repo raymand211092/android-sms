@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import android.text.format.Formatter.formatShortFileSize
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_MMS_GUIDS
+import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_SMS_GUIDS
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.incoming.*
@@ -16,7 +17,9 @@ import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.helpers.newGson
 import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.MmsProvider
+import com.beeper.sms.provider.MmsProvider.Companion.MMS_PREFIX
 import com.beeper.sms.provider.SmsProvider
+import com.beeper.sms.provider.SmsProvider.Companion.SMS_PREFIX
 import com.beeper.sms.provider.ThreadProvider
 import com.google.gson.JsonElement
 import com.klinker.android.send_message.Transaction.COMMAND_ID
@@ -32,11 +35,17 @@ class CommandProcessor constructor(
     private val mmsProvider: MmsProvider = MmsProvider(context),
     private val smsMmsSender: SmsMmsSender = SmsMmsSender(context),
 ) {
-    private val oldBackfillSeconds =
+    private val oldMmsBackfillSeconds =
         context
             .getSharedPreferences()
             .getLong(PREF_USE_OLD_MMS_GUIDS, 0L)
             .toSeconds()
+    private val oldSmsBackfillSeconds =
+        context
+            .getSharedPreferences()
+            .getLong(PREF_USE_OLD_SMS_GUIDS, 0L)
+            .toSeconds()
+
 
     fun handle(input: String) {
         Log.v(TAG, input)
@@ -143,10 +152,15 @@ class CommandProcessor constructor(
                     threadProvider
                         .getMessagesAfter(context.getThread(data), data.timestamp)
                         .toMessages()
-                if (data.timestamp < oldBackfillSeconds) {
+                if (data.timestamp < oldMmsBackfillSeconds) {
                     messages
-                        .filter { it.timestamp < oldBackfillSeconds }
-                        .forEach { it.guid = it.guid.removePrefix("mms_") }
+                        .filter { it.timestamp < oldMmsBackfillSeconds }
+                        .forEach { it.guid = it.guid.removePrefix(MMS_PREFIX) }
+                }
+                if (data.timestamp < oldSmsBackfillSeconds) {
+                    messages
+                        .filter { it.timestamp < oldSmsBackfillSeconds }
+                        .forEach { it.guid = it.guid.removePrefix(SMS_PREFIX) }
                 }
                 bridge.send(Command("response", messages, command.id))
             }
