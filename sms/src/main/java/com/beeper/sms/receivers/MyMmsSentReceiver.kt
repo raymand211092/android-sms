@@ -21,7 +21,7 @@ import java.util.*
 
 class MyMmsSentReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
-        Log.d(TAG, "intent: ${intent.printExtras()}")
+        Log.d(TAG, "result: $resultCode intent: ${intent.printExtras()}")
         val uri = intent?.getStringExtra(EXTRA_URI)?.toUri()
         val commandId =
             (intent?.getParcelableExtra(SENT_MMS_BUNDLE) as? Bundle)?.getInt(COMMAND_ID)

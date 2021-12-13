@@ -12,10 +12,12 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.extensions.printExtras
+import com.beeper.sms.helpers.currentTimeSeconds
 import com.beeper.sms.provider.SmsProvider
 import com.klinker.android.send_message.SentReceiver
 import com.klinker.android.send_message.Transaction.COMMAND_ID
 import com.klinker.android.send_message.Transaction.SENT_SMS_BUNDLE
+import java.util.*
 
 class MySentReceiver : SentReceiver() {
     override fun onMessageStatusUpdated(context: Context, intent: Intent?, resultCode: Int) {
@@ -24,34 +26,24 @@ class MySentReceiver : SentReceiver() {
         val commandId =
             (intent?.getParcelableExtra(SENT_SMS_BUNDLE) as? Bundle)?.getInt(COMMAND_ID)
         val message = uri?.let { SmsProvider(context).getMessage(it) }
-        when {
+        val (guid, timestamp) = when {
             commandId == null -> {
                 Log.e(TAG, "Missing commandId (uri=$uri message=$message)")
+                return
             }
             resultCode != RESULT_OK -> {
                 Bridge.INSTANCE.send(
                     commandId,
                     Error("network_error", errorToString(resultCode, intent))
                 )
+                return
             }
-            uri == null -> {
-                // Another broadcast may be received with the URI set, can't fail here
-                Log.w(TAG, "Missing uri")
-            }
-            message != null ->
-                Bridge.INSTANCE.send(
-                    Command(
-                        "response",
-                        SendMessage.Response(message.guid, message.timestamp),
-                        commandId,
-                    )
-                )
-            else ->
-                Bridge.INSTANCE.send(
-                    commandId,
-                    Error("missing_sms", "Message not found in Android's SMS database")
-                )
+            message != null -> Pair(message.guid, message.timestamp)
+            else -> Pair(UUID.randomUUID().toString(), currentTimeSeconds())
         }
+        Bridge.INSTANCE.send(
+            Command("response", SendMessage.Response(guid, timestamp), commandId)
+        )
     }
 
     companion object {
