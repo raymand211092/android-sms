@@ -1,10 +1,10 @@
 package com.beeper.sms.provider
 
-import com.beeper.sms.provider.ThreadProvider.Companion.normalize
+import com.beeper.sms.provider.GuidProvider.Companion.normalize
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class ThreadProviderTest {
+class GuidProviderTest {
     @Test
     fun googleMountainView() = assertEquals("+16502530000", "(650) 253-0000".normalize)
 

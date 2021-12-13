@@ -8,8 +8,8 @@ import androidx.work.WorkerParameters
 import com.beeper.sms.Bridge
 import com.beeper.sms.Log
 import com.beeper.sms.commands.Command
+import com.beeper.sms.extensions.isMms
 import com.beeper.sms.provider.MmsProvider
-import com.beeper.sms.provider.MmsProvider.Companion.isMms
 import com.beeper.sms.provider.SmsProvider
 
 class SendMessage constructor(

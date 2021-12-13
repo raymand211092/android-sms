@@ -10,32 +10,42 @@ import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
-import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
+import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import com.google.android.mms.pdu_alt.PduHeaders
-import java.math.BigDecimal
 
 class MmsProvider constructor(
     context: Context,
     private val partProvider: PartProvider = PartProvider(context),
-    private val threadProvider: ThreadProvider = ThreadProvider(context),
+    private val guidProvider: GuidProvider = GuidProvider(context),
 ) {
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
-    fun getMessagesAfter(timestamp: TimeSeconds): List<Message> {
-        val selection = "$DATE > ${timestamp.toLong()}"
-        return getMms(where = selection)
-            .plus(getMms(uri = Inbox.CONTENT_URI, where = selection))
-            .plus(getMms(uri = Sent.CONTENT_URI, where = selection))
-            .distinctBy { it.guid }
-    }
+    fun getLatest(thread: Long, limit: Int) = getMms(where = "$THREAD_ID = $thread", limit = limit)
+
+    fun getMessagesAfter(thread: Long, timestamp: TimeSeconds) =
+        getMms("$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()}")
+
+    fun getMessagesAfter(timestamp: TimeSeconds) = getMms("$DATE > ${timestamp.toLong()}")
 
     fun getMessage(uri: Uri) = getMms(uri).firstOrNull()
 
-    fun getMessage(id: Long) = getMms(where = "_id = $id").firstOrNull()
+    private fun getMms(where: String): List<Message> =
+        getMms(uri = CONTENT_URI, where = where)
+            .plus(getMms(uri = Inbox.CONTENT_URI, where = where))
+            .plus(getMms(uri = Sent.CONTENT_URI, where = where))
+            .distinctBy { it.guid }
 
-    private fun getMms(uri: Uri = CONTENT_URI, where: String? = null): List<Message> =
-        cr.map(uri, where) {
+    private fun getMms(
+        uri: Uri = CONTENT_URI,
+        where: String? = null,
+        limit: Int = 0,
+    ): List<Message> =
+        cr.map(
+            uri = uri,
+            where = where,
+            order = if (limit > 0) "$DATE DESC LIMIT $limit" else null
+        ) {
             val rowId = it.getLong(_ID)
             val attachments = partProvider.getAttachment(rowId)
             val isFromMe = when (it.getInt(MESSAGE_BOX)) {
@@ -44,7 +54,7 @@ class MmsProvider constructor(
             }
             val creator = it.getString(CREATOR)
             val thread = it.getLong(THREAD_ID)
-            val chatGuid = threadProvider.getChatGuid(thread)
+            val chatGuid = guidProvider.getChatGuid(thread)
             if (chatGuid.isNullOrBlank()) {
                 Log.e(TAG, "Error generating guid for $thread")
                 return@map null
@@ -83,9 +93,6 @@ class MmsProvider constructor(
     companion object {
         private const val TAG = "MmsProvider"
         const val MMS_PREFIX = "mms_"
-
-        val Uri.isMms: Boolean
-            get() = toString().startsWith("$CONTENT_URI")
 
         private val String.isDm: Boolean
             get() = startsWith("SMS;-;")

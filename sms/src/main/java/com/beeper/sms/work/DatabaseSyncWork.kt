@@ -10,17 +10,17 @@ import com.beeper.sms.commands.outgoing.MessageIdsAfterTime
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getTimeSeconds
 import com.beeper.sms.extensions.putTimeSeconds
-import com.beeper.sms.provider.MmsProvider
-import com.beeper.sms.provider.SmsProvider
-import com.beeper.sms.provider.ThreadProvider
+import com.beeper.sms.provider.GuidProvider
+import com.beeper.sms.provider.MessageProvider
 
 class DatabaseSyncWork constructor(
-    private val context: Context,
+    context: Context,
     workerParams: WorkerParameters,
 ): CoroutineWorker(context, workerParams) {
     private val prefs = context.getSharedPreferences()
     private val workManager = WorkManager(context)
-    private val threadProvider = ThreadProvider(context)
+    private val messageProvider = MessageProvider(context)
+    private val guidProvider = GuidProvider(context)
 
     override suspend fun doWork(): Result {
         val lastTimestamp = prefs.getTimeSeconds(PREF_LATEST_SYNC)
@@ -28,16 +28,12 @@ class DatabaseSyncWork constructor(
             Log.e(TAG, "sync not initialized")
             return Result.failure()
         }
-        val messages =
-            MmsProvider(context).getMessagesAfter(lastTimestamp)
-                .plus(SmsProvider(context).getMessagesAfter(lastTimestamp.toMillis()))
-                .sortedBy { it.timestamp }
-                .groupBy { it.thread }
+        val messages = messageProvider.getMessagesAfter(lastTimestamp).groupBy { it.thread }
         for ((thread, messageList) in messages) {
             if (thread == null) {
                 continue
             }
-            val chatGuid = threadProvider.getChatGuid(thread) ?: continue
+            val chatGuid = guidProvider.getChatGuid(thread) ?: continue
             val response = Bridge.INSTANCE.await(
                 Command(
                     "message_ids_after_time",

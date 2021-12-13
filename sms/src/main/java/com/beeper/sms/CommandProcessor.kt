@@ -6,8 +6,6 @@ import android.text.format.Formatter.formatShortFileSize
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_MMS_GUIDS
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_SMS_GUIDS
 import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.TimeMillis.Companion.toMillis
-import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
 import com.beeper.sms.commands.outgoing.Error
@@ -18,11 +16,10 @@ import com.beeper.sms.extensions.getTimeMilliseconds
 import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.helpers.newGson
 import com.beeper.sms.provider.ContactProvider
-import com.beeper.sms.provider.MmsProvider
 import com.beeper.sms.provider.MmsProvider.Companion.MMS_PREFIX
-import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.provider.SmsProvider.Companion.SMS_PREFIX
-import com.beeper.sms.provider.ThreadProvider
+import com.beeper.sms.provider.GuidProvider
+import com.beeper.sms.provider.MessageProvider
 import com.google.gson.JsonElement
 import com.klinker.android.send_message.Transaction.COMMAND_ID
 import java.io.File
@@ -32,9 +29,8 @@ class CommandProcessor constructor(
     private val pushKey: PushKey?,
     private val contactProvider: ContactProvider = ContactProvider(context),
     private val bridge: Bridge = Bridge.INSTANCE,
-    private val threadProvider: ThreadProvider = ThreadProvider(context),
-    private val smsProvider: SmsProvider = SmsProvider(context),
-    private val mmsProvider: MmsProvider = MmsProvider(context),
+    private val messageProvider: MessageProvider = MessageProvider(context),
+    private val guidProvider: GuidProvider = GuidProvider(context),
     private val smsMmsSender: SmsMmsSender = SmsMmsSender(context),
 ) {
     private val oldMmsBackfillSeconds =
@@ -133,17 +129,14 @@ class CommandProcessor constructor(
             }
             "get_chats" -> {
                 val data = command.deserialize(GetChats::class.java)
-                val recentMessages =
-                    smsProvider
-                        .getMessagesAfter(data.min_timestamp.toMillis())
-                        .plus(mmsProvider.getMessagesAfter(data.min_timestamp))
+                val recentMessages = messageProvider.getMessagesAfter(data.min_timestamp)
                 bridge.send(
                     Command(
                         "response",
                         recentMessages
                             .mapNotNull { it.thread }
                             .toSet()
-                            .mapNotNull { threadProvider.getChatGuid(it) },
+                            .mapNotNull { guidProvider.getChatGuid(it) },
                         command.id
                     )
                 )
@@ -151,9 +144,7 @@ class CommandProcessor constructor(
             "get_messages_after" -> {
                 val data = command.deserialize(GetMessagesAfter::class.java)
                 val messages =
-                    threadProvider
-                        .getMessagesAfter(context.getThread(data), data.timestamp)
-                        .toMessages()
+                    messageProvider.getMessagesAfter(context.getThread(data), data.timestamp)
                 if (data.timestamp < oldMmsBackfillSeconds) {
                     messages
                         .filter { it.timestamp < oldMmsBackfillSeconds }
@@ -169,9 +160,7 @@ class CommandProcessor constructor(
             "get_recent_messages" -> {
                 val data = command.deserialize(GetRecentMessages::class.java)
                 val messages =
-                    threadProvider
-                        .getRecentMessages(context.getThread(data), data.limit.toInt())
-                        .toMessages()
+                    messageProvider.getRecentMessages(context.getThread(data), data.limit.toInt())
                 bridge.send(Command("response", messages, command.id))
             }
             "get_chat_avatar" -> {
@@ -195,10 +184,6 @@ class CommandProcessor constructor(
     private fun <T> Command.deserialize(c: Class<T>): T =
         gson.fromJson(dataTree, c)
             .apply { Log.d(TAG, "receive #$id: $this") }
-
-    private fun List<Pair<Long, Boolean>>.toMessages() = mapNotNull { (id, mms) ->
-        if (mms) mmsProvider.getMessage(id) else smsProvider.getMessage(id)
-    }
 
     private fun noPermissionError(commandId: Int) {
         bridge.send(

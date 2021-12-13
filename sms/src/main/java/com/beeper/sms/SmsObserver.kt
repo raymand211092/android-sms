@@ -15,7 +15,7 @@ class SmsObserver(private val context: Context) : ContentObserver(getHandler()) 
 
     fun registerObserver() {
         URIS.forEach {
-            Log.d(TAG, "${hashCode()} Watching $it")
+            Log.d(TAG, "Watching $it")
             context.contentResolver.registerContentObserver(it, true, this)
         }
     }
@@ -26,11 +26,11 @@ class SmsObserver(private val context: Context) : ContentObserver(getHandler()) 
         super.onChange(selfChange, uri)
         when(uriMatcher.match(uri)) {
             URI_SYNC -> {
-                Log.d(TAG, "${hashCode()} schedule new message check: $uri")
+                Log.d(TAG, "schedule new message check: $uri")
                 workManager.syncDb()
             }
-            URI_IGNORE -> Log.v(TAG, "${hashCode()} Ignored $uri")
-            else -> Log.d(TAG, "${hashCode()} Unhandled $uri")
+            URI_IGNORE -> Log.v(TAG, "Ignored $uri")
+            else -> Log.d(TAG, "Unhandled $uri")
         }
     }
 
@@ -53,7 +53,7 @@ class SmsObserver(private val context: Context) : ContentObserver(getHandler()) 
             addURI(AUTH_MMS, "/part/#", URI_IGNORE)
         }
 
-        fun getHandler() = HandlerThread("${hashCode()} handler)").let {
+        fun getHandler() = HandlerThread("SMS observer").let {
             it.start()
             Handler(it.looper)
         }

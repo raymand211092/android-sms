@@ -9,27 +9,38 @@ import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeMillis.Companion.toMillis
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.*
-import com.beeper.sms.provider.ThreadProvider.Companion.chatGuid
+import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 
 
 class SmsProvider constructor(context: Context) {
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
-    fun getMessagesAfter(timestamp: TimeMillis): List<Message> {
-        val selection = "$DATE > ${timestamp.toLong()}"
-        return getSms(where = selection)
-            .plus(getSms(uri = Inbox.CONTENT_URI, where = selection))
-            .plus(getSms(uri = Sent.CONTENT_URI, where = selection))
-            .distinctBy { it.guid }
-    }
+    fun getLatest(thread: Long, limit: Int) = getSms(where = "$THREAD_ID = $thread", limit = limit)
+
+    fun getMessagesAfter(thread: Long, timestamp: TimeMillis) =
+        getSms("$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()}")
+
+    fun getMessagesAfter(timestamp: TimeMillis) = getSms("$DATE > ${timestamp.toLong()}")
 
     fun getMessage(uri: Uri) = getSms(uri).firstOrNull()
 
-    fun getMessage(id: Long) = getSms(where = "_id = $id").firstOrNull()
+    private fun getSms(where: String): List<Message> =
+        getSms(uri = CONTENT_URI, where = where)
+            .plus(getSms(uri = Inbox.CONTENT_URI, where = where))
+            .plus(getSms(uri = Sent.CONTENT_URI, where = where))
+            .distinctBy { it.guid }
 
-    private fun getSms(uri: Uri = CONTENT_URI, where: String? = null): List<Message> =
-        cr.map(uri, where) {
+    private fun getSms(
+        uri: Uri = CONTENT_URI,
+        where: String? = null,
+        limit: Int = 0,
+    ): List<Message> =
+        cr.map(
+            uri = uri,
+            where = where,
+            order = if (limit > 0) "$DATE DESC LIMIT $limit" else null
+        ) {
             val address = it.getString(ADDRESS)
             if (address == null) {
                 Log.w(TAG, "Missing address: ${it.dumpCurrentRow()}")
