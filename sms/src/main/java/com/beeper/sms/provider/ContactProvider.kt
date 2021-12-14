@@ -37,7 +37,7 @@ class ContactProvider constructor(private val context: Context) {
                     .firstOrNull(
                         Phone.CONTENT_URI,
                         // hack to match short codes
-                        where = "REPLACE(${Phone.NUMBER}, '-', '') == '$phone'"
+                        where = "REPLACE(${Phone.NUMBER}, '-', '') == \"$phone\""
                     ) {
                         getContact(it.getLong(Phone.CONTACT_ID))?.apply {
                             phoneNumber = phone
