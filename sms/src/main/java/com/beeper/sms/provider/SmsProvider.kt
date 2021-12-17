@@ -65,6 +65,7 @@ class SmsProvider constructor(context: Context) {
                 thread = it.getLong(THREAD_ID),
                 rowId = rowId,
                 uri = if (where == null) uri else ContentUris.withAppendedId(uri, rowId),
+                subId = it.getIntOrNull(SUBSCRIPTION_ID),
             )
         }
 

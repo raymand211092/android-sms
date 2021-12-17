@@ -1,8 +1,11 @@
 package com.beeper.sms
 
+import android.Manifest.permission.READ_PHONE_STATE
 import android.content.Context
 import android.content.Intent
 import android.os.Parcelable
+import com.beeper.sms.extensions.hasPermission
+import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.receivers.MyDeliveredReceiver
 import com.beeper.sms.receivers.MyMmsSentReceiver
 import com.beeper.sms.receivers.MySentReceiver
@@ -10,8 +13,10 @@ import com.klinker.android.send_message.Message
 import com.klinker.android.send_message.Settings
 import com.klinker.android.send_message.Transaction
 
-class SmsMmsSender(private val context: Context) {
-
+class SmsMmsSender(
+    private val context: Context,
+    private val messageProvider: MessageProvider = MessageProvider(context),
+) {
     fun sendMessage(
         text: String,
         recipients: List<String>,
@@ -19,7 +24,8 @@ class SmsMmsSender(private val context: Context) {
         sentMessageParcelable: Parcelable? = null,
         subject: String? = null,
     ) {
-        val transaction = newTransaction()
+        val subscriptionId = getSubscriptionId(thread)
+        val transaction = newTransaction(subscriptionId)
         val message = Message(text, recipients.toTypedArray()).apply {
             this.subject = subject
             if (transaction.checkMMS(this)) {
@@ -36,24 +42,32 @@ class SmsMmsSender(private val context: Context) {
         filename: String,
         thread: Long = 0,
         sentMessageParcelable: Parcelable,
-    ) = newTransaction().sendNewMessage(
-        Message("", recipients.toTypedArray()).apply {
+    ) {
+        val subscriptionId = getSubscriptionId(thread)
+        val transaction = newTransaction(subscriptionId)
+        val message = Message("", recipients.toTypedArray()).apply {
             addMedia(bytes, mimeType, filename)
             setupMms()
-        },
-        thread,
-        sentMessageParcelable,
-        null
-    )
+        }
+        transaction.sendNewMessage(message, thread, sentMessageParcelable, null)
+    }
 
-    private fun newTransaction() =
-        Transaction(context, settings)
+    private fun newTransaction(subscriptionId: Int?) =
+        Transaction(context, newSettings(subscriptionId))
             .setExplicitBroadcastForDeliveredSms(Intent(context, MyDeliveredReceiver::class.java))
             .setExplicitBroadcastForSentSms(Intent(context, MySentReceiver::class.java))
             .setExplicitBroadcastForSentMms(Intent(context, MyMmsSentReceiver::class.java))
 
+    private fun getSubscriptionId(thread: Long): Int? =
+        if (context.hasPermission(READ_PHONE_STATE)) {
+            messageProvider.getRecentMessages(thread, 1).firstOrNull()?.subId
+        } else {
+            null
+        }
+
     companion object {
-        private val settings = Settings().apply {
+        private fun newSettings(subscriptionId: Int? = null) = Settings().apply {
+            setSubscriptionId(subscriptionId)
             deliveryReports = true
             useSystemSending = true
         }

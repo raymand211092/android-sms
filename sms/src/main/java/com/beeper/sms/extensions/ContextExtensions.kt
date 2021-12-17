@@ -30,3 +30,4 @@ val Context.hasPermissions: Boolean
     get() = SMS_PERMISSIONS.all { hasPermission(it) }
 
 val SMS_PERMISSIONS = listOf(READ_SMS, SEND_SMS, READ_CONTACTS)
+val DUAL_SIM_PERMISSION = listOf(READ_PHONE_STATE)

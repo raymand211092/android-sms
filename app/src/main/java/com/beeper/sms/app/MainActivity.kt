@@ -18,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.beeper.sms.Bridge
 import com.beeper.sms.app.ui.theme.BeeperSMSBridgeTheme
+import com.beeper.sms.extensions.DUAL_SIM_PERMISSION
 import com.beeper.sms.extensions.SMS_PERMISSIONS
 import com.beeper.sms.extensions.hasPermissions
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -45,7 +46,11 @@ class MainActivity : ComponentActivity() {
                     stopBridge = { Bridge.INSTANCE.stop(this@MainActivity) },
                     startBridge = { Bridge.INSTANCE.start(this@MainActivity) },
                     killBridge = { Bridge.INSTANCE.killProcess() },
-                    requestPermissions = { permissionResult.launch(SMS_PERMISSIONS.toTypedArray()) },
+                    requestPermissions = {
+                        permissionResult.launch(
+                            SMS_PERMISSIONS.plus(DUAL_SIM_PERMISSION).toTypedArray()
+                        )
+                    },
                     pingBridge = { Bridge.INSTANCE.ping() },
                 )
             }
