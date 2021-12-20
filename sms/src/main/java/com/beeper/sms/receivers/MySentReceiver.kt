@@ -32,10 +32,7 @@ class MySentReceiver : SentReceiver() {
                 return
             }
             resultCode != RESULT_OK -> {
-                Bridge.INSTANCE.send(
-                    commandId,
-                    Error("network_error", errorToString(resultCode, intent))
-                )
+                Bridge.INSTANCE.send(commandId, resultCode.toError(intent))
                 return
             }
             message != null -> Pair(message.guid, message.timestamp)
@@ -48,6 +45,25 @@ class MySentReceiver : SentReceiver() {
 
     companion object {
         private const val TAG = "MySentReceiver"
+        private const val ERR_NETWORK_ERROR = "network_error"
+        private const val ERR_TIMEOUT = "timeout"
+        private const val ERR_UNSUPPORTED = "unsupported"
+
+        private fun Int.toError(intent: Intent?): Error {
+            val message = errorToString(this, intent)
+            return when (this) {
+                RESULT_ERROR_NO_SERVICE,
+                RESULT_ERROR_RADIO_OFF,
+                RESULT_RIL_NETWORK_NOT_READY,
+                RESULT_RADIO_NOT_AVAILABLE ->
+                    Error(ERR_TIMEOUT, message)
+                RESULT_ERROR_SHORT_CODE_NOT_ALLOWED,
+                RESULT_ERROR_SHORT_CODE_NEVER_ALLOWED ->
+                    Error(ERR_UNSUPPORTED, message)
+                else ->
+                    Error(ERR_NETWORK_ERROR, message)
+            }
+        }
 
         private fun errorToString(rc: Int, intent: Intent?): String {
             val errorCode = intent?.getStringExtra("errorCode")
