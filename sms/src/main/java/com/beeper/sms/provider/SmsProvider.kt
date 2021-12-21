@@ -62,7 +62,6 @@ class SmsProvider constructor(context: Context) {
                 is_from_me = isFromMe,
                 sent_from_matrix = it.getString(CREATOR) == packageName,
                 is_mms = false,
-                thread = it.getLong(THREAD_ID),
                 rowId = rowId,
                 uri = if (where == null) uri else ContentUris.withAppendedId(uri, rowId),
                 subId = it.getIntOrNull(SUBSCRIPTION_ID),

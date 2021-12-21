@@ -16,10 +16,9 @@ import com.beeper.sms.extensions.getTimeMilliseconds
 import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.helpers.newGson
 import com.beeper.sms.provider.ContactProvider
+import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.MmsProvider.Companion.MMS_PREFIX
 import com.beeper.sms.provider.SmsProvider.Companion.SMS_PREFIX
-import com.beeper.sms.provider.GuidProvider
-import com.beeper.sms.provider.MessageProvider
 import com.google.gson.JsonElement
 import com.klinker.android.send_message.Transaction.COMMAND_ID
 import java.io.File
@@ -30,7 +29,6 @@ class CommandProcessor constructor(
     private val contactProvider: ContactProvider = ContactProvider(context),
     private val bridge: Bridge = Bridge.INSTANCE,
     private val messageProvider: MessageProvider = MessageProvider(context),
-    private val guidProvider: GuidProvider = GuidProvider(context),
     private val smsMmsSender: SmsMmsSender = SmsMmsSender(context),
 ) {
     private val oldMmsBackfillSeconds =
@@ -133,10 +131,7 @@ class CommandProcessor constructor(
                 bridge.send(
                     Command(
                         "response",
-                        recentMessages
-                            .mapNotNull { it.thread }
-                            .toSet()
-                            .mapNotNull { guidProvider.getChatGuid(it) },
+                        recentMessages.map { it.chat_guid }.toSet(),
                         command.id
                     )
                 )

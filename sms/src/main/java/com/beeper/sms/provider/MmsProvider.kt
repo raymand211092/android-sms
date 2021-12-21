@@ -76,7 +76,6 @@ class MmsProvider constructor(
                 is_mms = true,
                 resp_st = it.getIntOrNull(RESPONSE_STATUS),
                 creator = creator,
-                thread = thread,
                 rowId = rowId,
                 uri = if (where == null) uri else ContentUris.withAppendedId(uri, rowId),
                 subId = it.getIntOrNull(SUBSCRIPTION_ID),
