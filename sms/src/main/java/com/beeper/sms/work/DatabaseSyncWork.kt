@@ -10,7 +10,6 @@ import com.beeper.sms.commands.outgoing.MessageIdsAfterTime
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getTimeSeconds
 import com.beeper.sms.extensions.putTimeSeconds
-import com.beeper.sms.provider.GuidProvider
 import com.beeper.sms.provider.MessageProvider
 
 class DatabaseSyncWork constructor(
@@ -20,7 +19,6 @@ class DatabaseSyncWork constructor(
     private val prefs = context.getSharedPreferences()
     private val workManager = WorkManager(context)
     private val messageProvider = MessageProvider(context)
-    private val guidProvider = GuidProvider(context)
 
     override suspend fun doWork(): Result {
         val lastTimestamp = prefs.getTimeSeconds(PREF_LATEST_SYNC)
@@ -28,12 +26,9 @@ class DatabaseSyncWork constructor(
             Log.e(TAG, "sync not initialized")
             return Result.failure()
         }
-        val messages = messageProvider.getMessagesAfter(lastTimestamp).groupBy { it.thread }
-        for ((thread, messageList) in messages) {
-            if (thread == null) {
-                continue
-            }
-            val chatGuid = guidProvider.getChatGuid(thread) ?: continue
+        val messages = messageProvider.getMessagesAfter(lastTimestamp)
+        Log.d(TAG, messages.toString())
+        for ((chatGuid, messageList) in messages.groupBy { it.chat_guid }) {
             val response = Bridge.INSTANCE.await(
                 Command(
                     "message_ids_after_time",
@@ -52,10 +47,9 @@ class DatabaseSyncWork constructor(
                 .also { Log.d(TAG, "bridging ${it.size} messages: ${it.joinToString(",")}") }
                 .forEach { workManager.sendMessage(it) }
         }
-        prefs.putTimeSeconds(
-            PREF_LATEST_SYNC,
-            lastTimestamp.max(messages.values.flatten().maxOf { it.timestamp })
-        )
+        messages
+            .maxOfOrNull { it.timestamp }
+            ?.let { prefs.putTimeSeconds(PREF_LATEST_SYNC, lastTimestamp.max(it)) }
         return Result.success()
     }
 
