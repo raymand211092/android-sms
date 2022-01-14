@@ -98,6 +98,11 @@ class Bridge private constructor() {
                 .directory(nativeLibDir.toFile())
                 .command("./libmautrix.so", "-c", config)
                 .start()
+                .also {
+                    if (it.running) {
+                        Log.d(TAG, "Started")
+                    }
+                }
         }
         return process
     }
@@ -159,7 +164,7 @@ class Bridge private constructor() {
 
         private val Process.running: Boolean
             get() = try {
-                exitValue()
+                exitValue().let { Log.w(TAG, "exited: $it") }
                 false
             } catch (e: IllegalThreadStateException) {
                 true
@@ -167,7 +172,20 @@ class Bridge private constructor() {
 
         private fun InputStream.forEach(action: (String) -> Unit) {
             Log.d(TAG, "$this forEach")
-            reader().forEachLine(action)
+            reader().buffered().let { reader ->
+                try {
+                    for (element in reader.lineSequence()) {
+                        action(element)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, e)
+                } finally {
+                    try {
+                        reader.close()
+                    } catch (ignored: Throwable) {
+                    }
+                }
+            }
             Log.d(TAG, "$this closed")
         }
 
