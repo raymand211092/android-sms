@@ -17,6 +17,7 @@ class MessageProvider constructor(
     fun getMessagesAfter(thread: Long, timestampSeconds: TimeSeconds): List<Message> =
         smsProvider.getMessagesAfter(thread, timestampSeconds.toMillis())
             .plus(mmsProvider.getMessagesAfter(thread, timestampSeconds))
+            .filterNot { it.sent_from_matrix }
             .sortedBy { it.timestamp }
 
     fun getRecentMessages(thread: Long, limit: Int): List<Message> =
