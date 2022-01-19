@@ -9,16 +9,16 @@ plugins {
 object Version {
     const val major = 0
     const val minor = 1
-    const val patch = 72
+    const val patch = 73
 }
 
 android {
-    compileSdk = 30
-    buildToolsVersion = "30.0.3"
+    compileSdk = 31
+    buildToolsVersion = "31.0.0"
 
     defaultConfig {
         minSdk = 23
-        targetSdk = 30
+        targetSdk = 31
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -104,7 +104,7 @@ afterEvaluate {
 
 dependencies {
     implementation("androidx.work:work-runtime-ktx:${Versions.work}")
-    implementation("com.gitlab.beeper:android-smsmms:31c6f3f")
+    implementation("com.gitlab.beeper:android-smsmms:70f3661")
     implementation("org.yaml:snakeyaml:1.29")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.1")
     implementation("androidx.core:core-ktx:1.6.0")
