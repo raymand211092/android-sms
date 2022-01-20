@@ -8,9 +8,7 @@ import androidx.work.WorkerParameters
 import com.beeper.sms.Bridge
 import com.beeper.sms.Log
 import com.beeper.sms.commands.Command
-import com.beeper.sms.extensions.isMms
-import com.beeper.sms.provider.MmsProvider
-import com.beeper.sms.provider.SmsProvider
+import com.beeper.sms.provider.MessageProvider
 
 class SendMessage constructor(
     private val context: Context,
@@ -24,20 +22,18 @@ class SendMessage constructor(
             return Result.failure()
         }
         Log.d(TAG, uri.toString())
-        val message = if (uri.isMms) {
-            MmsProvider(context).getMessage(uri)?.apply {
-                if (attachments.isNullOrEmpty() && text.isEmpty()) {
-                    return if (runAttemptCount > MAX_RETRY) {
-                        Log.e(TAG, "Gave up waiting for attachment: $uri")
-                        Result.failure()
-                    } else {
-                        Log.d(TAG, "Waiting for attachment: $uri -> $this, runAttemptCount: $runAttemptCount")
-                        Result.retry()
-                    }
-                }
+        val message = MessageProvider(context).getMessage(uri)
+        if (message?.is_mms == true &&
+            message.attachments.isNullOrEmpty() &&
+            message.text.isEmpty()
+        ) {
+            return if (runAttemptCount > MAX_RETRY) {
+                Log.e(TAG, "Gave up waiting for attachment: $uri")
+                Result.failure()
+            } else {
+                Log.d(TAG, "Waiting for attachment: $uri -> $this, runAttemptCount: $runAttemptCount")
+                Result.retry()
             }
-        } else {
-            SmsProvider(context).getMessage(uri)
         }
         if (message == null) {
             Log.e(TAG, "Failed to find $uri")

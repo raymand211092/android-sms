@@ -8,9 +8,13 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.provider.Telephony.Mms
 import android.provider.Telephony.Sms
+import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.work.WorkManager
 
-class SmsObserver(private val context: Context) : ContentObserver(getHandler()) {
+class SmsObserver(
+    private val context: Context,
+    private val messageProvider: MessageProvider = MessageProvider(context),
+) : ContentObserver(getHandler()) {
     private val workManager = WorkManager(context)
 
     fun registerObserver() {
@@ -26,7 +30,11 @@ class SmsObserver(private val context: Context) : ContentObserver(getHandler()) 
         super.onChange(selfChange, uri)
         when(uriMatcher.match(uri)) {
             URI_SYNC -> {
-                Log.d(TAG, "schedule new message check: $uri")
+                val message =
+                    uri?.lastPathSegment?.toIntOrNull()
+                        ?.let { messageProvider.getMessage(uri) }
+                        ?: uri
+                Log.d(TAG, "schedule new message check: $message")
                 workManager.syncDb()
             }
             URI_IGNORE -> Log.v(TAG, "Ignored $uri")
