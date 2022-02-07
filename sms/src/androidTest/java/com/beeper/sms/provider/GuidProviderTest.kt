@@ -31,4 +31,29 @@ class GuidProviderTest {
         // Address isn't necessarily a phone number, e.g. e-mail to SMS gateways
         assertEquals("user@example.com", "user@example.com".normalize)
     }
+
+    @Test
+    fun emailAddressWithDisplayName() =
+        assertEquals("user@example.com", "User Name <user@example.com>".normalize)
+
+    @Test
+    fun emailAddressWithQuotedDisplayName() =
+        assertEquals("user@example.com", "\"User Name\" <user@example.com>".normalize)
+
+    @Test
+    fun emailAddressWithSubdomain() =
+        assertEquals("user@example.co.uk", "user@example.co.uk".normalize)
+
+    @Test
+    fun emailAddressWithoutAngleBrackets() =
+        assertEquals("user@example.com", "abc user@example.com 123".normalize)
+
+    @Test
+    fun stripWhitespace() = assertEquals("whitespace", "white space".normalize)
+
+    @Test
+    fun stripSingleQuotations() = assertEquals("abc", "ab'c".normalize)
+
+    @Test
+    fun stripDoubleQuotations() = assertEquals("abc", "ab\"c".normalize)
 }
