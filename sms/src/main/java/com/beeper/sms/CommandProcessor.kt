@@ -139,7 +139,12 @@ class CommandProcessor constructor(
             "get_messages_after" -> {
                 val data = command.deserialize(GetMessagesAfter::class.java)
                 val messages =
-                    messageProvider.getMessagesAfter(context.getThread(data), data.timestamp)
+                    messageProvider
+                        .getMessagesAfter(context.getThread(data), data.timestamp)
+                        .filter {
+                            // hack to not backfill rooms with invalid chat_guid
+                            it.chat_guid == data.chat_guid
+                        }
                 if (data.timestamp < oldMmsBackfillSeconds) {
                     messages
                         .filter { it.timestamp < oldMmsBackfillSeconds }
