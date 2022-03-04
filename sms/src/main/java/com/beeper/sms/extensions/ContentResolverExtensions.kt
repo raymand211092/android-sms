@@ -17,12 +17,14 @@ fun <T> ContentResolver.map(
     block: (Cursor) -> T?
 ): List<T> {
     val result = ArrayList<T>()
-    query(uri, projection, where, null, order)?.use {
-        Log.d(TAG, "$uri where=$where order=$order: ${it.count} results\n${it.dumpToString()}")
-        while (it.moveToNext()) {
-            block(it)?.let { t -> result.add(t) }
+    query(uri, projection, where, null, order)
+        ?.use {
+            Log.d(TAG, "$uri where=$where order=$order: ${it.count} results\n${it.dumpToString()}")
+            while (it.moveToNext()) {
+                block(it)?.let { t -> result.add(t) }
+            }
         }
-    }
+        ?: Log.e(TAG, "$uri where=$where order=$order failed")
     return result
 }
 
