@@ -36,6 +36,7 @@ class SmsMmsSender(
     }
 
     fun sendMessage(
+        text: String,
         recipients: List<String>,
         bytes: ByteArray,
         mimeType: String,
@@ -45,7 +46,7 @@ class SmsMmsSender(
     ) {
         val subscriptionId = getSubscriptionId(thread)
         val transaction = newTransaction(subscriptionId)
-        val message = Message("", recipients.toTypedArray()).apply {
+        val message = Message(text, recipients.toTypedArray()).apply {
             addMedia(bytes, mimeType, filename)
             setupMms()
         }
