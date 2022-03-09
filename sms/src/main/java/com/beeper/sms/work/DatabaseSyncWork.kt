@@ -21,7 +21,7 @@ class DatabaseSyncWork constructor(
     private val messageProvider = MessageProvider(context)
 
     override suspend fun doWork(): Result {
-        val lastTimestamp = prefs.getTimeSeconds(PREF_LATEST_SYNC)
+        val lastTimestamp = prefs.getTimeSeconds(PREF_LATEST_SYNC)?.minusMinutes(5)
         if (lastTimestamp == null) {
             Log.e(TAG, "sync not initialized")
             return Result.failure()
