@@ -114,6 +114,7 @@ class CommandProcessor constructor(
                     )
                 } else {
                     smsMmsSender.sendMessage(
+                        data.text,
                         recipients,
                         file.readBytes(),
                         data.mime_type,
