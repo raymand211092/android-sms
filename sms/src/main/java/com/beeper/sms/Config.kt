@@ -44,6 +44,8 @@ data class Config(
         var initial_backfill_limit: Int? = null,
         var periodic_sync: Boolean? = null,
         var find_portals_if_db_empty: Boolean? = null,
+        var media_viewer_url: String? = null,
+        var media_viewer_min_size: Int? = null,
         var command_prefix: String? = null,
         var encryption: Encryption? = null,
     )
