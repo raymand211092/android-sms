@@ -89,6 +89,7 @@ class Bridge private constructor() {
         val config = configPath ?: return null
         val cache = cacheDir ?: return null
         if (process?.running != true) {
+            killProcess()
             Log.d(TAG, "Starting mautrix-imessage")
             process = ProcessBuilder()
                 .env(
