@@ -48,6 +48,8 @@ data class Config(
         var media_viewer_min_size: Int? = null,
         var command_prefix: String? = null,
         var encryption: Encryption? = null,
+        var send_error_notices: Boolean? = null,
+        var send_message_send_status_events: Boolean? = null,
     )
 
     data class Encryption(
