@@ -28,7 +28,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 class MainActivity : ComponentActivity() {
     private var isDefault = mutableStateOf(false)
 
-    @ExperimentalPermissionsApi
+    @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val permissionResult = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
