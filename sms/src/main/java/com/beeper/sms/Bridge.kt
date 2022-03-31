@@ -16,9 +16,11 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onSubscription
+import timber.log.Timber
 import java.io.File
 import java.io.InputStream
 import java.util.concurrent.Executors.newSingleThreadExecutor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.suspendCoroutine
 
@@ -88,8 +90,8 @@ class Bridge private constructor() {
     private fun getProcess(): Process? {
         val config = configPath ?: return null
         val cache = cacheDir ?: return null
-        if (process?.running != true) {
-            killProcess()
+        if (!process.running) {
+            process?.kill()
             Log.d(TAG, "Starting mautrix-imessage")
             process = ProcessBuilder()
                 .env(
@@ -112,12 +114,26 @@ class Bridge private constructor() {
         configPath ?: configPathProvider?.invoke()?.takeIf { it.exists() }?.also { configPath = it }
 
     fun killProcess() {
+        process?.kill() ?: Log.d(TAG, "No process to kill")
+    }
+
+    private fun Process.kill() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            process?.destroyForcibly()
+            try {
+                Log.d(TAG, "destroyForcibly")
+                val success = destroyForcibly().waitFor(10, TimeUnit.SECONDS)
+                Log.d(TAG, "destroyForcibly success=$success")
+                if (success) {
+                    process = null
+                }
+            } catch (e: InterruptedException) {
+                Log.e(TAG, e)
+            }
         } else {
-            process?.destroy()
+            Log.d(TAG, "Calling destroy")
+            destroy()
+            Log.d(TAG, "Called destroy")
         }
-        process = null
     }
 
     internal fun forEachError(action: (String) -> Unit) =
@@ -163,9 +179,11 @@ class Bridge private constructor() {
         private val gson = newGson()
         val INSTANCE = Bridge()
 
-        private val Process.running: Boolean
+        private val Process?.running: Boolean
             get() = try {
-                exitValue().let { Log.w(TAG, "exited: $it") }
+                this?.exitValue()
+                    ?.let { Log.w(TAG, "exited: $it") }
+                    ?: Log.d(TAG, "no process")
                 false
             } catch (e: IllegalThreadStateException) {
                 true
