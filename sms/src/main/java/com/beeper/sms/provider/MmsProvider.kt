@@ -66,7 +66,7 @@ class MmsProvider constructor(
             Message(
                 guid = "$MMS_PREFIX$rowId",
                 timestamp = it.getLong(DATE).toSeconds(),
-                subject = it.getString(SUBJECT) ?: "",
+                subject = it.getString(SUBJECT)?.takeUnless { sub -> sub == "NoSubject" } ?: "",
                 text = attachments.mapNotNull { a -> a.text }.joinToString(""),
                 chat_guid = chatGuid,
                 sender_guid = sender,

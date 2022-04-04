@@ -55,7 +55,7 @@ class SmsProvider constructor(context: Context) {
             Message(
                 guid = "$SMS_PREFIX$rowId",
                 timestamp = it.getLong(DATE).toMillis().toSeconds(),
-                subject = it.getString(SUBJECT) ?: "",
+                subject = it.getString(SUBJECT)?.takeUnless { sub -> sub == "NoSubject" } ?: "",
                 text = it.getString(BODY) ?: "",
                 chat_guid = chatGuid,
                 sender_guid = if (isFromMe) null else chatGuid,
