@@ -45,11 +45,12 @@ data class Config(
         var periodic_sync: Boolean? = null,
         var find_portals_if_db_empty: Boolean? = null,
         var media_viewer_url: String? = null,
-        var media_viewer_min_size: Int? = null,
+        var media_viewer_sms_min_size: Int? = null,
         var command_prefix: String? = null,
         var encryption: Encryption? = null,
         var send_error_notices: Boolean? = null,
-        var send_message_send_status_events: Boolean? = null,
+        var message_status_events: Boolean? = null,
+        var max_handle_seconds: Int? = null,
     )
 
     data class Encryption(
