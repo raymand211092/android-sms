@@ -42,6 +42,7 @@ data class Config(
         var login_shared_secret: String? = null,
         var chat_sync_max_age: Float? = null,
         var initial_backfill_limit: Int? = null,
+        var initial_backfill_disable_notifications: Boolean? = null,
         var periodic_sync: Boolean? = null,
         var find_portals_if_db_empty: Boolean? = null,
         var media_viewer_url: String? = null,
