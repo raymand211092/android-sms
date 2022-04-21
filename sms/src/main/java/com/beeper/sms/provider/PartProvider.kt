@@ -35,7 +35,7 @@ class PartProvider constructor(private val context: Context) {
                     Part(
                         attachment = Attachment(
                             mime_type = mimetype,
-                            file_name = it.getString(NAME) ?: UUID.randomUUID().toString(),
+                            file_name = it.getString(NAME) ?: file.name,
                             path_on_disk = file.absolutePath,
                         )
                     )

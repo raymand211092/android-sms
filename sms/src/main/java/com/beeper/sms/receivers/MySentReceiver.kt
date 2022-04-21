@@ -25,7 +25,7 @@ class MySentReceiver : SentReceiver() {
         val uri = intent?.getStringExtra("uri")?.toUri()
         val commandId =
             (intent?.getParcelableExtra(SENT_SMS_BUNDLE) as? Bundle)?.getInt(COMMAND_ID)
-        val message = uri?.let { SmsProvider(context).getMessage(it) }
+        val message = uri?.let { SmsProvider(context).getMessageInfo(it) }
         val (guid, timestamp) = when {
             commandId == null -> {
                 Log.e(TAG, "Missing commandId (uri=$uri message=$message)")

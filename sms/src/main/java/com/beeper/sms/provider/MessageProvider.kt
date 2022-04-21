@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.Telephony
 import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.commands.outgoing.MessageInfo
 
 class MessageProvider constructor(
     context: Context,
@@ -15,15 +16,20 @@ class MessageProvider constructor(
         if (it.isMms) mmsProvider.getMessage(it) else smsProvider.getMessage(it)
     }
 
-    fun getMessagesAfter(timestampSeconds: TimeSeconds): List<Message> =
-        smsProvider.getMessagesAfter(timestampSeconds.toMillis())
-            .plus(mmsProvider.getMessagesAfter(timestampSeconds))
+    fun getMessageInfo(uri: Uri?): MessageInfo? = uri?.let {
+        if (it.isMms) mmsProvider.getMessageInfo(it) else smsProvider.getMessageInfo(it)
+    }
+
+    fun getActiveChats(timestampSeconds: TimeSeconds): List<MessageInfo> =
+        smsProvider.getActiveChats(timestampSeconds.toMillis())
+            .plus(mmsProvider.getActiveChats(timestampSeconds))
+            .distinctBy { it.guid }
             .sortedBy { it.timestamp }
 
     fun getMessagesAfter(thread: Long, timestampSeconds: TimeSeconds): List<Message> =
         smsProvider.getMessagesAfter(thread, timestampSeconds.toMillis())
             .plus(mmsProvider.getMessagesAfter(thread, timestampSeconds))
-            .filterNot { it.sent_from_matrix }
+            .distinctBy { it.guid }
             .sortedBy { it.timestamp }
 
     fun getRecentMessages(thread: Long, limit: Int): List<Message> =

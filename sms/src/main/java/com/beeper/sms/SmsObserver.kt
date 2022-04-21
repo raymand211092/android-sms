@@ -30,12 +30,15 @@ class SmsObserver(
         super.onChange(selfChange, uri)
         when(uriMatcher.match(uri)) {
             URI_SYNC -> {
-                val message =
-                    uri?.lastPathSegment?.toIntOrNull()
-                        ?.let { messageProvider.getMessage(uri) }
-                        ?: uri
-                Log.d(TAG, "schedule new message check: $message")
-                workManager.syncDb()
+                val message = uri?.lastPathSegment?.toIntOrNull()?.let {
+                    messageProvider.getMessageInfo(uri)
+                }
+                if (message?.sent_from_matrix == true) {
+                    Log.v(TAG, "Ignored $uri (sent from matrix)")
+                } else {
+                    Log.d(TAG, "schedule new message check: ${message ?: uri}")
+                    workManager.syncDb()
+                }
             }
             URI_IGNORE -> Log.v(TAG, "Ignored $uri")
             else -> Log.d(TAG, "Unhandled $uri")

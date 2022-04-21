@@ -26,14 +26,11 @@ class DatabaseSyncWork constructor(
             Log.e(TAG, "sync not initialized")
             return Result.failure()
         }
-        val messages = messageProvider.getMessagesAfter(lastTimestamp)
+        val messages = messageProvider.getActiveChats(lastTimestamp)
         Log.d(TAG, messages.toString())
         for ((chatGuid, messageList) in messages.groupBy { it.chat_guid }) {
             val response = Bridge.INSTANCE.await(
-                Command(
-                    "message_ids_after_time",
-                    MessageIdsAfterTime(chatGuid, lastTimestamp)
-                )
+                Command("message_ids_after_time", MessageIdsAfterTime(chatGuid, lastTimestamp))
             )
             val ids =
                 response
@@ -42,10 +39,9 @@ class DatabaseSyncWork constructor(
                     ?.map { it.asString }
                     ?: emptyList()
             messageList
-                .filterNot { ids.contains(it.guid) }
-                .mapNotNull { it.uri }
-                .also { Log.d(TAG, "bridging ${it.size} messages: ${it.joinToString(",")}") }
-                .forEach { workManager.sendMessage(it) }
+                .filterNot { it.sent_from_matrix || ids.contains(it.guid) }
+                .also { Log.d(TAG, "bridging ${it.size} messages: $it") }
+                .forEach { workManager.sendMessage(it.uri) }
         }
         messages
             .maxOfOrNull { it.timestamp }

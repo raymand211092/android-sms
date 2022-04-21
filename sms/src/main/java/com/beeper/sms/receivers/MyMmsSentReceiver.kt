@@ -25,7 +25,7 @@ class MyMmsSentReceiver : BroadcastReceiver() {
         val uri = intent?.getStringExtra(EXTRA_URI)?.toUri()
         val commandId =
             (intent?.getParcelableExtra(SENT_MMS_BUNDLE) as? Bundle)?.getInt(COMMAND_ID)
-        val message = uri?.let { MmsProvider(context).getMessage(it) }
+        val message = uri?.let { MmsProvider(context).getMessageInfo(it) }
         val (guid, timestamp) = when {
             commandId == null -> {
                 Log.e(TAG, "missing command")

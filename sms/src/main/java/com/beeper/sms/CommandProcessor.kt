@@ -128,7 +128,7 @@ class CommandProcessor constructor(
             }
             "get_chats" -> {
                 val data = command.deserialize(GetChats::class.java)
-                val recentMessages = messageProvider.getMessagesAfter(data.min_timestamp)
+                val recentMessages = messageProvider.getActiveChats(data.min_timestamp)
                 bridge.send(
                     Command(
                         "response",

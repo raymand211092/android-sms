@@ -1,11 +1,13 @@
 package com.beeper.sms
 
 import android.content.Context
-import com.beeper.sms.extensions.*
+import com.beeper.sms.extensions.getSharedPreferences
+import com.beeper.sms.extensions.putLong
+import com.beeper.sms.extensions.putTimeMilliseconds
+import com.beeper.sms.extensions.putTimeSeconds
 import com.beeper.sms.helpers.currentTimeMillis
 import com.beeper.sms.helpers.currentTimeSeconds
 import com.beeper.sms.work.DatabaseSyncWork
-import java.io.File
 
 class Upgrader(private val context: Context) {
     private val preferences = context.getSharedPreferences()
@@ -38,10 +40,6 @@ class Upgrader(private val context: Context) {
              * to prevent sending duplicate messages
              */
             preferences.putTimeMilliseconds(PREF_USE_OLD_SMS_GUIDS, currentTimeMillis())
-        }
-        upgrade(from, 185) {
-            Log.d(TAG, "Deleting cached mms attachments")
-            File(context.mmsCache).deleteRecursively()
         }
         preferences.putLong(PREF_CURRENT_VERSION, to)
         Log.d(TAG, "Finished upgrade from $from to $to")

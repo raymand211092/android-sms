@@ -2,6 +2,7 @@ package com.beeper.sms.provider
 
 import android.content.ContentUris
 import android.content.Context
+import android.database.Cursor
 import android.net.Uri
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
@@ -9,6 +10,7 @@ import com.beeper.sms.Log
 import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.commands.outgoing.MessageInfo
 import com.beeper.sms.extensions.*
 import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import com.google.android.mms.pdu_alt.PduHeaders
@@ -21,66 +23,93 @@ class MmsProvider constructor(
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
-    fun getLatest(thread: Long, limit: Int) = getMms(where = "$THREAD_ID = $thread", limit = limit)
+    fun getActiveChats(timestamp: TimeSeconds): List<MessageInfo> =
+        getMms("$DATE > ${timestamp.toLong()}", this::messageInfoMapper)
+
+    fun getMessageInfo(uri: Uri): MessageInfo? =
+        getMms(uri, mapper = this::messageInfoMapper).firstOrNull()
+
+    fun getLatest(thread: Long, limit: Int) =
+        getMms(where = "$THREAD_ID = $thread", limit = limit, mapper = this::messageMapper)
 
     fun getMessagesAfter(thread: Long, timestamp: TimeSeconds) =
-        getMms("$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()}")
+        getMms(
+            "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()} AND $CREATOR != '$packageName'",
+            this::messageMapper
+        )
 
-    fun getMessagesAfter(timestamp: TimeSeconds) = getMms("$DATE > ${timestamp.toLong()}")
+    fun getMessage(uri: Uri) = getMms(uri, mapper = this::messageMapper).firstOrNull()
 
-    fun getMessage(uri: Uri) = getMms(uri).firstOrNull()
+    private fun <T> getMms(where: String? = null, mapper: (Cursor, Long, Uri) -> T?): List<T> =
+        listOf(CONTENT_URI, Inbox.CONTENT_URI, Sent.CONTENT_URI).flatMap { uri ->
+            getMms(uri = uri, where = where, mapper = mapper)
+        }
 
-    private fun getMms(where: String): List<Message> =
-        getMms(uri = CONTENT_URI, where = where)
-            .plus(getMms(uri = Inbox.CONTENT_URI, where = where))
-            .plus(getMms(uri = Sent.CONTENT_URI, where = where))
-            .distinctBy { it.guid }
-
-    private fun getMms(
+    private fun <T> getMms(
         uri: Uri = CONTENT_URI,
         where: String? = null,
         limit: Int = 0,
-    ): List<Message> =
+        mapper: (Cursor, Long, Uri) -> T?,
+    ): List<T> =
         cr.map(
             uri = uri,
             where = where,
             order = if (limit > 0) "$DATE DESC LIMIT $limit" else null
         ) {
             val rowId = it.getLong(_ID)
-            val attachments = partProvider.getAttachment(rowId)
-            val isFromMe = when (it.getInt(MESSAGE_BOX)) {
-                MESSAGE_BOX_OUTBOX, MESSAGE_BOX_SENT -> true
-                else -> false
-            }
-            val creator = it.getString(CREATOR)
-            val thread = it.getLong(THREAD_ID)
-            val chatGuid = guidProvider.getChatGuid(thread)
-            if (chatGuid.isNullOrBlank()) {
-                Log.e(TAG, "Error generating guid for $thread")
-                return@map null
-            }
-            val sender = when {
-                isFromMe -> null
-                else -> getSender(rowId)?.chatGuid ?: chatGuid.takeIf { cg -> cg.isDm }
-            }
-            Message(
-                guid = "$MMS_PREFIX$rowId",
-                timestamp = it.getLong(DATE).toSeconds(),
-                subject = it.getString(SUBJECT)?.takeUnless { sub -> sub == "NoSubject" } ?: "",
-                text = attachments.mapNotNull { a -> a.text }.joinToString(""),
-                chat_guid = chatGuid,
-                sender_guid = sender,
-                is_from_me = isFromMe,
-                attachments = attachments.mapNotNull { a -> a.attachment },
-                sent_from_matrix = creator == packageName,
-                is_mms = true,
-                resp_st = it.getIntOrNull(RESPONSE_STATUS),
-                creator = creator,
-                rowId = rowId,
-                uri = if (where == null) uri else ContentUris.withAppendedId(uri, rowId),
-                subId = it.getIntOrNull(SUBSCRIPTION_ID),
+            mapper(
+                it,
+                rowId,
+                if (where == null) uri else ContentUris.withAppendedId(uri, rowId)
             )
         }
+
+    private fun messageInfoMapper(it: Cursor, rowId: Long, uri: Uri): MessageInfo? {
+        val thread = it.getLong(THREAD_ID)
+        val chatGuid = guidProvider.getChatGuid(thread)
+        if (chatGuid.isNullOrBlank()) {
+            Log.e(TAG, "Error generating guid for $thread")
+            return null
+        }
+        val creator = it.getString(CREATOR)
+        return MessageInfo(
+            "$MMS_PREFIX$rowId",
+            it.getLong(DATE).toSeconds(),
+            chatGuid,
+            uri,
+            creator,
+            creator == packageName,
+        )
+    }
+
+    private fun messageMapper(it: Cursor, rowId: Long, uri: Uri): Message? {
+        val messageInfo = messageInfoMapper(it, rowId, uri) ?: return null
+        val attachments = partProvider.getAttachment(rowId)
+        val isFromMe = when (it.getInt(MESSAGE_BOX)) {
+            MESSAGE_BOX_OUTBOX, MESSAGE_BOX_SENT -> true
+            else -> false
+        }
+        val sender = when {
+            isFromMe -> null
+            else -> getSender(rowId)?.chatGuid ?: messageInfo.chat_guid.takeIf { cg -> cg.isDm }
+        }
+        return Message(
+            guid = messageInfo.guid,
+            timestamp = messageInfo.timestamp,
+            subject = it.getString(SUBJECT)?.takeUnless { sub -> sub == "NoSubject" } ?: "",
+            text = attachments.mapNotNull { a -> a.text }.joinToString(""),
+            chat_guid = messageInfo.chat_guid,
+            sender_guid = sender,
+            is_from_me = isFromMe,
+            attachments = attachments.mapNotNull { a -> a.attachment },
+            is_mms = true,
+            resp_st = it.getIntOrNull(RESPONSE_STATUS),
+            creator = messageInfo.creator,
+            rowId = rowId,
+            uri = uri,
+            subId = it.getIntOrNull(SUBSCRIPTION_ID),
+        )
+    }
 
     private fun getSender(message: Long): String? =
         cr.firstOrNull(
