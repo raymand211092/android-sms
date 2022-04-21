@@ -173,6 +173,9 @@ class CommandProcessor constructor(
                     bridge.publishResponse(command.id!!, command.dataTree)
                 }
             }
+            "send_read_receipt" -> {
+                Log.v(TAG, "ignore command: $command")
+            }
             else -> {
                 Log.e(TAG, "unhandled command: $command")
             }
