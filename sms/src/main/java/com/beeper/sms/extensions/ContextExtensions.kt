@@ -15,6 +15,9 @@ fun Context.getSharedPreferences(): SharedPreferences =
 fun Context.cacheDir(subdir: String): String =
     File(cacheDir, subdir).apply { mkdirs() }.absolutePath
 
+val Context.mmsCache: String
+    get() = cacheDir("mms")
+
 fun Context.hasPermission(permission: String): Boolean =
     ContextCompat.checkSelfPermission(this, permission) == PERMISSION_GRANTED
 

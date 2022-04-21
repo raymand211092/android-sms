@@ -30,7 +30,7 @@ class PartProvider constructor(private val context: Context) {
                     null
                 }
                 else -> {
-                    val file = File(context.cacheDir("mms"), UUID.randomUUID().toString())
+                    val file = File(context.mmsCache, UUID.randomUUID().toString())
                     cr.openInputStream("$URI_PART/$partId".toUri())?.writeTo(file)
                     Part(
                         attachment = Attachment(
