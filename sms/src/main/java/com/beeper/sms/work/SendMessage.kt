@@ -8,11 +8,7 @@ import androidx.work.WorkerParameters
 import com.beeper.sms.Bridge
 import com.beeper.sms.Log
 import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.provider.MessageProvider
-import timber.log.Timber
-import java.io.File
-import java.lang.Exception
 
 class SendMessage constructor(
     private val context: Context,
@@ -57,7 +53,6 @@ class SendMessage constructor(
         }
         // waiting for response from mautrix-imessage before returning success
         Bridge.INSTANCE.await(Command("message", message))
-        message.attachments?.forEach { it.delete() }
         return Result.success()
     }
 
@@ -67,12 +62,5 @@ class SendMessage constructor(
         const val RETRY_INTERVAL_MS = 10_000L
         private const val MAX_RETRY = 30
         const val URI = "uri"
-
-        private fun Message.Attachment.delete() = try {
-            Timber.d("deleting $this")
-            File(path_on_disk).delete()
-        } catch (e: Exception) {
-            Log.e(TAG, e)
-        }
     }
 }
