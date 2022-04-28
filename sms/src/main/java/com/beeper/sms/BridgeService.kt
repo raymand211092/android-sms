@@ -10,7 +10,7 @@ import android.os.IBinder
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.beeper.sms.commands.Command
+import com.beeper.sms.Bridge.Companion.running
 import com.beeper.sms.commands.outgoing.PushKey
 import com.beeper.sms.extensions.hasPermissions
 import kotlinx.coroutines.*
@@ -47,19 +47,25 @@ class BridgeService : Service() {
             stopSelf(startId)
             return START_NOT_STICKY
         }
+        val bridge = Bridge.INSTANCE
+        if (bridge.startProcess()?.running != true) {
+            Log.e(TAG, "failed to start SMS bridge")
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         val commandProcessor = CommandProcessor(
             applicationContext,
             pushKey
         )
         errorHandling?.cancel()
         errorHandling = restartOnInterrupt {
-            Bridge.INSTANCE.forEachError {
+            bridge.forEachError {
                 Log.e(TAG, it)
             }
         }
         commandHandling?.cancel()
         commandHandling = restartOnInterrupt {
-            Bridge.INSTANCE.forEachCommand {
+            bridge.forEachCommand {
                 if (COMMAND.matches(it)) {
                     commandProcessor.handle(it)
                 } else {
@@ -67,12 +73,7 @@ class BridgeService : Service() {
                 }
             }
         }
-        return if (Bridge.INSTANCE.running) {
-            START_REDELIVER_INTENT
-        } else {
-            stopSelf(startId)
-            START_NOT_STICKY
-        }
+        return START_REDELIVER_INTENT
     }
 
     override fun onDestroy() {
@@ -88,10 +89,10 @@ class BridgeService : Service() {
         } catch (e: InterruptedIOException) {
             Log.e(TAG, e)
             yield()
-            startBridge(channelId, channelIcon, pushKey)
         } catch (e: IOException) {
             Log.e(TAG, e)
         }
+        startBridge(channelId, channelIcon, pushKey)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

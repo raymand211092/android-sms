@@ -34,6 +34,7 @@ class Bridge private constructor() {
     private var channelIcon: Int? = null
     private var pushKey: PushKey? = null
     private var process: Process? = null
+        get() = field?.takeIf { it.running }
     private val outgoing = newSingleThreadExecutor().asCoroutineDispatcher()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val responseFlow = MutableSharedFlow<Pair<Int, JsonElement>>()
@@ -63,7 +64,7 @@ class Bridge private constructor() {
         try {
             if (context?.hasPermissions == true &&
                 getConfig().exists() &&
-                getProcess()?.running == true
+                process?.running != true
             ) {
                 context.startBridge(channelId, channelIcon, pushKey)
             }
@@ -88,8 +89,7 @@ class Bridge private constructor() {
         send(Command("ping_server", null))
     }
 
-    @Synchronized
-    private fun getProcess(): Process? {
+    fun startProcess(): Process? {
         val config = configPath ?: return null
         val cache = cacheDir ?: return null
         if (!process.running) {
@@ -139,10 +139,10 @@ class Bridge private constructor() {
     }
 
     internal fun forEachError(action: (String) -> Unit) =
-        getProcess()?.errorStream?.forEach(action) ?: Log.e(TAG, "forEachError failed")
+        process?.errorStream?.forEach(action) ?: Log.e(TAG, "forEachError failed")
 
     internal fun forEachCommand(action: (String) -> Unit) =
-        getProcess()?.inputStream?.forEach(action) ?: Log.e(TAG, "forEachCommand failed")
+        process?.inputStream?.forEach(action) ?: Log.e(TAG, "forEachCommand failed")
 
     internal fun publishResponse(id: Int, dataTree: JsonElement) = scope.launch {
         responseFlow.emit(Pair(id, dataTree))
@@ -161,16 +161,20 @@ class Bridge private constructor() {
     internal fun send(id: Int, error: Error) = send(Command("error", error, id))
 
     internal val running: Boolean
-        get() = getProcess()?.running == true
+        get() = process?.running == true
 
     internal fun send(command: Command) = scope.launch(outgoing) {
-        getProcess()
+        process
             ?.outputStream
             ?.writer()
             ?.apply {
-                Log.d(TAG, "send${command.requestId}: $command")
-                append("${gson.toJson(command)}\n")
-                flush()
+                try {
+                    Log.d(TAG, "send${command.requestId}: $command")
+                    append("${gson.toJson(command)}\n")
+                    flush()
+                } catch (e: Exception) {
+                    Log.e(TAG, e)
+                }
             }
             ?: Log.e(TAG, "failed to send: $command")
     }
@@ -181,7 +185,7 @@ class Bridge private constructor() {
         private val gson = newGson()
         val INSTANCE = Bridge()
 
-        private val Process?.running: Boolean
+        val Process?.running: Boolean
             get() = try {
                 this?.exitValue()
                     ?.let { Log.w(TAG, "exited: $it") }
