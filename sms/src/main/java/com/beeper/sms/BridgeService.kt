@@ -49,6 +49,8 @@ class BridgeService : Service() {
         }
         val bridge = Bridge.INSTANCE
         if (bridge.startProcess()?.running != true) {
+            errorHandling?.cancel()
+            commandHandling?.cancel()
             Log.e(TAG, "failed to start SMS bridge")
             stopSelf(startId)
             return START_NOT_STICKY
@@ -84,15 +86,21 @@ class BridgeService : Service() {
     }
 
     private fun restartOnInterrupt(block: () -> Unit) = scope.launch {
+        val start = System.currentTimeMillis()
         try {
             block()
         } catch (e: InterruptedIOException) {
             Log.e(TAG, e)
-            yield()
         } catch (e: IOException) {
             Log.e(TAG, e)
         }
-        startBridge(channelId, channelIcon, pushKey)
+        val timeToFailure = System.currentTimeMillis() - start
+        if (timeToFailure < ONE_SECOND) {
+            Log.e(TAG, "Failed immediately, don't restart")
+        } else {
+            yield()
+            startBridge(channelId, channelIcon, pushKey)
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -103,6 +111,7 @@ class BridgeService : Service() {
         private const val CHANNEL_ID = "channel_id"
         private const val CHANNEL_ICON = "channel_icon"
         private const val PUSH_KEY = "push_key"
+        private const val ONE_SECOND = 1_000
         private val DEFAULT_CHANNEL_ICON = R.drawable.ic_status_bar_beeper
         @Suppress("RegExpRedundantEscape")
         private val COMMAND = "^\\{.*\\}$".toRegex()
