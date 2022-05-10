@@ -17,7 +17,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onSubscription
-import timber.log.Timber
 import java.io.File
 import java.io.InputStream
 import java.util.concurrent.Executors.newSingleThreadExecutor
@@ -55,7 +54,11 @@ class Bridge private constructor() {
         this.pushKey = pushKey
         nativeLibDir = context.applicationInfo.nativeLibraryDir
         cacheDir = context.cacheDir("mautrix")
-        File(context.mmsCache).deleteRecursively()
+        if (File(context.mmsCache).deleteRecursively()) {
+            Log.d(TAG, "Deleted MMS cache")
+        } else {
+            Log.e(TAG, "Failed to delete MMS cache")
+        }
         SmsObserver(context).registerObserver()
     }
 
