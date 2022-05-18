@@ -5,8 +5,6 @@ import android.provider.Telephony.*
 import android.telephony.PhoneNumberUtils
 import android.util.Patterns
 import androidx.core.net.toUri
-import com.beeper.sms.commands.TimeSeconds
-import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.extensions.firstOrNull
 import com.beeper.sms.extensions.getString
 import java.util.*
@@ -22,12 +20,12 @@ class GuidProvider constructor(
             ?.takeIf { it.isNotEmpty() }
             ?.chatGuid
 
-    private fun getAddresses(thread: Long): List<String>? =
+    fun getAddresses(thread: Long): List<String>? =
         cr.firstOrNull(URI_THREADS, "${Mms._ID} = $thread") {
             it.getString(ThreadsColumns.RECIPIENT_IDS)?.split(" ")
         }
 
-    private fun getPhoneNumber(recipient: String): String? =
+    fun getPhoneNumber(recipient: String): String? =
         cr.firstOrNull(URI_ADDRESSES, "${CanonicalAddressesColumns._ID} = $recipient") {
             it.getString(CanonicalAddressesColumns.ADDRESS)
         }
@@ -37,21 +35,24 @@ class GuidProvider constructor(
         private val URI_ADDRESSES = "${MmsSms.CONTENT_URI}/canonical-addresses".toUri()
         private val EMAIL = Patterns.EMAIL_ADDRESS.toRegex()
 
-        internal val String.normalize: String
-            get() {
+        fun normalizeAddress(address : String) : String {
                 PhoneNumberUtils
-                    .formatNumberToE164(this, Locale.getDefault().country)
+                    .formatNumberToE164(address, Locale.getDefault().country)
                     ?.let { return it }
 
-                EMAIL.find(this, 0)?.let { return it.value }
+                EMAIL.find(address, 0)?.let { return it.value }
 
-                return filterNot { it.isWhitespace() || it == '"' || it == '\'' }
+                return address.filterNot { it.isWhitespace()
+                        || it == '"'
+                        || it == '\''
+                        || it=='-'
+                }
             }
 
         val String.chatGuid: String
             get() = listOf(this).chatGuid
 
         val List<String>.chatGuid: String
-            get() = "SMS;${if (size == 1) "-" else "+"};${joinToString(" ") { it.normalize }}"
+            get() = "SMS;${if (size == 1) "-" else "+"};${joinToString(" ") { normalizeAddress(it) }}"
     }
 }

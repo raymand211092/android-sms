@@ -8,10 +8,11 @@ import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageInfo
 
 class MessageProvider constructor(
-    context: Context,
+    val context: Context,
     private val smsProvider: SmsProvider = SmsProvider(context),
     private val mmsProvider: MmsProvider = MmsProvider(context),
 ) {
+
     fun getMessage(uri: Uri?): Message? = uri?.let {
         if (it.isMms) mmsProvider.getMessage(it) else smsProvider.getMessage(it)
     }
@@ -37,6 +38,12 @@ class MessageProvider constructor(
             .plus(mmsProvider.getLatest(thread, limit))
             .sortedBy { it.timestamp }
             .takeLast(limit)
+
+    fun getNewSmsMessages(smsInitialId: Long): List<Message> =
+        smsProvider.getNewSmsMessages(smsInitialId)
+
+    fun getNewMmsMessages(mmsInitialId: Long): List<Message> =
+        mmsProvider.getNewMmsMessages(mmsInitialId)
 
     companion object {
         private val Uri.isMms: Boolean

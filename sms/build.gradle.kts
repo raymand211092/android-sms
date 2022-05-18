@@ -8,8 +8,8 @@ plugins {
 
 object Version {
     const val major = 0
-    const val minor = 1
-    const val patch = 89
+    const val minor = 2
+    const val patch = 0
 }
 
 android {
@@ -103,11 +103,18 @@ afterEvaluate {
 
 dependencies {
     implementation("androidx.work:work-runtime-ktx:${Versions.work}")
-    implementation("com.gitlab.beeper:android-smsmms:70f3661")
+    implementation("com.gitlab.beeper:android-smsmms:58c2959f")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.1")
     implementation("androidx.core:core-ktx:1.6.0")
     implementation("com.google.code.gson:gson:2.8.7")
     implementation("com.jakewharton.timber:timber:4.7.1")
+    implementation("androidx.appcompat:appcompat:1.4.1")
+
+    val roomVersion = "2.4.2"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    annotationProcessor("androidx.room:room-compiler:$roomVersion")
+    kapt("androidx.room:room-compiler:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
 
     testImplementation("junit:junit:4.+")
     androidTestImplementation("androidx.test.ext:junit:1.1.3")

@@ -58,7 +58,15 @@ dependencies {
     implementation("androidx.compose.material:material:${Versions.compose}")
     implementation("com.google.android.material:material:1.4.0")
     implementation("androidx.compose.ui:ui-tooling-preview:${Versions.compose}")
+    implementation("androidx.compose.material:material-icons-extended:${Versions.compose}")
+    implementation("androidx.navigation:navigation-compose:2.4.2")
+    implementation("androidx.paging:paging-compose:1.0.0-alpha14")
+
     implementation("com.google.accompanist:accompanist-permissions:0.16.1")
+    implementation("com.google.accompanist:accompanist-flowlayout:${Versions.flowLayout}")
+    implementation("io.coil-kt:coil-compose:${Versions.coil}")
+    implementation("io.coil-kt:coil-video:${Versions.coil}")
+    implementation("io.coil-kt:coil-gif:${Versions.coil}")
     implementation("com.jakewharton.timber:timber:4.7.1")
 
     testImplementation("junit:junit:4.+")

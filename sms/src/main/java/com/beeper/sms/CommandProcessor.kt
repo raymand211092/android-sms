@@ -100,7 +100,7 @@ class CommandProcessor constructor(
                 val recipients = data.recipientList
                 val file = File(data.path_on_disk)
                 val size = file.length()
-                if (size > MAX_FILE_SIZE) {
+                if (size > SmsMmsSender.MAX_FILE_SIZE) {
                     bridge.send(
                         command.id!!,
                         Error(
@@ -108,7 +108,7 @@ class CommandProcessor constructor(
                             context.getString(
                                 R.string.attachment_too_large,
                                 formatShortFileSize(context, size),
-                                formatShortFileSize(context, MAX_FILE_SIZE),
+                                formatShortFileSize(context, SmsMmsSender.MAX_FILE_SIZE),
                             )
                         )
                     )
@@ -204,7 +204,6 @@ class CommandProcessor constructor(
 
     companion object {
         private const val TAG = "CommandProcessor"
-        private const val MAX_FILE_SIZE = 400_000L
         private val gson = newGson()
     }
 }
