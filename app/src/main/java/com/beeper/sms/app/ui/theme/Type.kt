@@ -6,23 +6,36 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
-val Typography = Typography(
+val BeeperTypography = Typography(
+    defaultFontFamily = FontFamily.SansSerif,
     body1 = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp
-    )
-    /* Other default text styles to override
-    button = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.W500,
-        fontSize = 14.sp
+        letterSpacing = 0.sp,
+        fontSize = 14.sp,
     ),
-    caption = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 12.sp
-    )
-    */
+    body2 = TextStyle(
+        letterSpacing = 0.sp,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        fontWeight = FontWeight.Normal
+    ),
+    h3 =  TextStyle(
+        letterSpacing = 0.sp,
+        fontSize = 14.sp,
+        lineHeight = 16.sp,
+        fontWeight = FontWeight.Bold
+    ),
+    h2 =  TextStyle(
+        letterSpacing = 0.sp,
+        fontSize = 16.sp,
+        lineHeight = 20.sp,
+        fontWeight = FontWeight.Bold
+    ),
 )
+
+object BeeperCustomTypography {
+    val inviteTextStyle = TextStyle(
+        fontSize = 10.sp,
+        lineHeight = 12.sp,
+        fontWeight = FontWeight.Normal,
+    )
+}

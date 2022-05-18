@@ -1,50 +1,111 @@
 package com.beeper.sms.receivers
 
-import android.app.Activity.RESULT_OK
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.telephony.SmsManager.*
 import androidx.core.net.toUri
-import com.beeper.sms.Bridge
 import com.beeper.sms.Log
+import com.beeper.sms.StartStopBridge
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
+import com.beeper.sms.commands.internal.BridgeThisSentSmsOrMms
 import com.beeper.sms.commands.outgoing.Error
+import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.extensions.printExtras
-import com.beeper.sms.helpers.currentTimeSeconds
+import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.SmsProvider
 import com.klinker.android.send_message.SentReceiver
-import com.klinker.android.send_message.Transaction.COMMAND_ID
-import com.klinker.android.send_message.Transaction.SENT_SMS_BUNDLE
-import java.util.*
+import com.klinker.android.send_message.Transaction
 
-class MySentReceiver : SentReceiver() {
+abstract class SmsSent : SentReceiver() {
     override fun onMessageStatusUpdated(context: Context, intent: Intent?, resultCode: Int) {
         Log.d(TAG, "result: $resultCode extras: ${intent.printExtras()}")
-        val uri = intent?.getStringExtra("uri")?.toUri()
+        val uri = intent?.getStringExtra("uri")?.toUri() ?: intent?.getStringExtra("message_uri")?.toUri()
         val commandId =
-            (intent?.getParcelableExtra(SENT_SMS_BUNDLE) as? Bundle)?.getInt(COMMAND_ID)
+            (intent?.getParcelableExtra(Transaction.SENT_SMS_BUNDLE)
+                    as? Bundle)?.getInt(Transaction.COMMAND_ID)
+
         val message = uri?.let { SmsProvider(context).getMessageInfo(it) }
-        val (guid, timestamp) = when {
-            commandId == null -> {
-                Log.e(TAG, "Missing commandId (uri=$uri message=$message)")
-                return
-            }
-            resultCode != RESULT_OK -> {
-                Bridge.INSTANCE.send(commandId, resultCode.toError(intent))
-                return
-            }
-            message != null -> Pair(message.guid, message.timestamp)
-            else -> Pair(UUID.randomUUID().toString(), currentTimeSeconds())
+
+        if(commandId == null && message == null){
+            Log.e(TAG, "Error on SMS sent: Missing commandId and message uri")
+            Log.e(TAG, "Missing message (uri=$uri) (commandId=$commandId)")
+            return
         }
-        Bridge.INSTANCE.send(
-            Command("response", SendMessage.Response(guid, timestamp), commandId)
-        )
+
+        if(commandId != null && resultCode != Activity.RESULT_OK){
+            StartStopBridge.INSTANCE.send(commandId, resultCode.toError(intent))
+            return
+        }
+
+        val (guid, timestamp) = when {
+            message != null -> Pair(message.guid, message.timestamp)
+            else -> {
+                Log.e(TAG, "Missing message (uri=$uri)")
+                return
+            }
+        }
+
+        val (rowId,isMms) = if(guid.startsWith("sms_")){
+            val rowId = guid.removePrefix("sms_").toLong()
+            val isMms = false
+            Pair(rowId,isMms)
+        }else{
+            if(guid.startsWith("mms_")) {
+                val rowId = guid.removePrefix("mms_").toLong()
+                val isMms = true
+                Pair(rowId, isMms)
+            }else{
+                Log.e(TAG,
+                    "Error onMessageStatusUpdated -> " +
+                            "delivered message has an invalid prefix (not sms_/mms_)")
+                return
+            }
+        }
+
+
+
+        if(StartStopBridge.INSTANCE.running){
+            if(commandId != null) {
+                // Has a command id -> this message was delivered because mautrix asked to.
+                // We just need to answer it and save in db
+                Log.d(
+                    TAG, "confirmMessageDeliveryAndStoreMessage"
+                )
+                val bridgedMessage = BridgedMessage(
+                    guid,
+                    rowId,
+                    isMms
+                )
+                StartStopBridge.INSTANCE.confirmMessageDeliveryAndStoreMessage(
+                    Command("response", SendMessage.Response(guid, timestamp), commandId),
+                    bridgedMessage
+                )
+            }else{
+                // Null command id -> a brand new message was locally delivered by the user ->
+                // As the bridge is running, we should ask it to bridge the message
+                val loadedMessage = MessageProvider(context).getMessage(uri)
+                if(loadedMessage!=null) {
+                    StartStopBridge.INSTANCE.forwardMessageToBridge(
+                        BridgeThisSentSmsOrMms(
+                            loadedMessage
+                        )
+                    )
+                }
+            }
+        }else{
+            // Just start a sync window and it'll bridge the delivered message
+            startSyncWindow()
+        }
     }
 
+    abstract fun startSyncWindow()
+
+
     companion object {
-        private const val TAG = "MySentReceiver"
+        private const val TAG = "SmsSent"
         private const val ERR_NETWORK_ERROR = "network_error"
         private const val ERR_TIMEOUT = "timeout"
         private const val ERR_UNSUPPORTED = "unsupported"

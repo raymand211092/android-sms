@@ -41,7 +41,7 @@ class DatabaseSyncWork constructor(
             messageList
                 .filterNot { it.sent_from_matrix || ids.contains(it.guid) }
                 .also { Log.d(TAG, "bridging ${it.size} messages: $it") }
-                .forEach { workManager.sendMessage(it.uri) }
+                .forEach { workManager.longRunningSendMessage(it.uri) }
         }
         messages
             .maxOfOrNull { it.timestamp }

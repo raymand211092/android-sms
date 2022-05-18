@@ -1,10 +1,15 @@
 package com.beeper.sms.provider
 
 import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
+import android.os.Binder
 import android.provider.Telephony.Sms.*
+import android.telephony.SmsMessage
+import android.text.TextUtils
 import com.beeper.sms.Log
 import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeMillis.Companion.toMillis
@@ -28,9 +33,10 @@ class SmsProvider constructor(context: Context) {
 
     fun getMessagesAfter(thread: Long, timestamp: TimeMillis) =
         getSms(
-            "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()} AND $CREATOR != '$packageName'",
+            "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()}",
             this::messageMapper
         )
+
 
     fun getMessage(uri: Uri) = getSms(uri, mapper = this::messageMapper).firstOrNull()
 
@@ -39,16 +45,29 @@ class SmsProvider constructor(context: Context) {
             getSms(uri = uri, where = where, mapper = mapper)
         }
 
+
     private fun <T> getSms(
         uri: Uri = CONTENT_URI,
         where: String? = null,
         limit: Int = 0,
+        order: String? = if (limit > 0) "$DATE DESC LIMIT $limit" else null,
         mapper: (Cursor, Long, Uri) -> T?
     ): List<T> =
         cr.map(
             uri = uri,
             where = where,
-            order = if (limit > 0) "$DATE DESC LIMIT $limit" else null
+            projection = listOf(
+                _ID,
+                THREAD_ID,
+                DATE,
+                ADDRESS,
+                CREATOR,
+                TYPE,
+                SUBJECT,
+                BODY,
+                SUBSCRIPTION_ID
+            ).toTypedArray(),
+            order = order
         ) {
             val rowId = it.getLong(_ID)
             mapper(
@@ -97,8 +116,103 @@ class SmsProvider constructor(context: Context) {
         )
     }
 
+    /* SyncWindow */
+    fun getNewSmsMessages(initialId: Long) =
+        getDistinctSms(
+            "$_ID >= $initialId " +
+                    //FILTER ONLY FOR ALREADY RECEIVED OR DELIVERED SMS
+                    "AND $TYPE <= $MESSAGE_TYPE_SENT ",
+            order = "$_ID ASC",
+            this::messageMapper
+        )
+    private fun <T> getDistinctSms(where: String, order: String, mapper: (Cursor, Long, Uri) -> T?): List<T> =
+        listOf(CONTENT_URI).flatMap { uri ->
+            getSms(uri = uri, where = where, order = order, mapper = mapper)
+        }
+
+    /**
+     * Store a received SMS into Telephony provider
+     *
+     * @param intent The intent containing the received SMS
+     * @return The URI of written message
+     */
+    fun writeInboxMessage(intent: Intent): Uri? {
+        val messages = Intents.getMessagesFromIntent(intent)
+        if (messages == null || messages.isEmpty()) {
+            Log.e(TAG, "Failed to parse SMS pdu")
+            return null
+        }
+        // Sometimes, SmsMessage is null if it can’t be parsed correctly.
+        for (sms in messages) {
+            if (sms == null) {
+                Log.e(TAG, "Can’t write null SmsMessage")
+                return null
+            }
+        }
+        val values = parseSmsMessage(messages)
+        val identity = Binder.clearCallingIdentity()
+        try {
+            return cr.insert(Inbox.CONTENT_URI, values)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to persist inbox message ${e.message}")
+        } finally {
+            Binder.restoreCallingIdentity(identity)
+        }
+        return null
+    }
+
+    /**
+     * Convert SmsMessage[] into SMS database schema columns
+     *
+     * @param msgs The SmsMessage array of the received SMS
+     * @return ContentValues representing the columns of parsed SMS
+     */
+    private fun parseSmsMessage(msgs: Array<SmsMessage>): ContentValues {
+        val sms = msgs[0]
+        val values = ContentValues()
+        values.put(Inbox.ADDRESS, sms.displayOriginatingAddress)
+        values.put(Inbox.BODY, buildMessageBodyFromPdus(msgs))
+        values.put(Inbox.DATE_SENT, sms.timestampMillis)
+        values.put(Inbox.DATE, System.currentTimeMillis())
+        values.put(Inbox.PROTOCOL, sms.protocolIdentifier)
+        values.put(Inbox.SEEN, 0)
+        values.put(Inbox.READ, 0)
+        val subject = sms.pseudoSubject
+        if (!TextUtils.isEmpty(subject)) {
+            values.put(Inbox.SUBJECT, subject)
+        }
+        values.put(Inbox.REPLY_PATH_PRESENT, if (sms.isReplyPathPresent) 1 else 0)
+        values.put(Inbox.SERVICE_CENTER, sms.serviceCenterAddress)
+        return values
+    }
+
+    /**
+     * Build up the SMS message body from the SmsMessage array of received SMS
+     *
+     * @param msgs The SmsMessage array of the received SMS
+     * @return The text message body
+     */
+    private fun buildMessageBodyFromPdus(msgs: Array<SmsMessage>): String {
+        return if (msgs.size == 1) {
+            // There is only one part, so grab the body directly.
+            replaceFormFeeds(msgs[0].displayMessageBody)
+        } else {
+            // Build up the body from the parts.
+            val body = StringBuilder()
+            for (msg in msgs) {
+                // getDisplayMessageBody() can NPE if mWrappedMessage inside is null.
+                body.append(msg.displayMessageBody)
+            }
+            replaceFormFeeds(body.toString())
+        }
+    }
+
+    // Some providers send formfeeds in their messages. Convert those formfeeds to newlines.
+    private fun replaceFormFeeds(s: String?) = s?.replace(FORM_FEED, '\n') ?: ""
+
     companion object {
         private const val TAG = "SmsProvider"
+        private const val FORM_FEED = '\u000C' // '\f'
         const val SMS_PREFIX = "sms_"
     }
 }

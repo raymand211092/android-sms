@@ -4,6 +4,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
 import android.net.Uri
+import android.provider.Telephony
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.Log
@@ -34,7 +35,7 @@ class MmsProvider constructor(
 
     fun getMessagesAfter(thread: Long, timestamp: TimeSeconds) =
         getMms(
-            "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()} AND $CREATOR != '$packageName'",
+            "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()}",
             this::messageMapper
         )
 
@@ -49,12 +50,23 @@ class MmsProvider constructor(
         uri: Uri = CONTENT_URI,
         where: String? = null,
         limit: Int = 0,
+        order: String? =  if (limit > 0) "$DATE DESC LIMIT $limit" else null,
         mapper: (Cursor, Long, Uri) -> T?,
     ): List<T> =
         cr.map(
             uri = uri,
             where = where,
-            order = if (limit > 0) "$DATE DESC LIMIT $limit" else null
+            projection = listOf(
+                _ID,
+                THREAD_ID,
+                CREATOR,
+                DATE,
+                MESSAGE_BOX,
+                SUBJECT,
+                RESPONSE_STATUS,
+                SUBSCRIPTION_ID
+            ).toTypedArray(),
+            order = order
         ) {
             val rowId = it.getLong(_ID)
             mapper(
@@ -110,6 +122,22 @@ class MmsProvider constructor(
             subId = it.getIntOrNull(SUBSCRIPTION_ID),
         )
     }
+
+    /* SyncWindow */
+    fun getNewMmsMessages(initialId: Long) =
+        getDistinctMms(
+            "$_ID >= $initialId " +
+                    //FILTER ONLY FOR ALREADY RECEIVED OR DELIVERED MMS
+                    "AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT ",
+            this::messageMapper
+        )
+    private fun <T> getDistinctMms(
+        where: String,
+        mapper: (Cursor, Long, Uri) -> T?
+    ): List<T> =
+        listOf(CONTENT_URI).flatMap { uri ->
+            getMms(uri = uri, where = where, order = "$_ID ASC", mapper = mapper)
+        }
 
     private fun getSender(message: Long): String? =
         cr.firstOrNull(

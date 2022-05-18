@@ -12,6 +12,6 @@ interface GroupMessaging {
 
     companion object {
         private val REGEX = "^SMS;[+-];".toRegex()
-        private fun String.removePrefix() = replace(REGEX, "")
+        fun String.removePrefix() = replace(REGEX, "")
     }
 }

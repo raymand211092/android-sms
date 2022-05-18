@@ -37,7 +37,7 @@ class SmsObserver(
                     Log.v(TAG, "Ignored $uri (sent from matrix)")
                 } else {
                     Log.d(TAG, "schedule new message check: ${message ?: uri}")
-                    workManager.syncDb()
+                    workManager.longRunningSyncDb()
                 }
             }
             URI_IGNORE -> Log.v(TAG, "Ignored $uri")

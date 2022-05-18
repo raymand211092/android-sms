@@ -219,6 +219,10 @@ class Bridge private constructor() {
 
         private fun String.toFile(): File? = File(this).takeIf { it.exists() }
 
+        private fun String.delete() = toFile()?.deleteRecursively()?.let {
+            if (it) Log.d(TAG, "Deleted $this") else Log.e(TAG, "Failed to delete $this")
+        }
+
         private fun String?.exists(): Boolean = this?.let { File(it) }?.exists() == true
 
         private val Command.requestId: String
