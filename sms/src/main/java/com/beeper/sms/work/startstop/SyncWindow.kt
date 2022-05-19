@@ -1,9 +1,12 @@
 package com.beeper.sms.work.startstop
 
 import android.content.Context
+import android.os.Build
 import androidx.work.CoroutineWorker
+import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.beeper.sms.Log
+import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.helpers.now
 import com.beeper.sms.provider.MessageProvider
@@ -13,6 +16,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import java.lang.IllegalStateException
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -23,7 +27,14 @@ class SyncWindow constructor(
 ): CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
-        //TODO try catch and stop the bridge using finally
+        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            try {
+                setForeground(getForegroundInfo())
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Critical -> Couldn't set the work to run on foreground!")
+                return Result.failure()
+            }
+        }
 
         return withContext(Dispatchers.Default) {
             val bridge = StartStopBridge.INSTANCE
@@ -37,7 +48,6 @@ class SyncWindow constructor(
                 return@withContext Result.failure()
             }
             Log.w(TAG, "has the bridge")
-
             // Give mautrix_imessage time to sync. It continues if it is idle for
             // *maxIdlePeriodSeconds* or if the task takes more than *syncTimeoutMinutes*
             var lastCommandReceivedMillis = now()
@@ -114,6 +124,11 @@ class SyncWindow constructor(
             bridge.stop()
             Result.success()
         }
+    }
+
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        val contentText = context.getString(R.string.notification_body_syncing)
+        return getDefaultForegroundInfo(applicationContext,contentText)
     }
 
 

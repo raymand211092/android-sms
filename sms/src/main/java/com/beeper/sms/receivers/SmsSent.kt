@@ -10,7 +10,7 @@ import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
-import com.beeper.sms.commands.internal.BridgeThisSentSmsOrMms
+import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.extensions.printExtras
@@ -89,7 +89,7 @@ abstract class SmsSent : SentReceiver() {
                 val loadedMessage = MessageProvider(context).getMessage(uri)
                 if(loadedMessage!=null) {
                     StartStopBridge.INSTANCE.forwardMessageToBridge(
-                        BridgeThisSentSmsOrMms(
+                        BridgeThisSmsOrMms(
                             loadedMessage
                         )
                     )

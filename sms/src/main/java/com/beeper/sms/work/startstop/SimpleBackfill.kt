@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.beeper.sms.Log
+import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.commands.Command
 import com.beeper.sms.database.models.BridgedChatThread
@@ -25,7 +26,6 @@ import kotlin.time.toDuration
 
 
 //TODO: -> issue with chat_guids, contact_guids and group rooms -> check with Tulir
-//TODO: IMPORTANT! Should implement getForegroundInfo for backward compatibility < Android 12
 class SimpleBackfill constructor(
     private val context: Context,
     workerParams: WorkerParameters,
@@ -173,13 +173,8 @@ class SimpleBackfill constructor(
     }
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            StartStopBridge.INSTANCE.createNotificationChannel(applicationContext)
-        }
-        return ForegroundInfo(
-            StartStopBridge.ONGOING_NOTIFICATION_ID,
-            StartStopBridge.INSTANCE.buildNotification(applicationContext)
-        )
+        val contentText = context.getString(R.string.notification_body_backfilling)
+        return getDefaultForegroundInfo(applicationContext,contentText)
     }
 
 

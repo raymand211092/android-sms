@@ -2,7 +2,10 @@
 <resources>
     <string name="notification_channel">SMS Bridge Status</string>
     <string name="notification_title">Beeper SMS Bridge</string>
-    <string name="notification_body">Bridge is syncing…</string>
+    <string name="notification_body">Bridge is running…</string>
+    <string name="notification_body_backfilling">SMS Bridge is backfilling…</string>
+    <string name="notification_body_syncing">SMS Bridge is syncing…</string>
+    <string name="notification_body_clearing_data">SMS Bridge data is being cleared…</string>
     <string name="app_name">Beeper SMS Bridge</string>
     <string name="missing_sms_permissions">%s is missing permissions</string>
     <string name="attachment_too_large">Attachment size (%1$s) exceeds MMS limit (%2$s)</string>
