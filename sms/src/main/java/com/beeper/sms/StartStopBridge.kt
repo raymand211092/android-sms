@@ -38,12 +38,12 @@ class StartStopBridge private constructor() {
     lateinit var database : BridgedEntitiesDatabase
         private set
     private lateinit var nativeLibDir: String
-    private lateinit var channelId: String
+    private var channelId: String = DEFAULT_CHANNEL_ID
 
     private var configPathProvider: (suspend () -> String?)? = null
     private var configPath: String? = null
     private var cacheDir: String? = null
-    private var channelIcon: Int? = null
+    private var channelIcon: Int = R.drawable.ic_cloud
     private var pushKey: PushKey? = null
     private var process: Process? = null
         get() = field?.takeIf { it.running }
@@ -66,7 +66,7 @@ class StartStopBridge private constructor() {
     fun init(
         context: Context,
         channelId: String = DEFAULT_CHANNEL_ID,
-        channelIcon: Int? = null,
+        channelIcon: Int = R.drawable.ic_cloud,
         pushKey: PushKey? = null,
         configPathProvider: suspend () -> String?,
     ) {
@@ -335,17 +335,12 @@ class StartStopBridge private constructor() {
             )
 
     fun buildNotification(context:Context, contentText: String): Notification {
-        val notification = NotificationCompat.Builder(context, channelId)
+        return NotificationCompat.Builder(context, channelId)
             .setSound(null)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setContentTitle(context.getString(R.string.notification_title))
             .setContentText(contentText)
-        val smallIcon = channelIcon
-        return if(smallIcon!=null){
-            notification.setSmallIcon(smallIcon).build()
-        }else{
-            notification.build()
-        }
+            .setSmallIcon(channelIcon).build()
     }
 
     companion object {
