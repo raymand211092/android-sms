@@ -10,7 +10,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.room.Room
 import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.internal.BridgeThisSentSmsOrMms
+import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Chat
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.outgoing.Message
@@ -23,7 +23,6 @@ import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.extensions.mmsCache
 import com.beeper.sms.helpers.newGson
 import com.beeper.sms.work.WorkManager
-import com.google.gson.JsonElement
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
@@ -33,7 +32,6 @@ import java.io.InterruptedIOException
 import java.util.concurrent.Executors.newSingleThreadExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.coroutines.suspendCoroutine
 
 class StartStopBridge private constructor() {
     lateinit var commandProcessor : StartStopCommandProcessor
@@ -300,7 +298,7 @@ class StartStopBridge private constructor() {
             ?: Log.e(TAG, "failed to send: $command")
     }
 
-    internal fun forwardMessageToBridge(postMeThisMessage: BridgeThisSentSmsOrMms)
+    internal fun forwardMessageToBridge(postMeThisMessage: BridgeThisSmsOrMms)
             = scope.launch(outgoing) {
             _commandsReceived.tryEmit(
                 Command(
@@ -336,12 +334,12 @@ class StartStopBridge private constructor() {
                 }
             )
 
-    fun buildNotification(context:Context): Notification {
+    fun buildNotification(context:Context, contentText: String): Notification {
         val notification = NotificationCompat.Builder(context, channelId)
             .setSound(null)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setContentTitle(context.getString(R.string.notification_title))
-            .setContentText(context.getString(R.string.notification_body))
+            .setContentText(contentText)
         val smallIcon = channelIcon
         return if(smallIcon!=null){
             notification.setSmallIcon(smallIcon).build()

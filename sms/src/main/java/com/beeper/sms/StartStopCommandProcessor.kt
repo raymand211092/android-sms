@@ -8,8 +8,7 @@ import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_SMS_GUIDS
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
-import com.beeper.sms.commands.internal.BridgeThisSentSmsOrMms
-import com.beeper.sms.commands.outgoing.Chat
+import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.PushKey
@@ -174,7 +173,7 @@ class StartStopCommandProcessor constructor(
         when (command.command) {
             "post_me_this_message" -> {
                 Log.d(TAG + "rcor", "receive: $command")
-                val data = deserialize(command,BridgeThisSentSmsOrMms::class.java)
+                val data = deserialize(command,BridgeThisSmsOrMms::class.java)
                 withContext(Dispatchers.IO){
                     bridge.commandProcessor.sendMessageCommandAndAwaitForResponse(
                         data.message, 5000)

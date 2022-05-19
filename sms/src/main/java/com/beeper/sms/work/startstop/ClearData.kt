@@ -1,9 +1,11 @@
 package com.beeper.sms.work.startstop
 
 import android.content.Context
+import android.os.Build
 import androidx.room.Room
 import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
+import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.beeper.sms.Log
 import com.beeper.sms.R
@@ -19,14 +21,22 @@ import com.beeper.sms.provider.ChatThreadProvider
 import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import com.beeper.sms.provider.MessageProvider
 import kotlinx.coroutines.*
+import java.lang.IllegalStateException
 
-//TODO: IMPORTANT! Should implement getForegroundInfo for backward compatibility < Android 12
 class ClearData constructor(
     private val context: Context,
     workerParams: WorkerParameters,
 ): CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
+        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            try {
+                setForeground(getForegroundInfo())
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Critical -> Couldn't set the work to run on foreground!")
+                return Result.failure()
+            }
+        }
         Log.d(TAG,"Clearing SMS bridge data...")
         return withContext(Dispatchers.Default) {
             val bridge = StartStopBridge.INSTANCE
@@ -41,6 +51,11 @@ class ClearData constructor(
             //TODO -> clear sharedPrefs to mark that sms is disabled
             Result.success()
         }
+    }
+
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        val contentText = context.getString(R.string.notification_body_clearing_data)
+        return getDefaultForegroundInfo(applicationContext,contentText)
     }
 
     companion object {

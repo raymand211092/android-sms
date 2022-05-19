@@ -56,9 +56,7 @@ class StartStopMainActivity : ComponentActivity() {
 
         val permissionResult =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-                if (result.values.all { it }) {
-                    //Bridge.INSTANCE.start(this)
-                }
+                if (result.values.all { it }) { }
             }
 
         setContent {
@@ -73,8 +71,7 @@ class StartStopMainActivity : ComponentActivity() {
                             isDefaultSmsApp = isDefault.value,
                             hasPermission = permissionsState.allPermissionsGranted,
                             startInitialSync = {
-                                WorkManager(context).startSMSBridgeMinimalBackfill()
-
+                                WorkManager(context).enableSMSBridge()
                             },
                             startBridge = { lifecycleScope.launch {
                                 StartStopBridge.INSTANCE.start(
@@ -88,9 +85,8 @@ class StartStopMainActivity : ComponentActivity() {
                                 }
                             },
                             pingBridge = {
-                                WorkManager(context).startSMSBridgeStoreBridgedChats()
-                                //StartStopBridge.INSTANCE.ping()
-                                         },
+                                WorkManager(context).startSMSBridgeSyncWindow()
+                            },
                             selectDefaultSmsApp = {
                                 startRequestDefaultSmsActivity()
                             },
@@ -286,4 +282,4 @@ class StartStopMainActivity : ComponentActivity() {
     }
 
 }
- */
+*/
