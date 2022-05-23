@@ -9,6 +9,7 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
+import com.beeper.sms.commands.outgoing.Chat
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.PushKey
@@ -18,7 +19,9 @@ import com.beeper.sms.extensions.getThread
 import com.beeper.sms.extensions.getTimeMilliseconds
 import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.helpers.newGson
+import com.beeper.sms.provider.ChatThreadProvider
 import com.beeper.sms.provider.ContactProvider
+import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.MmsProvider.Companion.MMS_PREFIX
 import com.beeper.sms.provider.SmsProvider.Companion.SMS_PREFIX
@@ -82,8 +85,8 @@ class StartStopCommandProcessor constructor(
     suspend fun handlePortalSyncScopedCommands(command: Command) {
         when (command.command) {
             "get_chat" -> {
-                Log.d(TAG + "rcor", "receive: $command")
-                val recipients = deserialize(command,GetChat::class.java)
+                Log.d(TAG + "portalSyncScope", "receive: $command")
+                val recipients = deserialize(command, GetChat::class.java)
                     .recipientList
                 val room =
                     contactProvider
@@ -107,7 +110,7 @@ class StartStopCommandProcessor constructor(
                 )
             }
             "get_contact" -> {
-                Log.d(TAG + "rcor", "receive: $command")
+                Log.d(TAG + "portalSyncScope", "receive: $command")
                 val data = deserialize(command,GetContact::class.java)
                 bridge.send(
                     Command(
@@ -120,8 +123,9 @@ class StartStopCommandProcessor constructor(
             "get_recent_messages" -> {
                 Log.d(TAG, "receive: $command")
                 val data = deserialize(command,GetRecentMessages::class.java)
-                val messages =
-                    messageProvider.getRecentMessages(context.getThread(data), data.limit.toInt())
+                val threadId = context.getThread(data)
+                val messages = messageProvider.getRecentMessages(threadId, data.limit.toInt())
+
                 bridge.send(Command("response", messages, command.id))
             }
             "get_messages_after" -> {
@@ -150,29 +154,29 @@ class StartStopCommandProcessor constructor(
                 Log.v(TAG, "message_bridge_result: $command")
             }
             "get_chat_avatar" -> {
-                Log.d(TAG + "rcor", "receive: $command")
+                Log.d(TAG + "portalSyncScope", "receive: $command")
                 bridge.send(Command("response", null, command.id))
             }
             "response" -> {
-                Log.d(TAG + "rcor", "response #${command.id}: ${command.dataTree}")
+                Log.d(TAG + "portalSyncScope", "response #${command.id}: ${command.dataTree}")
             }
             "send_read_receipt" -> {
-                Log.v(TAG + "rcor", "ignore command: $command")
+                Log.v(TAG + "portalSyncScope", "ignore command: $command")
             }
             "error" -> {
-                Log.v(TAG + "rcor", "error: $command")
+                Log.v(TAG + "portalSyncScope", "error: $command")
             }
             else -> {
-                Log.w(TAG + "rcor", "didn't want to handle command: $command")
+                Log.w(TAG + "portalSyncScope", "didn't want to handle command: $command")
             }
         }
     }
 
 
-    suspend fun handleMessagedScopedCommands(command: Command) {
+    suspend fun handleSyncWindowScopedCommands(command: Command) {
         when (command.command) {
-            "post_me_this_message" -> {
-                Log.d(TAG + "rcor", "receive: $command")
+            "bridge_this_message" -> {
+                Log.d(TAG + "syncWindowScope", "receive: $command")
                 val data = deserialize(command,BridgeThisSmsOrMms::class.java)
                 withContext(Dispatchers.IO){
                     bridge.commandProcessor.sendMessageCommandAndAwaitForResponse(
@@ -180,7 +184,7 @@ class StartStopCommandProcessor constructor(
                 }
             }
             "get_chat" -> {
-                Log.d(TAG + "rcor", "receive: $command")
+                Log.d(TAG + "syncWindowScope", "receive: $command")
                 val recipients = deserialize(command,GetChat::class.java)
                     .recipientList
                 val room =
@@ -193,7 +197,7 @@ class StartStopCommandProcessor constructor(
                 )
             }
             "get_contact" -> {
-                Log.d(TAG + "rcor", "receive: $command")
+                Log.d(TAG + "syncWindowScope", "receive: $command")
                 val data = deserialize(command,GetContact::class.java)
                 bridge.send(
                     Command(
@@ -204,13 +208,13 @@ class StartStopCommandProcessor constructor(
                 )
             }
             "get_recent_messages" -> {
-                Log.d(TAG + "rcor", "receive: $command")
+                Log.d(TAG + "syncWindowScope", "receive: $command")
                 bridge.send(
                     Command("response", listOf<Message>(), command.id)
                 )
             }
             "get_chat_avatar" -> {
-                Log.d(TAG + "rcor", "receive: $command")
+                Log.d(TAG + "syncWindowScope", "receive: $command")
                 bridge.send(Command("response", null, command.id))
             }
             "send_message" -> {
@@ -272,16 +276,16 @@ class StartStopCommandProcessor constructor(
                 }
             }
             "response" -> {
-                Log.d(TAG + "rcor", "response #${command.id}: ${command.dataTree}")
+                Log.d(TAG + "syncWindowScope", "response #${command.id}: ${command.dataTree}")
             }
             "send_read_receipt" -> {
-                Log.v(TAG + "rcor", "ignore command: $command")
+                Log.v(TAG + "syncWindowScope", "ignore command: $command")
             }
             "error" -> {
-                Log.v(TAG + "rcor", "error: $command")
+                Log.v(TAG + "syncWindowScope", "error: $command")
             }
             else -> {
-                Log.w(TAG + "rcor", "didn't want to handle command: $command")
+                Log.w(TAG + "syncWindowScope", "didn't want to handle command: $command")
             }
         }
     }
@@ -505,6 +509,50 @@ class StartStopCommandProcessor constructor(
         }
     }
 
+
+    suspend fun sendChatCommandAndAwaitForResponse(chat: Chat, timeoutMillis: Long) : Unit?{
+        return withTimeoutOrNull(timeoutMillis) {
+            val completableDeferred = CompletableDeferred<Unit>()
+            val command = bridge.buildChatCommand(chat)
+            val job = commandsReceived.onSubscription {
+                bridge.send(command)
+            }.onEach {
+                if (it.command == "response") {
+                    if(it.id == command.id) {
+                        completableDeferred.complete(Unit)
+                    }
+                }
+            }.launchIn(scope)
+            completableDeferred.await()
+            job.cancel()
+        }
+    }
+
+
+    /*suspend fun sendChatCommandAndAwaitForResponse(chat: Chat, timeoutMillis: Long) : Unit?{
+        return withTimeoutOrNull(timeoutMillis) {
+            val completableDeferred = CompletableDeferred<Unit>()
+            val command = bridge.buildChatCommand(chat)
+            val job = commandsReceived.onSubscription {
+                bridge.send(command)
+            }.onEach {
+                if (it.command == "get_recent_messages") {
+                    val data = deserialize(
+                        it,
+                        GetRecentMessages::class.java
+                    )
+                    //handles the result -> i.e:Stores the message in the bridged messages database
+                    handle(it)
+                    if(data.chat_guid == chat.chat_guid) {
+                        completableDeferred.complete(Unit)
+                    }
+                }
+            }.launchIn(scope)
+            completableDeferred.await()
+            job.cancel()
+        }
+    }*/
+
     suspend fun sendMessageCommandAndAwaitForResponse(message: Message, timeoutMillis: Long) : Unit?{
         return withTimeoutOrNull(timeoutMillis) {
             val completableDeferred = CompletableDeferred<Unit>()
@@ -543,6 +591,44 @@ class StartStopCommandProcessor constructor(
                 )
             }
         }.launchIn(scope)
+    }
+
+    internal suspend fun bridgeChatWithThreadId(threadId: Long) {
+        val chatThreadProvider = ChatThreadProvider(context)
+
+        Log.d(TAG, "Asking for thread: $threadId")
+        val chatThread = chatThreadProvider.getThread(threadId, includeEmpty = true)
+        if (chatThread != null) {
+            val title = chatThread.getTitleFromMembers()
+            Log.d(TAG, "Bridging chat: $title")
+            val chatGuid = chatThread.getChatGuid()
+            if (chatGuid == null) {
+                Log.e(
+                    TAG,
+                    "Couldn't find chat members for chat_guid: $chatGuid"
+                )
+            } else {
+
+                val chat = Chat(chatGuid,
+                    chatThread.getTitleFromMembers(),
+                    chatThread.members.values.mapNotNull {
+                        it.phoneNumber?.chatGuid
+                    }
+                )
+
+                val chatBridged =
+                    bridge.commandProcessor.sendChatCommandAndAwaitForResponse(
+                        chat,
+                        10000
+                    )
+
+                if (chatBridged != null) {
+                    Log.w(TAG, "Chat was bridged $threadId")
+                } else {
+                    Log.e(TAG, "Couldn't bridge chat $threadId")
+                }
+            }
+        }
     }
 
     private val Command.dataTree: JsonElement

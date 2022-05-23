@@ -52,7 +52,7 @@ class ChatThreadProvider constructor(
         return Telephony.Threads.getOrCreateThreadId(context, recipients)
     }
 
-    suspend fun getThread(threadId: Long): ChatThread? {
+    suspend fun getThread(threadId: Long, includeEmpty: Boolean = false): ChatThread? {
         return withContext(Dispatchers.IO) {
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
 
@@ -64,7 +64,11 @@ class ChatThreadProvider constructor(
                 Telephony.Threads.RECIPIENT_IDS
             )
 
-            var selection = "${Telephony.Threads.MESSAGE_COUNT} > ?"
+            var selection = if(!includeEmpty) {
+                "${Telephony.Threads.MESSAGE_COUNT} > ?"
+            }else{
+                "${Telephony.Threads.MESSAGE_COUNT} >= ?"
+            }
             selection += " AND ${Telephony.Threads._ID} = ?"
             val selectionArgs: Array<String> = arrayOf("0", threadId.toString())
 

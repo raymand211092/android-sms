@@ -3,23 +3,13 @@ package com.beeper.sms.work.startstop
 import android.content.Context
 import android.os.Build
 import androidx.room.Room
-import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.beeper.sms.Log
 import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
-import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.incoming.GetRecentMessages
-import com.beeper.sms.commands.outgoing.Chat
 import com.beeper.sms.database.BridgedEntitiesDatabase
-import com.beeper.sms.database.models.BridgedChatThread
-import com.beeper.sms.database.models.BridgedMessage
-import com.beeper.sms.extensions.getThread
-import com.beeper.sms.provider.ChatThreadProvider
-import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
-import com.beeper.sms.provider.MessageProvider
 import kotlinx.coroutines.*
 import java.lang.IllegalStateException
 

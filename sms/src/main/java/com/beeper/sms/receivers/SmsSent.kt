@@ -36,6 +36,7 @@ abstract class SmsSent : SentReceiver() {
         }
 
         if(commandId != null && resultCode != Activity.RESULT_OK){
+            Log.e(TAG, "Error on SMS sent: ${resultCode.toError(intent)}")
             StartStopBridge.INSTANCE.send(commandId, resultCode.toError(intent))
             return
         }

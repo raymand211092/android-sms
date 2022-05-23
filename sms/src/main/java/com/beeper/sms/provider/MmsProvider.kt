@@ -25,24 +25,28 @@ class MmsProvider constructor(
     private val cr = context.contentResolver
 
     fun getActiveChats(timestamp: TimeSeconds): List<MessageInfo> =
-        getMms("$DATE > ${timestamp.toLong()}", this::messageInfoMapper)
+        getMms("$DATE > ${timestamp.toLong()} AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT ",
+            this::messageInfoMapper)
 
     fun getMessageInfo(uri: Uri): MessageInfo? =
         getMms(uri, mapper = this::messageInfoMapper).firstOrNull()
 
     fun getLatest(thread: Long, limit: Int) =
-        getMms(where = "$THREAD_ID = $thread", limit = limit, mapper = this::messageMapper)
+        getMms(where = "$THREAD_ID = $thread AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT ",
+            limit = limit, mapper = this::messageMapper)
 
     fun getMessagesAfter(thread: Long, timestamp: TimeSeconds) =
         getMms(
-            "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()}",
+            "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()} " +
+                    "AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT ",
             this::messageMapper
         )
 
     fun getMessage(uri: Uri) = getMms(uri, mapper = this::messageMapper).firstOrNull()
 
-    private fun <T> getMms(where: String? = null, mapper: (Cursor, Long, Uri) -> T?): List<T> =
-        listOf(CONTENT_URI, Inbox.CONTENT_URI, Sent.CONTENT_URI).flatMap { uri ->
+    private fun <T> getMms(where: String? = "$MESSAGE_BOX <= $MESSAGE_BOX_SENT",
+                           mapper: (Cursor, Long, Uri) -> T?): List<T> =
+        listOf(CONTENT_URI).flatMap { uri ->
             getMms(uri = uri, where = where, mapper = mapper)
         }
 
@@ -98,8 +102,8 @@ class MmsProvider constructor(
         val messageInfo = messageInfoMapper(it, rowId, uri) ?: return null
         val attachments = partProvider.getAttachment(rowId)
         val isFromMe = when (it.getInt(MESSAGE_BOX)) {
-            MESSAGE_BOX_OUTBOX, MESSAGE_BOX_SENT -> true
-            else -> false
+            MESSAGE_BOX_INBOX -> false
+            else -> true
         }
         val sender = when {
             isFromMe -> null
