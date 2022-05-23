@@ -20,6 +20,11 @@ class GuidProvider constructor(
             ?.takeIf { it.isNotEmpty() }
             ?.chatGuid
 
+    fun getPhoneNumbersFromThreadId(thread: Long): List<String> {
+        return getAddresses(thread)
+            ?.mapNotNull { address -> getPhoneNumber(address) } ?: listOf()
+    }
+
     fun getAddresses(thread: Long): List<String>? =
         cr.firstOrNull(URI_THREADS, "${Mms._ID} = $thread") {
             it.getString(ThreadsColumns.RECIPIENT_IDS)?.split(" ")

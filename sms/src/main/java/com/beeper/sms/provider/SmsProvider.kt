@@ -23,25 +23,29 @@ class SmsProvider constructor(context: Context) {
     private val cr = context.contentResolver
 
     fun getActiveChats(timestamp: TimeMillis): List<MessageInfo> =
-        getSms("$DATE > ${timestamp.toLong()}", this::messageInfoMapper)
+        getSms("$DATE > ${timestamp.toLong()} AND $TYPE <= $MESSAGE_TYPE_SENT",
+            this::messageInfoMapper)
 
     fun getMessageInfo(uri: Uri): MessageInfo? =
         getSms(uri, mapper = this::messageInfoMapper).firstOrNull()
 
     fun getLatest(thread: Long, limit: Int) =
-        getSms(where = "$THREAD_ID = $thread", limit = limit, mapper = this::messageMapper)
+        getSms(where = "$THREAD_ID = $thread AND $TYPE <= $MESSAGE_TYPE_SENT",
+            limit = limit, mapper = this::messageMapper)
 
     fun getMessagesAfter(thread: Long, timestamp: TimeMillis) =
         getSms(
-            "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()}",
+            "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()} " +
+                    "AND $TYPE <= $MESSAGE_TYPE_SENT",
             this::messageMapper
         )
 
 
     fun getMessage(uri: Uri) = getSms(uri, mapper = this::messageMapper).firstOrNull()
 
-    private fun <T> getSms(where: String, mapper: (Cursor, Long, Uri) -> T?): List<T> =
-        listOf(CONTENT_URI, Inbox.CONTENT_URI, Sent.CONTENT_URI).flatMap { uri ->
+    private fun <T> getSms(where: String = "$TYPE <= $MESSAGE_TYPE_SENT",
+                           mapper: (Cursor, Long, Uri) -> T?): List<T> =
+        listOf(CONTENT_URI).flatMap { uri ->
             getSms(uri = uri, where = where, mapper = mapper)
         }
 
@@ -97,8 +101,8 @@ class SmsProvider constructor(context: Context) {
     private fun messageMapper(it: Cursor, rowId: Long, uri: Uri): Message? {
         val messageInfo = messageInfoMapper(it, rowId, uri) ?: return null
         val isFromMe = when (it.getInt(TYPE)) {
-            MESSAGE_TYPE_OUTBOX, MESSAGE_TYPE_SENT -> true
-            else -> false
+            MESSAGE_TYPE_INBOX -> false
+            else -> true
         }
         return Message(
             guid = messageInfo.guid,

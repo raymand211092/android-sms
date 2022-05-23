@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.room.Room
+import com.beeper.sms.StartStopBridge.Companion.requestId
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Chat
@@ -49,6 +50,7 @@ class StartStopBridge private constructor() {
         get() = field?.takeIf { it.running }
     private val outgoing = newSingleThreadExecutor().asCoroutineDispatcher()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // TODO: Adjust shared flow capacity
     private val _commandsReceived = MutableSharedFlow<Command>(
             replay = 0,
         extraBufferCapacity = 100,
@@ -177,6 +179,28 @@ class StartStopBridge private constructor() {
         WorkManager(context).disableSMSBridge()
     }
 
+
+    @SuppressLint("ApplySharedPref")
+    suspend fun storeNewChatThreadIdToBridge(context: Context, threadId: Long){
+        return withContext(Dispatchers.IO) {
+            val smsSharedPrefs = context.getSharedPreferences(
+                SMS_SHARED_PREFS,
+                Context.MODE_PRIVATE
+            )
+
+            val editor = smsSharedPrefs.edit()
+            editor.putLong(NEW_CHAT_THREAD_ID_KEY, threadId)
+            editor.commit()
+        }
+    }
+
+    internal fun getNewChatThreadIdToBridge(context: Context) : Long{
+        val smsSharedPrefs = context.getSharedPreferences(SMS_SHARED_PREFS,
+            Context.MODE_PRIVATE)
+        return smsSharedPrefs.getLong(NEW_CHAT_THREAD_ID_KEY, -1)
+    }
+
+
     @SuppressLint("ApplySharedPref")
     internal suspend fun storeBackfillingState(context: Context, backfillComplete: Boolean){
         return withContext(Dispatchers.IO) {
@@ -254,7 +278,7 @@ class StartStopBridge private constructor() {
 
     internal fun send(id: Int, error: Error) = send(Command("error", error, id))
 
-    internal val running: Boolean
+    val running: Boolean
         get() = process?.running == true
 
     internal fun send(command: Command) = scope.launch(outgoing) {
@@ -302,11 +326,18 @@ class StartStopBridge private constructor() {
             = scope.launch(outgoing) {
             _commandsReceived.tryEmit(
                 Command(
-                    "post_me_this_message",
+                    "bridge_this_message",
                     data = postMeThisMessage
                 )
             )
     }
+
+    suspend fun forwardChatToBridge(threadId: Long) {
+        Log.d(TAG, "Forwarding chat to bridge: ThreadId: $threadId")
+        commandProcessor.bridgeChatWithThreadId(threadId)
+    }
+
+
 
     internal suspend fun clearBridgeData(context:Context){
         withContext(scope.coroutineContext){
@@ -351,6 +382,7 @@ class StartStopBridge private constructor() {
         private const val DEFAULT_CHANNEL_ID = "sms_start_stop_bridge_service"
         private const val SMS_SHARED_PREFS = "com.beeper.sms.prefs"
         private const val BACKFILLING_PREF_KEY = "isBackfillComplete"
+        private const val NEW_CHAT_THREAD_ID_KEY = "newChatThreadId"
         private val gson = newGson()
         val INSTANCE = StartStopBridge()
 

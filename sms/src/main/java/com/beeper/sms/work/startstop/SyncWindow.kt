@@ -20,7 +20,6 @@ import java.lang.IllegalStateException
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-//TODO: IMPORTANT! Should implement getForegroundInfo for backward compatibility < Android 12
 class SyncWindow constructor(
     private val context: Context,
     workerParams: WorkerParameters,
@@ -48,14 +47,14 @@ class SyncWindow constructor(
                 return@withContext Result.failure()
             }
             Log.w(TAG, "has the bridge")
-            // Give mautrix_imessage time to sync. It continues if it is idle for
+            // Give mautrix_imessage time to sync. It will continue if it's idle for
             // *maxIdlePeriodSeconds* or if the task takes more than *syncTimeoutMinutes*
             var lastCommandReceivedMillis = now()
             Log.d(TAG, "lastCommandReceivedTime: $lastCommandReceivedMillis")
             val job = bridge.commandsReceived.onEach {
                 val validCommandsToKeepItOpen = listOf("get_chat","get_contact","send_message",
-                "send_media",)
-                bridge.commandProcessor.handleMessagedScopedCommands(it)
+                "send_media", "bridge_this_message")
+                bridge.commandProcessor.handleSyncWindowScopedCommands(it)
                 if(validCommandsToKeepItOpen.contains(it.command)) {
                     lastCommandReceivedMillis = now()
                     Log.d(TAG, "lastCommandReceivedTime updated: $lastCommandReceivedMillis")
@@ -64,6 +63,16 @@ class SyncWindow constructor(
 
             //Sync our local SMS and MMS messages
             val database = bridge.database
+
+
+            //-> Create new chat ID if needed
+            // Replace after starting to use the endpoint
+            val newChatThreadIdToBridge = bridge.getNewChatThreadIdToBridge(context)
+            if(newChatThreadIdToBridge > 0){
+                bridge.commandProcessor.bridgeChatWithThreadId(newChatThreadIdToBridge)
+                // Clear the new chat id to be bridged
+                bridge.storeNewChatThreadIdToBridge(context, -1)
+            }
 
             val lastBridgedSmsId =
                 database.bridgedMessageDao().getLastBridgedSmsId()
