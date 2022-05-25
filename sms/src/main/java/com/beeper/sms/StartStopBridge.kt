@@ -58,6 +58,13 @@ class StartStopBridge private constructor() {
     )
     val commandsReceived = _commandsReceived.asSharedFlow()
 
+    internal val _workerExceptions = MutableSharedFlow<Pair<String,Exception>>(
+        replay = 0,
+        extraBufferCapacity = 10,
+        BufferOverflow.DROP_OLDEST
+    )
+    val workerExceptions = _workerExceptions.asSharedFlow()
+
     private val requestId = AtomicInteger(0)
 
     private var errorHandling: Job? = null
@@ -214,7 +221,7 @@ class StartStopBridge private constructor() {
         }
     }
 
-    internal fun getBackfillingState(context: Context) : Boolean{
+    fun getBackfillingState(context: Context) : Boolean{
         val smsSharedPrefs = context.getSharedPreferences(SMS_SHARED_PREFS,
             Context.MODE_PRIVATE)
         return smsSharedPrefs.getBoolean(BACKFILLING_PREF_KEY, false)
@@ -350,11 +357,11 @@ class StartStopBridge private constructor() {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun createNotificationChannel(context:Context) =
+    fun createNotificationChannel(context:Context, notificationChannelId: String) =
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
             .createNotificationChannel(
                 NotificationChannel(
-                    channelId,
+                    notificationChannelId,
                     context.getString(R.string.notification_channel),
                     NotificationManager.IMPORTANCE_LOW
                 ).apply {
@@ -365,11 +372,26 @@ class StartStopBridge private constructor() {
                 }
             )
 
-    fun buildNotification(context:Context, contentText: String): Notification {
-        return NotificationCompat.Builder(context, channelId)
+    fun buildNotification(context:Context,
+                          notificationChannelId: String,
+                          contentText: String): Notification {
+        return NotificationCompat.Builder(context, notificationChannelId)
             .setSound(null)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setContentTitle(context.getString(R.string.notification_title))
+            .setContentText(contentText)
+            .setSmallIcon(channelIcon).build()
+    }
+
+    fun buildErrorNotification(context: Context, title: String, contentText: String) : Notification{
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            createNotificationChannel(context, BRIDGE_ERROR_CHANNEL_ID)
+        }
+        return NotificationCompat.Builder(context, BRIDGE_ERROR_CHANNEL_ID)
+            .setSound(null)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentTitle(title)
             .setContentText(contentText)
             .setSmallIcon(channelIcon).build()
     }
@@ -379,7 +401,9 @@ class StartStopBridge private constructor() {
         const val ONGOING_NOTIFICATION_ID = 10681
         const val DEFAULT_STARTUP_TIMEOUT_MILLIS = 30000L
         private const val TAG = "StartStopBridge"
-        private const val DEFAULT_CHANNEL_ID = "sms_start_stop_bridge_service"
+        const val DEFAULT_CHANNEL_ID = "sms_bridge"
+        private const val BRIDGE_ERROR_CHANNEL_ID = "sms_bridge_error"
+
         private const val SMS_SHARED_PREFS = "com.beeper.sms.prefs"
         private const val BACKFILLING_PREF_KEY = "isBackfillComplete"
         private const val NEW_CHAT_THREAD_ID_KEY = "newChatThreadId"

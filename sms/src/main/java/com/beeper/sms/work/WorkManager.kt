@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.work.*
 import androidx.work.WorkManager
+import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.work.startstop.ClearData
 import com.beeper.sms.work.startstop.SimpleBackfill
@@ -15,7 +16,7 @@ class WorkManager constructor(val context: Context) {
     private val workManager = WorkManager.getInstance(context)
 
     fun enableSMSBridge() {
-       val request : OneTimeWorkRequest = buildSimpleBackfillWorkRequest()
+        val request : OneTimeWorkRequest = buildSimpleBackfillWorkRequest()
        workManager.beginUniqueWork(
             WORK_ENABLE_SMS_BRIDGE,
             ExistingWorkPolicy.REPLACE,
@@ -26,34 +27,33 @@ class WorkManager constructor(val context: Context) {
     fun startSMSBridgeSyncWindow() {
         val isBackfillComplete = StartStopBridge.INSTANCE.getBackfillingState(context)
         if(isBackfillComplete) {
+            Log.d(TAG,"Starting sync window -> backfill is complete")
             buildSyncWindowWorkRequest().apply {
                 workManager.enqueueUniqueWork(
                     WORK_SMS_BRIDGE_SYNC_WINDOW,
                     ExistingWorkPolicy.KEEP, this
                 )
             }
+        }else{
+            Log.e(TAG,"Can't start a SYNC Window -> Backfill is not complete")
         }
     }
 
     fun disableSMSBridge() {
         //TODO => Didn't work: cancellation is cooperative
-        workManager.cancelAllWorkByTag(WORK_SMS_BRIDGE_SYNC_WINDOW)
-        workManager.cancelAllWorkByTag(WORK_ENABLE_SMS_BRIDGE)
+        workManager.cancelUniqueWork(WORK_SMS_BRIDGE_SYNC_WINDOW)
+        workManager.cancelUniqueWork(WORK_ENABLE_SMS_BRIDGE)
         buildDisableSMSBridgeWorkRequest()
             .apply { workManager.enqueueUniqueWork(WORK_DISABLE_SMS_BRIDGE,
                 ExistingWorkPolicy.REPLACE,this) }
     }
 
-    private fun isWorkScheduled(tag : String) : Boolean{
-        val workListFuture = workManager.getWorkInfosByTag(tag)
+    private fun getWorkState(uniqueWorkName : String) : List<WorkInfo.State> {
+        val workListFuture = workManager.getWorkInfosForUniqueWork(uniqueWorkName)
         val workList = workListFuture.get()
-        var running = false
-        workList.onEach {
-            if(it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED){
-                running = true
-            }
+        return workList.map {
+            it.state
         }
-        return running
     }
 
     private fun buildSimpleBackfillWorkRequest() : OneTimeWorkRequest {
@@ -134,5 +134,6 @@ class WorkManager constructor(val context: Context) {
         private const val WORK_DISABLE_SMS_BRIDGE = "disable_sms_bridge"
         private const val WORK_SMS_BRIDGE_SYNC_WINDOW = "sms_bridge_sync_window"
         private const val WORK_LONG_RUNNING_SYNC_DB = "sync_db"
+        private const val TAG = "SMSWorkManager"
     }
 }
