@@ -110,7 +110,10 @@ class StartStopCommandProcessor constructor(
                 )
             }
             "get_contact" -> {
-                Log.d(TAG + "portalSyncScope", "receive: $command")
+                if (BuildConfig.DEBUG)
+                    Log.d(TAG + "portalSyncScope", "receive: $command")
+                else
+                    Log.d(TAG + "portalSyncScope", "receive: ${command.command} Id:${command.id}")
                 val data = deserialize(command,GetContact::class.java)
                 bridge.send(
                     Command(
@@ -176,7 +179,7 @@ class StartStopCommandProcessor constructor(
     suspend fun handleSyncWindowScopedCommands(command: Command) {
         when (command.command) {
             "bridge_this_message" -> {
-                Log.d(TAG + "syncWindowScope", "receive: $command")
+                debugPrintCommand(TAG + "syncWindowScope",command)
                 val data = deserialize(command,BridgeThisSmsOrMms::class.java)
                 withContext(Dispatchers.IO){
                     bridge.commandProcessor.sendMessageCommandAndAwaitForResponse(
@@ -218,7 +221,7 @@ class StartStopCommandProcessor constructor(
                 bridge.send(Command("response", null, command.id))
             }
             "send_message" -> {
-                Log.d(TAG, "receive: $command")
+                debugPrintCommand(TAG + "syncWindowScope",command)
                 if (!context.hasPermissions) {
                     Log.e(TAG, "${command.command} !context.hasPermissions")
                     noPermissionError(command.id!!)
@@ -237,7 +240,7 @@ class StartStopCommandProcessor constructor(
                 )
             }
             "send_media" -> {
-                Log.d(TAG, "receive: $command")
+                debugPrintCommand(TAG + "syncWindowScope",command)
                 if (!context.hasPermissions) {
                     Log.e(TAG, "${command.command} !context.hasPermissions")
                     noPermissionError(command.id!!)
@@ -326,7 +329,7 @@ class StartStopCommandProcessor constructor(
                 )
             }
             "send_message" -> {
-                Log.d(TAG, "receive: $command")
+                debugPrintCommand(TAG ,command)
                 if (!context.hasPermissions) {
                     noPermissionError(command.id!!)
                     return
@@ -342,7 +345,7 @@ class StartStopCommandProcessor constructor(
                 )
             }
             "send_media" -> {
-                Log.d(TAG, "receive: $command")
+                debugPrintCommand(TAG ,command)
                 if (!context.hasPermissions) {
                     noPermissionError(command.id!!)
                     return
@@ -628,6 +631,15 @@ class StartStopCommandProcessor constructor(
                     Log.e(TAG, "Couldn't bridge chat $threadId")
                 }
             }
+        }
+    }
+
+    private fun debugPrintCommand(tag: String, command: Command){
+        if (BuildConfig.DEBUG) {
+            Log.d(tag, "receive: $command")
+        }
+        else {
+            Log.d(tag, "receive: ${command.command} Id:${command.id}")
         }
     }
 

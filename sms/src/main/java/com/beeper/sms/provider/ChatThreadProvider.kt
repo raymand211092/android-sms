@@ -19,7 +19,7 @@ class ChatThreadProvider constructor(
     val context: Context,
 ) {
 
-    // Fetchs all chats after an ID -> to be bridged
+    // Fetch all chats after an ID -> to be bridged
     suspend fun getNewChatThreadIds(initialId: Long): List<Long> {
         return withContext(Dispatchers.IO) {
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
