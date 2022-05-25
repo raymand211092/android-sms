@@ -86,7 +86,7 @@ class SimpleBackfill constructor(
                 //timeout waiting for portal
                 Log.e(TAG, "Timeout waiting for portal sync!!")
             } else {
-                Log.d(TAG, "Bridge is idle -> finished portal thing")
+                Log.d(TAG, "Bridge is idle -> finished portal sync")
             }
 
             // -> Mark all messages as 'bridged' after the backfill
