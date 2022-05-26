@@ -141,6 +141,8 @@ class SyncWindow constructor(
                 val syncTimeout = 5.toDuration(DurationUnit.MINUTES).inWholeMilliseconds
                 val maxIdlePeriod = 20.toDuration(DurationUnit.SECONDS).inWholeMilliseconds
 
+                lastCommandReceivedMillis = now()
+
                 withTimeoutOrNull(syncTimeout) {
                     while (now() - lastCommandReceivedMillis < maxIdlePeriod) {
                         delay(maxIdlePeriod)
