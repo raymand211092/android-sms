@@ -1,8 +1,6 @@
 package com.beeper.sms.work.startstop
 
 import android.content.Context
-import android.os.Build
-import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
@@ -12,7 +10,6 @@ import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.helpers.now
-import com.beeper.sms.provider.ChatThreadProvider
 import com.beeper.sms.provider.MessageProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -21,8 +18,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.lang.IllegalStateException
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 
 //TODO: -> issue with chat_guids, contact_guids and group rooms
@@ -45,12 +40,12 @@ class SimpleBackfill constructor(
 
                 val started = bridge.start(
                     context, skipSync = false, timeoutMillis =
-                    StartStopBridge.DEFAULT_STARTUP_TIMEOUT_MILLIS
+                    BACKFILL_STARTUP_TIMEOUT_MILLIS
                 )
-                if (!started) {
-                    Log.e(TAG, "Couldn't start the bridge")
-                    bridge.stop()
 
+                if (!started) {
+                    Log.e(TAG, "Couldn't start the bridge -> backfill didn't happen")
+                    bridge.stop()
                     //TODO: Show notification -> disable SMS
                     return@withContext Result.failure()
                 }
@@ -73,9 +68,9 @@ class SimpleBackfill constructor(
                     }
                 }.launchIn(this)
 
-                //Shouldn't run for more than 20min, shouldn't be idle for more than 20 seconds
-                val syncTimeout = 10.toDuration(DurationUnit.MINUTES).inWholeMilliseconds
-                val maxIdlePeriod = 20.toDuration(DurationUnit.SECONDS).inWholeMilliseconds
+                //Shouldn't run for more than 20min, shouldn't be idle for more than 1 minute
+                val syncTimeout = BACKFILL_COMPLETION_TIMEOUT_MILLIS
+                val maxIdlePeriod = MAX_IDLE_PERIOD_MILLIS
 
                 val result = withTimeoutOrNull(syncTimeout) {
                     while (now() - lastCommandReceivedMillis < maxIdlePeriod) {
@@ -138,7 +133,6 @@ class SimpleBackfill constructor(
                     TAG,
                     "Finished storing all bridged mms"
                 )
-
                 Log.d(
                     TAG,
                     "Finished backfilling"
@@ -173,5 +167,9 @@ class SimpleBackfill constructor(
     companion object {
         private const val TAG = "SimpleBackfillWorker"
         private const val ERROR_BACKFILLING_NOTIFICATION_ID = 0
+        private const val BACKFILL_STARTUP_TIMEOUT_MILLIS = 10L * 60L * 1000L
+        private const val BACKFILL_COMPLETION_TIMEOUT_MILLIS = 20L * 60L * 1000L
+        private const val MAX_IDLE_PERIOD_MILLIS = 60L * 1000L
+
     }
 }
