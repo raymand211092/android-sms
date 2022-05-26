@@ -98,25 +98,46 @@ class StartStopBridge private constructor() {
             Log.d(TAG, "start")
             return@withContext try {
                 stop()
-                if (context?.hasPermissions == true &&
-                    getConfig().exists() &&
-                    process?.running != true
-                ) {
-                    startProcess(context, skipSync, timeoutMillis)
-                    if(process == null || !process.running){
-                        Log.e(TAG, "failed to start SMS bridge")
-                        false
-                    }else {
-                        Log.d(TAG, "SMS bridge was successfully started")
-                        database = Room.databaseBuilder(
-                            context,
-                            BridgedEntitiesDatabase::class.java, "sms-bridged-entities"
-                        ).build()
-                        true
-                    }
-                } else {
-                    false
+
+                if(context == null){
+                    Log.e(TAG, "Error: Null context on SMS bridge start()")
+                    return@withContext false
                 }
+
+                // Open database
+                database = Room.databaseBuilder(
+                    context,
+                    BridgedEntitiesDatabase::class.java, "sms-bridged-entities"
+                ).build()
+
+                if(!context.hasPermissions){
+                    Log.e(TAG, "Error: Permissions aren't setup for the SMS bridge")
+                    return@withContext false
+                }
+
+                if(!getConfig().exists()){
+                    Log.e(TAG, "Error: Bridge config isn't setup for the SMS bridge")
+                    return@withContext false
+                }
+
+                val startResult = startProcess(context, skipSync, timeoutMillis)
+                if(!startResult){
+                    Log.e(TAG, "Timeout waiting for prestartup hook")
+                    return@withContext false
+                }
+
+                if(process == null || !process.running){
+                    Log.e(TAG, "failed to start SMS bridge")
+                    return@withContext false
+                }
+
+                Log.d(TAG, "SMS bridge was successfully started")
+                // Open database
+                database = Room.databaseBuilder(
+                    context,
+                    BridgedEntitiesDatabase::class.java, "sms-bridged-entities"
+                ).build()
+                true
             } catch (e: Exception) {
                 Log.e(TAG, e.message ?: "Error")
                 false
@@ -128,10 +149,16 @@ class StartStopBridge private constructor() {
        killProcess()
     }
 
-    suspend fun startProcess(context: Context, skipSync: Boolean, timeoutMillis : Long){
+    suspend fun startProcess(context: Context, skipSync: Boolean, timeoutMillis : Long) : Boolean {
             val config = getConfig()
             val cache = cacheDir
-            if (!process.running && config.exists() && cache != null) {
+
+            if(!config.exists() || cache==null){
+                Log.d(TAG, "imautrix-imessage config or cache path are missing")
+                return false
+            }
+
+            if (!process.running) {
                 process?.kill()
                 Log.d(TAG, "Starting mautrix-imessage")
                 process = ProcessBuilder()
@@ -171,10 +198,17 @@ class StartStopBridge private constructor() {
                         }
                     }
                 }
-                commandProcessor.awaitForPreStartupSync(skipSync,timeoutMillis)
+                val startupResult = commandProcessor.awaitForPreStartupSync(skipSync,timeoutMillis)
+                if(!startupResult){
+                    Log.e(TAG, "Timeout starting the bridge")
+                }else{
+                    Log.d(TAG, "Pre startup sync hook received -> we can go on...")
+                }
+                return startupResult
             }else{
-                Log.d(TAG, "Nothing to do: bridge was already running or folders are null"
+                Log.d(TAG, "Nothing to do: bridge is already running"
                         + "cache:$cache config: $config")
+                return true
             }
     }
 
@@ -231,9 +265,14 @@ class StartStopBridge private constructor() {
         configPath ?: configPathProvider?.invoke()?.takeIf { it.exists() }?.also { configPath = it }
 
     suspend fun killProcess() {
+        if(this::database.isInitialized) {
+            if(database.isOpen) {
+                database.close()
+            }
+        }
         withContext(scope.coroutineContext) {
             if(process!=null) {
-                database.close()
+
                 process?.kill()
             }else{
                 Log.d(TAG, "No process to kill")

@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onSubscription
+import timber.log.Timber
 import java.io.File
 import kotlin.coroutines.CoroutineContext
 
@@ -473,6 +474,7 @@ class StartStopCommandProcessor constructor(
 
 
     suspend fun awaitForPreStartupSync(skipSync: Boolean, timeoutMillis: Long) : Boolean{
+        Log.d(TAG,"SkipSync = $skipSync")
         return withTimeoutOrNull(timeoutMillis) {
             val completableDeferred = CompletableDeferred<Boolean>()
             val job =
@@ -489,7 +491,7 @@ class StartStopCommandProcessor constructor(
             val result = completableDeferred.await()
             job.cancel()
             result
-        } ?: false
+            } ?: false
     }
 
     suspend fun awaitForGetRecentMessageCommand(chatGuid : String, timeoutMillis: Long) : Command?{
