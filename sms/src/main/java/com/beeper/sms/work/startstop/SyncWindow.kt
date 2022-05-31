@@ -10,6 +10,7 @@ import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.helpers.now
 import com.beeper.sms.provider.MessageProvider
+import com.beeper.sms.work.WorkManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
@@ -62,11 +63,22 @@ class SyncWindow constructor(
                 )
                 if (!started) {
                     Log.e(TAG, "Bridge couldn't be started!")
+                    job.cancel()
                     bridge.stop()
-                    if(runAttemptCount > MAX_ATTEMPTS){
+                    if(runAttemptCount > MAX_ATTEMPTS - 1){
                         // TODO: track the issue
                         // TODO: start a sync window after we get network back
                         Log.e(TAG, "Failure: not retrying anymore")
+
+                        val avoidRestart = inputData.getBoolean(
+                            "avoidRestart", false)
+                        if(!avoidRestart){
+                            Log.e(TAG, "Scheduled to try again when connectivity returns")
+                            WorkManager(context).scheduleBridgeWorkOnOnline()
+                        }else{
+                            Log.e(TAG, "Already tried after connectivity return," +
+                                    " not scheduling anymore")
+                        }
                         return@withContext Result.failure()
                     }else {
                         Log.e(TAG, "Going to retry it later")
@@ -188,7 +200,7 @@ class SyncWindow constructor(
 
     companion object {
         private const val TAG = "SMSSyncWindow"
-        private const val MAX_ATTEMPTS = 3
+        private const val MAX_ATTEMPTS = 2
 
     }
 }

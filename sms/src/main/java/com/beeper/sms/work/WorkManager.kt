@@ -7,6 +7,7 @@ import androidx.work.WorkManager
 import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.work.startstop.ClearData
+import com.beeper.sms.work.startstop.RestartSyncWindow
 import com.beeper.sms.work.startstop.SimpleBackfill
 import com.beeper.sms.work.startstop.SyncWindow
 import java.util.concurrent.TimeUnit
@@ -23,12 +24,12 @@ class WorkManager constructor(val context: Context) {
         ).then(buildSyncWindowWorkRequest()).enqueue()
     }
 
-    fun startSMSBridgeSyncWindow() {
+    fun startSMSBridgeSyncWindow(inputData: Data = Data.EMPTY) {
         val isBackfillComplete = StartStopBridge.INSTANCE.getBackfillingState(context)
         if(isBackfillComplete) {
             Log.d(TAG,"startSMSBridgeSyncWindow -> backfill is complete." +
                     "Will be discarded if an existing SMSSyncWindow is running")
-            buildSyncWindowWorkRequest().apply {
+            buildSyncWindowWorkRequest(inputData).apply {
                 workManager.enqueueUniqueWork(
                     WORK_SMS_BRIDGE_SYNC_WINDOW,
                     ExistingWorkPolicy.KEEP, this
@@ -39,8 +40,25 @@ class WorkManager constructor(val context: Context) {
         }
     }
 
+    fun scheduleBridgeWorkOnOnline() {
+        val isBackfillComplete = StartStopBridge.INSTANCE.getBackfillingState(context)
+        if(isBackfillComplete) {
+            Log.d(TAG,"scheduleBridgeWorkOnOnline -> backfill is complete." +
+                    "Will be scheduled.")
+            buildScheduleSyncWindowWorkRequest().apply {
+                workManager.enqueueUniqueWork(
+                    WORK_SMS_BRIDGE_RETRY_SYNC_WINDOW_WHEN_ONLINE,
+                    ExistingWorkPolicy.KEEP, this
+                )
+            }
+        }else{
+            Log.e(TAG,"Can't start a SYNC Window -> Backfill is not complete")
+        }
+    }
+
     fun disableSMSBridge() {
         //TODO => Didn't work: cancellation is cooperative
+        workManager.cancelUniqueWork(WORK_SMS_BRIDGE_RETRY_SYNC_WINDOW_WHEN_ONLINE)
         workManager.cancelUniqueWork(WORK_SMS_BRIDGE_SYNC_WINDOW)
         workManager.cancelUniqueWork(WORK_ENABLE_SMS_BRIDGE)
         buildDisableSMSBridgeWorkRequest()
@@ -71,15 +89,25 @@ class WorkManager constructor(val context: Context) {
             .build()
     }
 
-    private fun buildSyncWindowWorkRequest() : OneTimeWorkRequest {
+    private fun buildSyncWindowWorkRequest(inputData: Data = Data.EMPTY) : OneTimeWorkRequest {
         return OneTimeWorkRequest
             .Builder(SyncWindow::class.java)
+            .setInputData(inputData)
             .setBackoffCriteria(
-                BackoffPolicy.EXPONENTIAL,
-                15,
+                BackoffPolicy.LINEAR,
+                10,
                 TimeUnit.SECONDS
             )
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            .build()
+    }
+
+    private fun buildScheduleSyncWindowWorkRequest() : OneTimeWorkRequest {
+        return OneTimeWorkRequest
+            .Builder(RestartSyncWindow::class.java)
+            .setConstraints(
+                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+            )
             .build()
     }
 
@@ -129,6 +157,8 @@ class WorkManager constructor(val context: Context) {
         private const val WORK_ENABLE_SMS_BRIDGE = "enable_sms_bridge"
         private const val WORK_DISABLE_SMS_BRIDGE = "disable_sms_bridge"
         private const val WORK_SMS_BRIDGE_SYNC_WINDOW = "sms_bridge_sync_window"
+        private const val WORK_SMS_BRIDGE_RETRY_SYNC_WINDOW_WHEN_ONLINE =
+            "sms_bridge_schedule_sync_window_when_online"
         private const val WORK_LONG_RUNNING_SYNC_DB = "sync_db"
         private const val TAG = "SMSWorkManager"
         val RETRY_POLICY = BackoffPolicy.LINEAR
