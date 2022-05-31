@@ -37,7 +37,7 @@ class SyncWindow constructor(
                 }
             }
 
-            withContext(Dispatchers.Default) {
+            return withContext(Dispatchers.Default) {
                 val bridge = StartStopBridge.INSTANCE
 
                 // Give mautrix_imessage time to sync. It will continue if it's idle for
@@ -177,9 +177,7 @@ class SyncWindow constructor(
             val bridge = StartStopBridge.INSTANCE
             bridge.stop()
             return Result.failure()
-
         }
-        return Result.success()
     }
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
