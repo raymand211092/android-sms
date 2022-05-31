@@ -145,7 +145,7 @@ class StartStopBridge private constructor() {
         }
     }
 
-    suspend fun stop() {
+    fun stop() {
        killProcess()
     }
 
@@ -264,20 +264,18 @@ class StartStopBridge private constructor() {
     private suspend fun getConfig(): String? =
         configPath ?: configPathProvider?.invoke()?.takeIf { it.exists() }?.also { configPath = it }
 
-    suspend fun killProcess() {
+    fun killProcess() {
         if(this::database.isInitialized) {
             if(database.isOpen) {
                 database.close()
             }
         }
-        withContext(scope.coroutineContext) {
-            if(process!=null) {
-
-                process?.kill()
-            }else{
-                Log.d(TAG, "No process to kill")
-            }
+        if(process!=null) {
+            process?.kill()
+        }else{
+            Log.d(TAG, "No process to kill")
         }
+
     }
 
     private fun Process.kill() {

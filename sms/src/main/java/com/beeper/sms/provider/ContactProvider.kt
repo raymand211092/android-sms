@@ -127,11 +127,13 @@ class ContactProvider constructor(private val context: Context) {
             val contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, id)
             val givenName = contact.getString(StructuredName.GIVEN_NAME)
             val familyName = contact.getString(StructuredName.FAMILY_NAME)
+            val avatarUri = Uri.withAppendedPath(contactUri, Contacts.Photo.CONTENT_DIRECTORY)
             ContactRow(
                 first_name = givenName,
                 last_name = familyName,
                 avatar = Contacts.openContactPhotoInputStream(cr, contactUri, true)
                     ?.let { Base64.encodeToString(it.readBytes(), Base64.DEFAULT) },
+                avatarUri = avatarUri,
                 nickname = contact.getString(StructuredName.DISPLAY_NAME)
                     ?: "$givenName $familyName".trim().takeIf { it.isNotBlank() }
             )

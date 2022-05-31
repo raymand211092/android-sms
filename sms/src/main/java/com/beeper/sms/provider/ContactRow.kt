@@ -1,5 +1,7 @@
 package com.beeper.sms.provider
 
+import android.net.Uri
+
 data class ContactRow(
     var first_name: String? = null,
     var last_name: String? = null,
@@ -7,4 +9,5 @@ data class ContactRow(
     var phoneNumber: String? = null,
     var phoneType: String? = null,
     var avatar: String? = null,
+    var avatarUri: Uri? = null,
 )

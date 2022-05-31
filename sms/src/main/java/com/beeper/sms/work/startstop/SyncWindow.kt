@@ -2,7 +2,6 @@ package com.beeper.sms.work.startstop
 
 import android.content.Context
 import android.os.Build
-import androidx.core.app.NotificationManagerCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -17,8 +16,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.lang.Exception
-import java.lang.IllegalStateException
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -28,7 +25,7 @@ class SyncWindow constructor(
 ): CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
-        Log.d(TAG, "SyncWindow doWork()")
+        Log.d(TAG, "SMSSyncWindow doWork()")
         try {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                 try {
@@ -39,7 +36,7 @@ class SyncWindow constructor(
                 }
             }
 
-            return withContext(Dispatchers.Default) {
+            withContext(Dispatchers.Default) {
                 val bridge = StartStopBridge.INSTANCE
 
                 // Give mautrix_imessage time to sync. It will continue if it's idle for
@@ -143,7 +140,7 @@ class SyncWindow constructor(
 
                 lastCommandReceivedMillis = now()
 
-                withTimeoutOrNull(syncTimeout) {
+                val result = withTimeoutOrNull(syncTimeout) {
                     while (now() - lastCommandReceivedMillis < maxIdlePeriod) {
                         delay(maxIdlePeriod)
                         Log.d(
@@ -151,25 +148,23 @@ class SyncWindow constructor(
                                     " ${now() - lastCommandReceivedMillis}"
                         )
                     }
+                    true
                 }
-                Log.d(TAG, "Bridge is idle -> succesfully finishing the work")
+
+                if(result == null){
+                    Log.e(TAG, "Timeout waiting for SyncWindow inactivity")
+                }else{
+                    Log.d(TAG, "Bridge is idle -> successfully finishing the work")
+                }
+
                 job.cancel()
-                bridge.stop()
-                Result.success()
             }
-        }catch (e : Exception){
-            Log.e(TAG, e)
+        }finally {
             val bridge = StartStopBridge.INSTANCE
-            bridge._workerExceptions.tryEmit(Pair(TAG,e))
+            Log.d(TAG, "SMSSyncWindow window finished -> stopping mautrix-imessage")
             bridge.stop()
-            with(NotificationManagerCompat.from(context)) {
-                notify(
-                    ERROR_SYNC_WINDOW_NOTIFICATION_ID, bridge.buildErrorNotification(
-                    context,context.getString(R.string.notification_sync_window_error_title),
-                    e.stackTraceToString()))
-            }
-            return Result.failure()
         }
+        return Result.success()
     }
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
@@ -179,8 +174,6 @@ class SyncWindow constructor(
 
 
     companion object {
-        private const val TAG = "SyncWindow"
-        private const val ERROR_SYNC_WINDOW_NOTIFICATION_ID = 1
-
+        private const val TAG = "SMSSyncWindow"
     }
 }

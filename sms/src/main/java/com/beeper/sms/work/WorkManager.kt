@@ -27,7 +27,8 @@ class WorkManager constructor(val context: Context) {
     fun startSMSBridgeSyncWindow() {
         val isBackfillComplete = StartStopBridge.INSTANCE.getBackfillingState(context)
         if(isBackfillComplete) {
-            Log.d(TAG,"Starting sync window -> backfill is complete")
+            Log.d(TAG,"startSMSBridgeSyncWindow -> backfill is complete." +
+                    "Will be discarded if an existing SMSSyncWindow is running")
             buildSyncWindowWorkRequest().apply {
                 workManager.enqueueUniqueWork(
                     WORK_SMS_BRIDGE_SYNC_WINDOW,
@@ -84,7 +85,6 @@ class WorkManager constructor(val context: Context) {
             )
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
-
     }
 
     private fun buildDisableSMSBridgeWorkRequest() : OneTimeWorkRequest {
