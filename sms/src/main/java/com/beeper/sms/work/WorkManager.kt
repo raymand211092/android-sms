@@ -75,12 +75,9 @@ class WorkManager constructor(val context: Context) {
         return OneTimeWorkRequest
             .Builder(SyncWindow::class.java)
             .setBackoffCriteria(
-                RETRY_POLICY,
-                RETRY_INTERVAL_MS,
-                TimeUnit.MILLISECONDS
-            )
-            .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+                BackoffPolicy.EXPONENTIAL,
+                15,
+                TimeUnit.SECONDS
             )
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()

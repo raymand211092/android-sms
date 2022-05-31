@@ -63,7 +63,15 @@ class SyncWindow constructor(
                 if (!started) {
                     Log.e(TAG, "Bridge couldn't be started!")
                     bridge.stop()
-                    return@withContext Result.failure()
+                    if(runAttemptCount > MAX_ATTEMPTS){
+                        // TODO: track the issue
+                        // TODO: start a sync window after we get network back
+                        Log.e(TAG, "Failure: not retrying anymore")
+                        return@withContext Result.failure()
+                    }else {
+                        Log.e(TAG, "Going to retry it later")
+                        return@withContext Result.retry()
+                    }
                 }
                 Log.w(TAG, "has the bridge")
 
@@ -182,5 +190,7 @@ class SyncWindow constructor(
 
     companion object {
         private const val TAG = "SMSSyncWindow"
+        private const val MAX_ATTEMPTS = 3
+
     }
 }
