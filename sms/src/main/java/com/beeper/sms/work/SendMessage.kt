@@ -2,7 +2,6 @@ package com.beeper.sms.work
 
 import android.content.Context
 import androidx.core.net.toUri
-import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.beeper.sms.Bridge
@@ -58,8 +57,6 @@ class SendMessage constructor(
 
     companion object {
         private const val TAG = "SendMessage"
-        val RETRY_POLICY = BackoffPolicy.LINEAR
-        const val RETRY_INTERVAL_MS = 10_000L
         private const val MAX_RETRY = 30
         const val URI = "uri"
     }
