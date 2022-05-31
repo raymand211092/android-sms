@@ -9,7 +9,6 @@ import com.beeper.sms.StartStopBridge
 import com.beeper.sms.work.startstop.ClearData
 import com.beeper.sms.work.startstop.SimpleBackfill
 import com.beeper.sms.work.startstop.SyncWindow
-import com.google.common.util.concurrent.ListenableFuture
 import java.util.concurrent.TimeUnit
 
 class WorkManager constructor(val context: Context) {
@@ -61,8 +60,8 @@ class WorkManager constructor(val context: Context) {
         return OneTimeWorkRequest
             .Builder(SimpleBackfill::class.java)
             .setBackoffCriteria(
-                SendMessage.RETRY_POLICY,
-                SendMessage.RETRY_INTERVAL_MS,
+                RETRY_POLICY,
+                RETRY_INTERVAL_MS,
                 TimeUnit.MILLISECONDS
             )
             .setConstraints(
@@ -76,8 +75,8 @@ class WorkManager constructor(val context: Context) {
         return OneTimeWorkRequest
             .Builder(SyncWindow::class.java)
             .setBackoffCriteria(
-                SendMessage.RETRY_POLICY,
-                SendMessage.RETRY_INTERVAL_MS,
+                RETRY_POLICY,
+                RETRY_INTERVAL_MS,
                 TimeUnit.MILLISECONDS
             )
             .setConstraints(
@@ -91,8 +90,8 @@ class WorkManager constructor(val context: Context) {
         return OneTimeWorkRequest
             .Builder(ClearData::class.java)
             .setBackoffCriteria(
-                SendMessage.RETRY_POLICY,
-                SendMessage.RETRY_INTERVAL_MS,
+                RETRY_POLICY,
+                RETRY_INTERVAL_MS,
                 TimeUnit.MILLISECONDS
             )
             .setConstraints(
@@ -107,8 +106,8 @@ class WorkManager constructor(val context: Context) {
         OneTimeWorkRequest
             .Builder(SendMessage::class.java)
             .setBackoffCriteria(
-                SendMessage.RETRY_POLICY,
-                SendMessage.RETRY_INTERVAL_MS,
+                RETRY_POLICY,
+                RETRY_INTERVAL_MS,
                 TimeUnit.MILLISECONDS
             )
             .setInputData(Data.Builder().putString(SendMessage.URI, uri.toString()).build())
@@ -135,5 +134,7 @@ class WorkManager constructor(val context: Context) {
         private const val WORK_SMS_BRIDGE_SYNC_WINDOW = "sms_bridge_sync_window"
         private const val WORK_LONG_RUNNING_SYNC_DB = "sync_db"
         private const val TAG = "SMSWorkManager"
+        val RETRY_POLICY = BackoffPolicy.LINEAR
+        const val RETRY_INTERVAL_MS = 10_000L
     }
 }

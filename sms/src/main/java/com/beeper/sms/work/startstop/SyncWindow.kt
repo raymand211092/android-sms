@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import java.lang.Exception
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -158,11 +159,17 @@ class SyncWindow constructor(
                 }
 
                 job.cancel()
+                Log.d(TAG, "SMSSyncWindow window finished -> stopping mautrix-imessage")
+                bridge.stop()
+                Result.success()
             }
-        }finally {
+        }catch (e : Exception){
+            Log.e(TAG, "SMSSyncWindow caught an exception ->")
+            Log.e(TAG, e)
             val bridge = StartStopBridge.INSTANCE
-            Log.d(TAG, "SMSSyncWindow window finished -> stopping mautrix-imessage")
             bridge.stop()
+            return Result.failure()
+
         }
         return Result.success()
     }
