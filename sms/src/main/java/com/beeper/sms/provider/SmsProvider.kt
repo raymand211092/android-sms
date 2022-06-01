@@ -15,6 +15,7 @@ import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeMillis.Companion.toMillis
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageInfo
+import com.beeper.sms.commands.outgoing.MessageStatus
 import com.beeper.sms.extensions.*
 import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 
@@ -31,6 +32,11 @@ class SmsProvider constructor(context: Context) {
 
     fun getLatest(thread: Long, limit: Int) =
         getSms(where = "$THREAD_ID = $thread AND $TYPE <= $MESSAGE_TYPE_SENT",
+            limit = limit, mapper = this::messageMapper)
+
+
+    fun getAll(thread: Long, limit: Int) =
+        getSms(where = "$THREAD_ID = $thread",
             limit = limit, mapper = this::messageMapper)
 
     fun getMessagesAfter(thread: Long, timestamp: TimeMillis) =
@@ -104,6 +110,13 @@ class SmsProvider constructor(context: Context) {
             MESSAGE_TYPE_INBOX -> false
             else -> true
         }
+
+        val messageStatus : MessageStatus = when(it.getInt(TYPE)){
+            MESSAGE_TYPE_FAILED -> MessageStatus.Failed
+            MESSAGE_TYPE_QUEUED, MESSAGE_TYPE_OUTBOX -> MessageStatus.Waiting
+            else -> MessageStatus.Sent
+        }
+
         return Message(
             guid = messageInfo.guid,
             timestamp = messageInfo.timestamp,
@@ -117,6 +130,7 @@ class SmsProvider constructor(context: Context) {
             uri = uri,
             subId = it.getIntOrNull(SUBSCRIPTION_ID),
             creator = messageInfo.creator,
+            messageStatus = messageStatus
         )
     }
 

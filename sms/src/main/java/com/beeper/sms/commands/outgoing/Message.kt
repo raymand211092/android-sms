@@ -4,6 +4,12 @@ import android.net.Uri
 import com.beeper.sms.BuildConfig
 import com.beeper.sms.commands.TimeSeconds
 
+sealed class MessageStatus{
+    object Sent : MessageStatus()
+    object Waiting : MessageStatus()
+    object Failed : MessageStatus()
+}
+
 data class Message(
     var guid: String,
     var timestamp: TimeSeconds,
@@ -24,7 +30,8 @@ data class Message(
     @Transient var rowId: Long,
     @Transient var uri: Uri? = null,
     @Transient var subId: Int? = null,
-) {
+    @Transient var messageStatus: MessageStatus? = null,
+    ) {
     data class Attachment(
         var mime_type: String?,
         var file_name: String,
