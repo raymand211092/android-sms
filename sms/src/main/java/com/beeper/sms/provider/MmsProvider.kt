@@ -12,6 +12,7 @@ import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageInfo
+import com.beeper.sms.commands.outgoing.MessageStatus
 import com.beeper.sms.extensions.*
 import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import com.google.android.mms.pdu_alt.PduHeaders
@@ -33,6 +34,10 @@ class MmsProvider constructor(
 
     fun getLatest(thread: Long, limit: Int) =
         getMms(where = "$THREAD_ID = $thread AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT ",
+            limit = limit, mapper = this::messageMapper)
+
+    fun getAll(thread: Long, limit: Int) =
+        getMms(where = "$THREAD_ID = $thread",
             limit = limit, mapper = this::messageMapper)
 
     fun getMessagesAfter(thread: Long, timestamp: TimeSeconds) =
@@ -105,6 +110,12 @@ class MmsProvider constructor(
             MESSAGE_BOX_INBOX -> false
             else -> true
         }
+        val messageStatus : MessageStatus = when(it.getInt(MESSAGE_BOX)){
+            MESSAGE_BOX_FAILED -> MessageStatus.Failed
+            MESSAGE_BOX_OUTBOX -> MessageStatus.Waiting
+            else -> MessageStatus.Sent
+        }
+
         val sender = when {
             isFromMe -> null
             else -> getSender(rowId)?.chatGuid ?: messageInfo.chat_guid.takeIf { cg -> cg.isDm }
@@ -124,6 +135,7 @@ class MmsProvider constructor(
             rowId = rowId,
             uri = uri,
             subId = it.getIntOrNull(SUBSCRIPTION_ID),
+            messageStatus = messageStatus
         )
     }
 

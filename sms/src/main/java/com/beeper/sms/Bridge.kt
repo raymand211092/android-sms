@@ -12,6 +12,7 @@ import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.extensions.mmsCache
 import com.beeper.sms.helpers.newGson
+import com.beeper.sms.observers.SmsObserver
 import com.google.gson.JsonElement
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow

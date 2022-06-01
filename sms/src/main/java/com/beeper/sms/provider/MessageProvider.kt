@@ -39,6 +39,12 @@ class MessageProvider constructor(
             .sortedBy { it.timestamp }
             .takeLast(limit)
 
+    fun getConversationMessages(thread: Long, limit: Int): List<Message> =
+        smsProvider.getAll(thread, limit)
+            .plus(mmsProvider.getAll(thread, limit))
+            .sortedBy { it.timestamp }
+            .takeLast(limit)
+
     fun getNewSmsMessages(smsInitialId: Long): List<Message> =
         smsProvider.getNewSmsMessages(smsInitialId)
 

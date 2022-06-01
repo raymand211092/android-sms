@@ -1,4 +1,4 @@
-package com.beeper.sms
+package com.beeper.sms.observers
 
 import android.content.Context
 import android.content.UriMatcher
@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.provider.Telephony.Mms
 import android.provider.Telephony.Sms
+import com.beeper.sms.Log
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.work.WorkManager
 
