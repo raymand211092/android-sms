@@ -7,6 +7,7 @@ import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
 import android.os.Binder
+import android.provider.Telephony
 import android.provider.Telephony.Sms.*
 import android.telephony.SmsMessage
 import android.text.TextUtils

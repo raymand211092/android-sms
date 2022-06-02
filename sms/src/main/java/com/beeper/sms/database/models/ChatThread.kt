@@ -9,7 +9,7 @@ data class ChatThread(
     var snippet: String,
     var members: Map<String,ContactRow>,
     var timestamp: TimeMillis,
-    var isRead: Boolean
+    var hasUnread: Boolean
 ){
     fun getTitleFromMembers() : String{
         val threadMemberNames = members.map {
