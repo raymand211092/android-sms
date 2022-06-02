@@ -73,7 +73,7 @@ fun InboxScreen(
                             "#"
                              },
                         firstAvatar,
-                        it.isRead
+                        it.hasUnread
                     )
                 },
                 onClick = { onConversationSelected(it.id) },

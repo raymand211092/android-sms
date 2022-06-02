@@ -1,5 +1,7 @@
 package com.beeper.sms.provider
 
+import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.provider.Telephony
@@ -44,6 +46,16 @@ class MessageProvider constructor(
             .plus(mmsProvider.getAll(thread, limit))
             .sortedBy { it.timestamp }
             .takeLast(limit)
+
+    fun markConversationAsRead(threadId: Long) {
+        val threadUri =
+            ContentUris.withAppendedId(Telephony.Threads.CONTENT_URI, threadId)
+        val values = ContentValues(2)
+        values.put("read", 1);
+        values.put("seen", 1);
+        context.contentResolver.update(threadUri, values,
+            "(read=0 OR seen=0)", null);
+    }
 
     fun getNewSmsMessages(smsInitialId: Long): List<Message> =
         smsProvider.getNewSmsMessages(smsInitialId)

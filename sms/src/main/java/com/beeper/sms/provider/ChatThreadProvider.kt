@@ -80,7 +80,7 @@ class ChatThreadProvider constructor(
                 val contactProvider = ContactProvider(context)
                 while (it.moveToNext()) {
                     val id = it.getLong(Telephony.Threads._ID)
-                    val isRead = it.getInt(Telephony.Threads.READ) == 0
+                    val hasUnread = it.getInt(Telephony.Threads.READ) == 0
 
                     val snippet = it.getString(Telephony.Threads.SNIPPET)
                     var date = cursor.getLong(Telephony.Threads.DATE)
@@ -110,7 +110,7 @@ class ChatThreadProvider constructor(
                         snippet ?: "",
                         contacts,
                         TimeMillis(BigDecimal.valueOf(date)),
-                        isRead
+                        hasUnread
                     )
                 }
             }
@@ -146,7 +146,7 @@ class ChatThreadProvider constructor(
                 val contactProvider = ContactProvider(context)
                 while (it.moveToNext()) {
                     val id = it.getLong(Telephony.Threads._ID)
-                    val isRead = it.getInt(Telephony.Threads.READ) == 0
+                    val hasUnread = it.getInt(Telephony.Threads.READ) == 0
 
                     val snippet = it.getString(Telephony.Threads.SNIPPET)
                     var date = cursor.getLong(Telephony.Threads.DATE)
@@ -177,7 +177,7 @@ class ChatThreadProvider constructor(
                                 snippet ?: "",
                                 contacts,
                                 TimeSeconds(BigDecimal.valueOf(date)).toMillis(),
-                                isRead
+                                hasUnread
                             )
                         )
                     }
