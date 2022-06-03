@@ -149,7 +149,7 @@ class StartStopBridge private constructor() {
 
     suspend fun startProcess(context: Context, skipSync: Boolean, timeoutMillis : Long) : Boolean {
             val config = getConfig()
-            val cache = context.cacheDir(MAUTRIX_CACHE_SUBDIR)
+            val cache = getCacheDir(context)
 
             if(!config.exists()){
                 Log.d(TAG, "imautrix-imessage config or cache path are missing")
@@ -380,13 +380,34 @@ class StartStopBridge private constructor() {
     }
 
 
+    fun getDBFile(context: Context): File{
+        return File(context.filesDir, "mautrix-imessage.db")
+    }
+
+    fun getLogFile(context: Context): File{
+        return File(context.cacheDir, "mautrix-imessage.log")
+    }
+
+    private fun getCacheDir(context: Context): String{
+        return context.cacheDir(MAUTRIX_CACHE_SUBDIR)
+    }
+
+    private fun getMMSCacheDir(context: Context): String{
+        return context.mmsCache
+    }
+
+    private fun deleteBridgeFiles(context:Context){
+        getDBFile(context).delete()
+        getLogFile(context).delete()
+        getCacheDir(context).delete()
+        getMMSCacheDir(context).delete()
+    }
 
     internal suspend fun clearBridgeData(context:Context){
         withContext(scope.coroutineContext){
             storeBackfillingState(context,false)
             stop()
-            context.cacheDir(MAUTRIX_CACHE_SUBDIR).delete()
-            context.mmsCache.delete()
+            deleteBridgeFiles(context)
             configPath = null
             configPathProvider = null
         }
