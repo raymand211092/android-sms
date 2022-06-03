@@ -386,6 +386,7 @@ class StartStopBridge private constructor() {
             storeBackfillingState(context,false)
             stop()
             context.cacheDir(MAUTRIX_CACHE_SUBDIR).delete()
+            context.mmsCache.delete()
             configPath = null
             configPathProvider = null
         }
