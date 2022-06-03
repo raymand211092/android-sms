@@ -43,7 +43,6 @@ class StartStopBridge private constructor() {
 
     private var configPathProvider: (suspend () -> String?)? = null
     private var configPath: String? = null
-    private var cacheDir: String? = null
     private var channelIcon: Int = R.drawable.ic_cloud
     private var pushKey: PushKey? = null
     private var process: Process? = null
@@ -86,7 +85,6 @@ class StartStopBridge private constructor() {
         this.channelIcon = channelIcon
         this.pushKey = pushKey
         nativeLibDir = context.applicationInfo.nativeLibraryDir
-        cacheDir = context.cacheDir("mautrix")
         File(context.mmsCache).deleteRecursively()
     }
 
@@ -151,9 +149,9 @@ class StartStopBridge private constructor() {
 
     suspend fun startProcess(context: Context, skipSync: Boolean, timeoutMillis : Long) : Boolean {
             val config = getConfig()
-            val cache = cacheDir
+            val cache = context.cacheDir(MAUTRIX_CACHE_SUBDIR)
 
-            if(!config.exists() || cache==null){
+            if(!config.exists()){
                 Log.d(TAG, "imautrix-imessage config or cache path are missing")
                 return false
             }
@@ -387,7 +385,7 @@ class StartStopBridge private constructor() {
         withContext(scope.coroutineContext){
             storeBackfillingState(context,false)
             stop()
-            cacheDir?.delete()
+            context.cacheDir(MAUTRIX_CACHE_SUBDIR).delete()
             configPath = null
             configPathProvider = null
         }
@@ -444,6 +442,8 @@ class StartStopBridge private constructor() {
         private const val SMS_SHARED_PREFS = "com.beeper.sms.prefs"
         private const val BACKFILLING_PREF_KEY = "isBackfillComplete"
         private const val NEW_CHAT_THREAD_ID_KEY = "newChatThreadId"
+        private const val MAUTRIX_CACHE_SUBDIR = "mautrix"
+
         private val gson = newGson()
         val INSTANCE = StartStopBridge()
 
