@@ -18,6 +18,7 @@ data class Config(
         var database: String? = null,
         var id: String? = null,
         var bot: Bot? = null,
+        var ephemeral_events: Boolean? = null,
         var as_token: String? = null,
         var hs_token: String? = null,
     )
