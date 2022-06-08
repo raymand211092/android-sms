@@ -32,7 +32,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onSubscription
-import timber.log.Timber
 import java.io.File
 import kotlin.coroutines.CoroutineContext
 
@@ -165,7 +164,9 @@ class StartStopCommandProcessor constructor(
                 Log.d(TAG + "portalSyncScope", "response #${command.id}: ${command.dataTree}")
             }
             "send_read_receipt" -> {
-                Log.v(TAG + "portalSyncScope", "ignore command: $command")
+                val data = deserialize(command,SendReadReceipt::class.java)
+                Log.v(TAG + "portalSyncScope" , "send_read_receipt $command $data")
+                markMessageAsRead(data.read_up_to)
             }
             "error" -> {
                 Log.v(TAG + "portalSyncScope", "error: $command")
@@ -283,7 +284,9 @@ class StartStopCommandProcessor constructor(
                 Log.d(TAG + "syncWindowScope", "response #${command.id}: ${command.dataTree}")
             }
             "send_read_receipt" -> {
-                Log.v(TAG + "syncWindowScope", "ignore command: $command")
+                val data = deserialize(command,SendReadReceipt::class.java)
+                Log.v(TAG + "syncWindowScope", "send_read_receipt $command $data")
+                markMessageAsRead(data.read_up_to)
             }
             "error" -> {
                 Log.v(TAG + "syncWindowScope", "error: $command")
@@ -430,7 +433,9 @@ class StartStopCommandProcessor constructor(
                 Log.d(TAG, "response #${command.id}: ${command.dataTree}")
             }
             "send_read_receipt" -> {
-                Log.v(TAG, "ignore command: $command")
+                val data = deserialize(command,SendReadReceipt::class.java)
+                Log.v(TAG , "send_read_receipt $command $data")
+                markMessageAsRead(data.read_up_to)
             }
             "error" -> {
                 Log.v(TAG, "error: $command")
@@ -634,6 +639,20 @@ class StartStopCommandProcessor constructor(
                 }
             }
         }
+    }
+
+    private fun markMessageAsRead(message_guid: String){
+        val messageProvider = MessageProvider(context)
+        Log.v(TAG, "marking message_guid as read: $message_guid")
+        messageProvider.markMessagesInThreadAsRead(message_guid)
+    }
+
+    private fun markThreadAsRead(recipients: List<String>){
+        val chatThreadProvider = ChatThreadProvider(context)
+        val threadId = chatThreadProvider.getOrCreateThreadId(recipients.toSet())
+        val messageProvider = MessageProvider(context)
+        Log.v(TAG, "marking thread as read: $threadId")
+        messageProvider.markConversationAsRead(threadId)
     }
 
     private fun debugPrintCommand(tag: String, command: Command){

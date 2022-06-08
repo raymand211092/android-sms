@@ -6,8 +6,10 @@ import android.content.Context
 import android.net.Uri
 import android.provider.Telephony
 import com.beeper.sms.commands.TimeSeconds
+import com.beeper.sms.commands.incoming.GroupMessaging.Companion.removePrefix
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageInfo
+import timber.log.Timber
 
 class MessageProvider constructor(
     val context: Context,
@@ -55,6 +57,47 @@ class MessageProvider constructor(
         values.put("seen", 1);
         context.contentResolver.update(threadUri, values,
             "(read=0 OR seen=0)", null);
+    }
+
+    fun markMessagesInThreadAsRead(messageId: String) {
+        val mms = "mms"
+        val sms = "sms"
+
+        val isMMS = messageId.startsWith("${mms}_")
+        val message = if (isMMS) {
+            val id = messageId.removePrefix("${mms}_")
+            getMessage(Uri.parse("content://$mms/$id"))
+        } else {
+            val id = messageId.removePrefix("${sms}_")
+            getMessage(Uri.parse("content://${sms}/$id"))
+        }
+
+        if (message != null) {
+            val recipients = message.chat_guid.removePrefix().split(" ")
+            val chatThreadProvider = ChatThreadProvider(context)
+            val threadId = chatThreadProvider.getOrCreateThreadId(recipients.toSet())
+            val timestamp = message.timestamp
+            val contentValues = ContentValues()
+            contentValues.put("READ", 1)
+            context.contentResolver.update(
+                Uri.parse("content://mms/"),
+                contentValues,
+                "THREAD_ID = $threadId " +
+                        "AND READ = 0 " +
+                        "AND DATE <= ${timestamp.toLong()}",
+                null
+            )
+            context.contentResolver.update(
+                Uri.parse("content://sms/"),
+                contentValues,
+                "THREAD_ID = $threadId " +
+                        "AND READ = 0 " +
+                        "AND DATE <= ${timestamp.toMillis().toLong()}",
+                null
+            )
+        } else {
+            Timber.e("Message couldn't be loaded to mark as read")
+        }
     }
 
     fun getNewSmsMessages(smsInitialId: Long): List<Message> =

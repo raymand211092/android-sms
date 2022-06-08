@@ -59,7 +59,7 @@ class SimpleBackfill constructor(
                 val fulfillPortalJob = bridge.commandsReceived.onEach {
                     val validCommandsToKeepItOpen = listOf(
                         "get_chat", "get_chats", "get_contact", "get_recent_messages",
-                        "get_messages_after", "get_chat_avatar", "message_bridge_result"
+                        "get_messages_after", "get_chat_avatar", "message_bridge_result",
                     )
                     bridge.commandProcessor.handlePortalSyncScopedCommands(it)
                     if (validCommandsToKeepItOpen.contains(it.command)) {
