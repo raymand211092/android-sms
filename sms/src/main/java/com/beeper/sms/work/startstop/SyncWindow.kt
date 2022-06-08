@@ -48,7 +48,7 @@ class SyncWindow constructor(
                 val job = bridge.commandsReceived.onEach {
                     val validCommandsToKeepItOpen = listOf(
                         "get_chat", "get_contact", "send_message",
-                        "send_media", "bridge_this_message"
+                        "send_media", "send_read_receipt", "bridge_this_message"
                     )
                     bridge.commandProcessor.handleSyncWindowScopedCommands(it)
                     if (validCommandsToKeepItOpen.contains(it.command)) {
