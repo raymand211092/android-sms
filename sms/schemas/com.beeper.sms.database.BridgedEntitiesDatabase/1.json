@@ -1,0 +1,68 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "8235b7c2bbf442cac547afbfdaaf7b79",
+    "entities": [
+      {
+        "tableName": "BridgedChatThread",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chat_guid` INTEGER NOT NULL, PRIMARY KEY(`chat_guid`))",
+        "fields": [
+          {
+            "fieldPath": "chat_guid",
+            "columnName": "chat_guid",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "chat_guid"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "BridgedMessage",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chat_guid` TEXT NOT NULL, `message_id` INTEGER NOT NULL, `is_mms` INTEGER NOT NULL, PRIMARY KEY(`chat_guid`, `message_id`, `is_mms`))",
+        "fields": [
+          {
+            "fieldPath": "chat_guid",
+            "columnName": "chat_guid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "message_id",
+            "columnName": "message_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "is_mms",
+            "columnName": "is_mms",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "chat_guid",
+            "message_id",
+            "is_mms"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8235b7c2bbf442cac547afbfdaaf7b79')"
+    ]
+  }
+}
