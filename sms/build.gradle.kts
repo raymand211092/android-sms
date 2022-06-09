@@ -31,6 +31,12 @@ android {
             "BRIDGE_VERSION",
             "${Version.major * 1_00_00 + Version.minor * 1_00 + Version.patch}L"
         )
+
+        kapt {
+            arguments {
+                arg("room.schemaLocation", "$projectDir/schemas")
+            }
+        }
     }
 
     buildTypes {
