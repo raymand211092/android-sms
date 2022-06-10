@@ -13,6 +13,10 @@ interface BridgedMessageDao {
         message_id : Long
     ): Boolean
 
+
+    @Query("SELECT DISTINCT chat_guid FROM bridgedmessage")
+    fun getBridgedChats(): List<String>?
+
     @Query("SELECT MAX(message_id) FROM bridgedmessage WHERE is_mms = 0")
     fun getLastBridgedSmsId(): Long?
 

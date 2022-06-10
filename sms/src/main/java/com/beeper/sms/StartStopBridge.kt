@@ -9,13 +9,10 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.room.Room
-import com.beeper.sms.StartStopBridge.Companion.requestId
 import com.beeper.sms.commands.Command
+import com.beeper.sms.commands.internal.BridgeReadReceipt
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
-import com.beeper.sms.commands.outgoing.Chat
-import com.beeper.sms.commands.outgoing.Error
-import com.beeper.sms.commands.outgoing.Message
-import com.beeper.sms.commands.outgoing.PushKey
+import com.beeper.sms.commands.outgoing.*
 import com.beeper.sms.database.BridgedEntitiesDatabase
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.extensions.cacheDir
@@ -318,6 +315,14 @@ class StartStopBridge private constructor() {
         )
     }
 
+    internal fun buildReadReceiptCommand(readReceipt: ReadReceipt) : Command {
+        return Command(
+            "read_receipt",
+            data = readReceipt,
+            requestId.addAndGet(1)
+        )
+    }
+
     internal fun send(id: Int, error: Error) = send(Command("error", error, id))
 
     val running: Boolean
@@ -377,6 +382,13 @@ class StartStopBridge private constructor() {
     suspend fun forwardChatToBridge(threadId: Long) {
         Log.d(TAG, "Forwarding chat to bridge: ThreadId: $threadId")
         commandProcessor.bridgeChatWithThreadId(threadId)
+    }
+
+    suspend fun forwardReadReceiptToBridge(readReceiptToBeBridged: BridgeReadReceipt) {
+        Log.d(TAG, "Forwarding ReadReceipt to bridge: " +
+                "${readReceiptToBeBridged.readReceipt}")
+        commandProcessor.sendReadReceiptCommandAndAwaitForResponse(
+            readReceiptToBeBridged.readReceipt, 5000)
     }
 
 

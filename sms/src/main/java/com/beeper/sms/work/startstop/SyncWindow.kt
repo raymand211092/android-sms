@@ -8,6 +8,8 @@ import androidx.work.WorkerParameters
 import com.beeper.sms.Log
 import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
+import com.beeper.sms.commands.outgoing.ReadReceipt
+import com.beeper.sms.database.models.BridgedReadReceipt
 import com.beeper.sms.helpers.now
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.work.WorkManager
@@ -155,6 +157,84 @@ class SyncWindow constructor(
                     }
                 }
 
+                val bridgedChats = database.bridgedMessageDao().getBridgedChats()
+                Log.d(TAG, "Bridging ${bridgedChats?.size ?: 0} unbridged read receipts:")
+
+                        bridgedChats?.onEach {
+                    chat_guid ->
+                    val lastReadMessage = messageProvider.getLastReadMessage(chat_guid)
+                    if(lastReadMessage != null){
+                        Log.d(TAG, "Last read message $lastReadMessage")
+
+                        val readReceiptDao = database.bridgedReadReceiptDao()
+                        val lastReadMessageBridged =
+                            readReceiptDao.getLastBridgedMessage(chat_guid)
+                        if(lastReadMessageBridged!=null){
+                            Log.d(TAG, "lastReadMessageBridged $lastReadMessageBridged")
+
+                            if(lastReadMessageBridged.read_up_to_timestamp <
+                                lastReadMessage.timestamp.toMillis().toLong()){
+                                Log.d(TAG, "Bridging ${lastReadMessage.guid} read receipt")
+                                //Bridge timestamp
+                                //Store new bridgedReadReceipt upon confirmation
+                                val result = bridge.commandProcessor.sendReadReceiptCommandAndAwaitForResponse(
+                                    ReadReceipt(
+                                        chat_guid,
+                                        read_up_to = lastReadMessage.guid,
+                                        read_at = lastReadMessage.timestamp
+                                    ),
+                                    5000
+                                )
+                                if(result!=null) {
+                                    Log.d(TAG, "Read receipt for ${lastReadMessage.guid} was bridged")
+                                    readReceiptDao.insert(
+                                        BridgedReadReceipt(
+                                            chat_guid,
+                                            lastReadMessage.guid,
+                                            lastReadMessage.timestamp.toMillis().toLong()
+                                        )
+                                    )
+                                }else{
+                                    Log.d(TAG, "Timeout bridging ${lastReadMessage.guid} read receipt")
+                                }
+                            }   else{
+                                //Not bridging timestamp, ignoring
+                                Log.d(TAG, "lastReadMessageBridged has a newer timestamp" +
+                                        "than lastReadMessage on the database, ignoring $chat_guid")
+                            }
+                        }else{
+                            Log.d(TAG, "lastReadMessageBridged is null")
+
+                            //Not bridging timestamp, ignoring
+                            Log.d(TAG, "Bridging ${lastReadMessage.guid} read receipt")
+                            //Bridge timestamp
+                            //Store new bridgedReadReceipt upon confirmation
+                            val result = bridge.commandProcessor.sendReadReceiptCommandAndAwaitForResponse(
+                                ReadReceipt(
+                                    chat_guid,
+                                    read_up_to = lastReadMessage.guid,
+                                    read_at = lastReadMessage.timestamp
+                                ),
+                                5000
+                            )
+                            if(result!=null) {
+                                Log.d(TAG, "Read receipt for ${lastReadMessage.guid} was bridged")
+                                readReceiptDao.insert(
+                                    BridgedReadReceipt(
+                                        chat_guid,
+                                        lastReadMessage.guid,
+                                        lastReadMessage.timestamp.toMillis().toLong()
+                                    )
+                                )
+                            }else{
+                                Log.d(TAG, "Timeout bridging ${lastReadMessage.guid} read receipt")
+                            }
+                        }
+                    }else{
+                        Log.d(TAG, "Last read message is null")
+                    }
+                }
+
                 //Shouldn't run for more than 5min, shouldn't be idle for more than 20 seconds
                 val syncTimeout = 5.toDuration(DurationUnit.MINUTES).inWholeMilliseconds
                 val maxIdlePeriod = 20.toDuration(DurationUnit.SECONDS).inWholeMilliseconds
@@ -201,6 +281,5 @@ class SyncWindow constructor(
     companion object {
         private const val TAG = "SMSSyncWindow"
         private const val MAX_ATTEMPTS = 2
-
     }
 }

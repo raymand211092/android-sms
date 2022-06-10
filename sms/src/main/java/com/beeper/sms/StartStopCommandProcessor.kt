@@ -9,10 +9,7 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
-import com.beeper.sms.commands.outgoing.Chat
-import com.beeper.sms.commands.outgoing.Error
-import com.beeper.sms.commands.outgoing.Message
-import com.beeper.sms.commands.outgoing.PushKey
+import com.beeper.sms.commands.outgoing.*
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
@@ -638,6 +635,23 @@ class StartStopCommandProcessor constructor(
                     Log.e(TAG, "Couldn't bridge chat $threadId")
                 }
             }
+        }
+    }
+
+    suspend fun sendReadReceiptCommandAndAwaitForResponse(readReceipt: ReadReceipt,
+                                                          timeoutMillis: Long) : Unit?{
+        return withTimeoutOrNull(timeoutMillis) {
+            val completableDeferred = CompletableDeferred<Unit>()
+            val command = bridge.buildReadReceiptCommand(readReceipt)
+            val job = commandsReceived.onSubscription {
+                bridge.send(command)
+            }.onEach {
+                if (it.id == command.id) {
+                    completableDeferred.complete(Unit)
+                }
+            }.launchIn(scope)
+            completableDeferred.await()
+            job.cancel()
         }
     }
 
