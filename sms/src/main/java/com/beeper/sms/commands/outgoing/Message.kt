@@ -31,6 +31,7 @@ data class Message(
     @Transient var uri: Uri? = null,
     @Transient var subId: Int? = null,
     @Transient var messageStatus: MessageStatus? = null,
+    @Transient var is_read: Boolean? = null,
     ) {
     data class Attachment(
         var mime_type: String?,

@@ -49,6 +49,29 @@ class MessageProvider constructor(
             .sortedBy { it.timestamp }
             .takeLast(limit)
 
+    fun getLastReadMessage(chat_guid: String) : Message? {
+        val recipients = chat_guid.removePrefix().split(" ")
+        val chatThreadProvider = ChatThreadProvider(context)
+        val threadId = chatThreadProvider.getOrCreateThreadId(recipients.toSet())
+
+        val lastMmsMessage = mmsProvider.getLastReadMessage(threadId)
+        val lastSmsMessage = smsProvider.getLastReadMessage(threadId)
+        val lastMmsTimestamp = lastMmsMessage?.timestamp
+        val lastSmsTimestamp = lastSmsMessage?.timestamp
+
+        if(lastMmsTimestamp == null){
+            return lastSmsMessage
+        }
+        if(lastSmsTimestamp == null){
+            return lastMmsMessage
+        }
+        return if(lastMmsTimestamp > lastSmsTimestamp){
+            lastMmsMessage
+        }else{
+            lastSmsMessage
+        }
+    }
+
     fun markConversationAsRead(threadId: Long) {
         val threadUri =
             ContentUris.withAppendedId(Telephony.Threads.CONTENT_URI, threadId)

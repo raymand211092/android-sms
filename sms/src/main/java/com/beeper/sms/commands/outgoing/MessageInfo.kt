@@ -9,5 +9,6 @@ data class MessageInfo(
     var chat_guid: String,
     var uri: Uri,
     var creator: String?,
-    var sent_from_matrix: Boolean
+    var sent_from_matrix: Boolean,
+    var is_read: Boolean
 )

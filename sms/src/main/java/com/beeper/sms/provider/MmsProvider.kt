@@ -72,6 +72,7 @@ class MmsProvider constructor(
                 CREATOR,
                 DATE,
                 MESSAGE_BOX,
+                READ,
                 SUBJECT,
                 RESPONSE_STATUS,
                 SUBSCRIPTION_ID
@@ -88,6 +89,8 @@ class MmsProvider constructor(
 
     private fun messageInfoMapper(it: Cursor, rowId: Long, uri: Uri): MessageInfo? {
         val thread = it.getLong(THREAD_ID)
+        val isRead = it.getInt(READ) == 1
+
         val chatGuid = guidProvider.getChatGuid(thread)
         if (chatGuid.isNullOrBlank()) {
             Log.e(TAG, "Error generating guid for $thread")
@@ -101,6 +104,7 @@ class MmsProvider constructor(
             uri,
             creator,
             creator == packageName,
+            isRead
         )
     }
 
@@ -136,8 +140,18 @@ class MmsProvider constructor(
             rowId = rowId,
             uri = uri,
             subId = it.getIntOrNull(SUBSCRIPTION_ID),
-            messageStatus = messageStatus
+            messageStatus = messageStatus,
+            is_read = messageInfo.is_read
         )
+    }
+
+    fun getLastReadMessage(threadId: Long) : Message? {
+        return getDistinctMms(
+            where = "$THREAD_ID = $threadId " +
+                    "AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT AND $READ = 1",
+            mapper = this::messageMapper,
+            order = "$_ID DESC",
+        ).firstOrNull()
     }
 
     /* SyncWindow */
@@ -150,10 +164,11 @@ class MmsProvider constructor(
         )
     private fun <T> getDistinctMms(
         where: String,
-        mapper: (Cursor, Long, Uri) -> T?
+        mapper: (Cursor, Long, Uri) -> T?,
+        order : String = "$_ID ASC"
     ): List<T> =
         listOf(CONTENT_URI).flatMap { uri ->
-            getMms(uri = uri, where = where, order = "$_ID ASC", mapper = mapper)
+            getMms(uri = uri, where = where, order = order, mapper = mapper)
         }
 
     private fun getSender(message: Long): String? =

@@ -8,6 +8,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Binder
 import android.provider.Telephony
+import android.provider.Telephony.BaseMmsColumns.MESSAGE_BOX
 import android.provider.Telephony.Sms.*
 import android.telephony.SmsMessage
 import android.text.TextUtils
@@ -73,6 +74,7 @@ class SmsProvider constructor(context: Context) {
                 DATE,
                 ADDRESS,
                 CREATOR,
+                READ,
                 TYPE,
                 SUBJECT,
                 BODY,
@@ -90,6 +92,8 @@ class SmsProvider constructor(context: Context) {
 
     private fun messageInfoMapper(it: Cursor, rowId: Long, uri: Uri): MessageInfo? {
         val address = it.getString(ADDRESS)
+        val isRead = it.getInt(READ) == 1
+
         if (address == null) {
             Log.e(TAG, "Missing address: ${it.dumpCurrentRow()}")
             return null
@@ -102,6 +106,7 @@ class SmsProvider constructor(context: Context) {
             uri,
             creator,
             creator == packageName,
+            isRead
         )
     }
 
@@ -131,8 +136,18 @@ class SmsProvider constructor(context: Context) {
             uri = uri,
             subId = it.getIntOrNull(SUBSCRIPTION_ID),
             creator = messageInfo.creator,
-            messageStatus = messageStatus
+            messageStatus = messageStatus,
+            is_read = messageInfo.is_read
         )
+    }
+
+    fun getLastReadMessage(threadId: Long) : Message? {
+        return getDistinctSms(
+            where = "${Telephony.Sms.THREAD_ID} = $threadId " +
+                    "AND ${Telephony.Sms.TYPE} <= $MESSAGE_TYPE_SENT AND $READ = 1 ",
+            mapper = this::messageMapper,
+            order = "$_ID DESC",
+        ).firstOrNull()
     }
 
     /* SyncWindow */
