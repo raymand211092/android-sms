@@ -164,14 +164,10 @@ class SyncWindow constructor(
                     chat_guid ->
                     val lastReadMessage = messageProvider.getLastReadMessage(chat_guid)
                     if(lastReadMessage != null){
-                        Log.d(TAG, "Last read message $lastReadMessage")
-
                         val readReceiptDao = database.bridgedReadReceiptDao()
                         val lastReadMessageBridged =
                             readReceiptDao.getLastBridgedMessage(chat_guid)
                         if(lastReadMessageBridged!=null){
-                            Log.d(TAG, "lastReadMessageBridged $lastReadMessageBridged")
-
                             if(lastReadMessageBridged.read_up_to_timestamp <
                                 lastReadMessage.timestamp.toMillis().toLong()){
                                 Log.d(TAG, "Bridging ${lastReadMessage.guid} read receipt")
@@ -199,14 +195,12 @@ class SyncWindow constructor(
                                 }
                             }   else{
                                 //Not bridging timestamp, ignoring
-                                Log.d(TAG, "lastReadMessageBridged has a newer timestamp" +
-                                        "than lastReadMessage on the database, ignoring $chat_guid")
+                                Log.d(TAG, "lastReadMessageBridged has a newer timestamp, " +
+                                        "ignoring $chat_guid")
                             }
                         }else{
-                            Log.d(TAG, "lastReadMessageBridged is null")
-
                             //Not bridging timestamp, ignoring
-                            Log.d(TAG, "Bridging ${lastReadMessage.guid} read receipt")
+                            Log.d(TAG, "Bridging ${lastReadMessage.guid} read receipt (null lastReadMessageBridged)")
                             //Bridge timestamp
                             //Store new bridgedReadReceipt upon confirmation
                             val result = bridge.commandProcessor.sendReadReceiptCommandAndAwaitForResponse(
