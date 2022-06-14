@@ -29,6 +29,10 @@ abstract class MmsSent : BroadcastReceiver() {
             (intent?.getParcelableExtra(Transaction.SENT_MMS_BUNDLE) as? Bundle)?.getInt(Transaction.COMMAND_ID)
         val message = uri?.let { MmsProvider(context).getMessageInfo(it) }
 
+        if(uri?.toString()?.startsWith("content://mms/outbox") == true){
+            Log.d(TAG, "MMS is only on outbox, it wasn't delivered yet")
+        }
+
         if(commandId == null && message == null){
             Log.e(TAG, "Error on SMS sent: Missing commandId and message uri")
             Log.e(TAG, "Missing message (uri=$uri) (commandId=$commandId)")
@@ -36,10 +40,18 @@ abstract class MmsSent : BroadcastReceiver() {
         }
 
         if(commandId != null && resultCode != Activity.RESULT_OK){
+            Log.e(TAG, "Bridging error response to MMS not delivered:" +
+                    " ${errorToString(resultCode, intent)}")
+            // Bridge should be running, otherwise it will just fail
             StartStopBridge.INSTANCE.send(
                 commandId,
                 Error("network_error", errorToString(resultCode, intent))
             )
+            return
+        }
+
+        if(resultCode != Activity.RESULT_OK){
+            Log.e(TAG, "Error when sending MMS: ${errorToString(resultCode, intent)}")
             return
         }
 
