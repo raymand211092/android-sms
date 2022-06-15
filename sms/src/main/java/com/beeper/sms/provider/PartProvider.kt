@@ -26,7 +26,7 @@ class PartProvider constructor(private val context: Context) {
                     Part(text = data?.let { getMmsText(partId) } ?: it.getString(TEXT))
                 }
                 "application/smil" -> {
-                    Log.d(TAG, "Ignoring $mimetype: ${it.getString(TEXT)}")
+                    Log.v(TAG, "Ignoring $mimetype: ${it.getString(TEXT)}")
                     null
                 }
                 else -> {

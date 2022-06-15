@@ -5,6 +5,7 @@ import android.database.ContentObserver
 import android.net.Uri
 import android.os.Handler
 import android.os.HandlerThread
+import android.provider.ContactsContract
 import com.beeper.sms.Log
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -19,7 +20,10 @@ class ThreadObserver(
     val threadChanges = _threadChanges.asSharedFlow()
 
     fun registerObserver() {
-        val uri = Uri.parse(BASE_THREAD_PATH + threadId.toString())
+        val uri  = Uri.withAppendedPath(
+            Uri.parse(BASE_THREAD_PATH),
+            threadId.toString()
+        )
         Log.d(TAG, "Watching $uri")
         context.contentResolver.registerContentObserver(uri, true, this)
     }
@@ -28,8 +32,11 @@ class ThreadObserver(
 
     override fun onChange(selfChange: Boolean, uri: Uri?) {
         super.onChange(selfChange, uri)
-        Log.d(TAG, "onChange $uri")
         _threadChanges.tryEmit(Unit)
+        if(uri.toString() == BASE_THREAD_PATH) {
+            Log.v(TAG, "onChange $uri")
+            _threadChanges.tryEmit(Unit)
+        }
     }
 
     companion object {

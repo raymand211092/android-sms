@@ -27,8 +27,10 @@ class AllMessagesObserver(
 
     override fun onChange(selfChange: Boolean, uri: Uri?) {
         super.onChange(selfChange, uri)
-        Log.d(TAG, "onChange $uri")
-        _changes.tryEmit(Unit)
+        if(uri.toString() == BASE_THREAD_PATH) {
+            Log.v(TAG, "onChange $uri")
+            _changes.tryEmit(Unit)
+        }
     }
 
     companion object {
