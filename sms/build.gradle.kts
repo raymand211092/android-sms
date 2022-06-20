@@ -9,7 +9,7 @@ plugins {
 object Version {
     const val major = 0
     const val minor = 2
-    const val patch = 29
+    const val patch = 30
 }
 
 android {
@@ -109,7 +109,7 @@ afterEvaluate {
 
 dependencies {
     implementation("androidx.work:work-runtime-ktx:${Versions.work}")
-    implementation("com.gitlab.beeper:android-smsmms:a9f3eeb5")
+    implementation("com.gitlab.beeper:android-smsmms:a7dc2043")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.1")
     implementation("androidx.core:core-ktx:1.6.0")
     implementation("com.google.code.gson:gson:2.8.7")
