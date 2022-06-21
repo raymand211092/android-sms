@@ -17,11 +17,11 @@ import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.MmsProvider
-import com.klinker.android.send_message.MmsSentReceiver.EXTRA_CONTENT_URI
+import com.klinker.android.send_message.MmsSentReceiver
 import com.klinker.android.send_message.Transaction
 
-abstract class MmsSent : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) {
+abstract class MmsSent : MmsSentReceiver() {
+    override fun onMessageStatusUpdated(context: Context, intent: Intent?, resultCode: Int) {
         Log.d(TAG, "result: $resultCode intent: ${intent.printExtras()}")
 
         val uri = intent?.getStringExtra(EXTRA_CONTENT_URI)?.toUri()
