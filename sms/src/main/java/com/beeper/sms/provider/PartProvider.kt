@@ -20,6 +20,9 @@ class PartProvider constructor(private val context: Context) {
         cr.map(URI_PART, "$MSG_ID = $message") {
             val partId = it.getLong(_ID)
             val mimetype = it.getString(CONTENT_TYPE) ?: ""
+
+            val fileExtension = mimetype.split("/").getOrNull(1)
+
             val data = it.getString("_data")
             when (mimetype) {
                 "text/plain" -> {
@@ -34,7 +37,13 @@ class PartProvider constructor(private val context: Context) {
                     if (!folder.exists()) {
                         folder.mkdir();
                     }
-                    val file = File(context.mmsCache,  UUID.randomUUID().toString())
+                    val fileNameSuffix = UUID.randomUUID().toString()
+                    val fileName = if(fileExtension!=null){
+                        fileNameSuffix + ".${fileExtension}"
+                    }else{
+                        fileNameSuffix
+                    }
+                    val file = File(context.mmsCache,  fileName)
                     if (!file.exists()) {
                         file.createNewFile()
                     }
