@@ -60,12 +60,19 @@ data class Config(
         var default: Boolean? = null,
         var appservice: Boolean? = null,
         var key_sharing: KeySharing? = null,
+        var rotation: Rotation? = null
     )
 
     data class KeySharing(
         var allow: Boolean? = null,
         var require_cross_signing: Boolean? = null,
         var require_verification: Boolean? = null,
+    )
+
+    data class Rotation(
+        var enable_custom: Boolean? = null,
+        var milliseconds: Long? = null,
+        var messages: Int? = null,
     )
 
     data class Logging(
