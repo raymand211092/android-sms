@@ -37,6 +37,9 @@ data class Message(
         var mime_type: String?,
         var file_name: String,
         var path_on_disk: String,
+        @Transient var media_thumbnail_height: Int? = null,
+        @Transient var media_thumbnail_width: Int? = null
+
     )
 
     data class AssociatedMessage(
