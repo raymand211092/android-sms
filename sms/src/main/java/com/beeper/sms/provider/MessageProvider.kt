@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.provider.Telephony
+import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.incoming.GroupMessaging.Companion.removePrefix
 import com.beeper.sms.commands.outgoing.Message
@@ -48,6 +49,16 @@ class MessageProvider constructor(
             .plus(mmsProvider.getAll(thread, limit))
             .sortedBy { it.timestamp }
             .takeLast(limit)
+
+    fun getConversationMessagesAfter(thread: Long, timestampSeconds: TimeSeconds, limit: Int): List<Message> =
+        smsProvider.getMessagesAfterWithLimit(thread, timestampSeconds.toMillis(), limit)
+            .plus(mmsProvider.getMessagesAfterWithLimit(thread, timestampSeconds, limit))
+            .sortedBy { it.timestamp }
+
+    fun getConversationMessagesBefore(thread: Long, timestampSeconds: TimeSeconds,  limit: Int): List<Message> =
+        smsProvider.getMessagesBeforeWithLimit(thread, timestampSeconds.toMillis(), limit)
+            .plus(mmsProvider.getMessagesBeforeWithLimit(thread, timestampSeconds, limit))
+            .sortedBy { it.timestamp }
 
     fun getLastReadMessage(chat_guid: String) : Message? {
         val recipients = chat_guid.removePrefix().split(" ")

@@ -32,9 +32,8 @@ class ThreadObserver(
 
     override fun onChange(selfChange: Boolean, uri: Uri?) {
         super.onChange(selfChange, uri)
-        _threadChanges.tryEmit(Unit)
         if(uri.toString() == BASE_THREAD_PATH) {
-            Log.v(TAG, "onChange $uri")
+            Log.v(TAG, "onChange $uri selfChange: $selfChange")
             _threadChanges.tryEmit(Unit)
         }
     }

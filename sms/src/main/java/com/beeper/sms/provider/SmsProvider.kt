@@ -48,6 +48,13 @@ class SmsProvider constructor(context: Context) {
             this::messageMapper
         )
 
+    fun getMessagesAfterWithLimit(thread: Long, timestamp: TimeMillis, limit: Int = 30) =
+        getSms(where = "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()} ",
+            limit = limit, mapper = this::messageMapper)
+
+    fun getMessagesBeforeWithLimit(thread: Long, timestamp: TimeMillis, limit: Int = 30) =
+        getSms(where = "$THREAD_ID = $thread AND $DATE < ${timestamp.toLong()} ",
+            limit = limit, mapper = this::messageMapper)
 
     fun getMessage(uri: Uri) = getSms(uri, mapper = this::messageMapper).firstOrNull()
 

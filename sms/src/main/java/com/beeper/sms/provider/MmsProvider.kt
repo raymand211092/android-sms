@@ -9,6 +9,7 @@ import android.provider.Telephony
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.Log
+import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.Message
@@ -48,7 +49,16 @@ class MmsProvider constructor(
             this::messageMapper
         )
 
+    fun getMessagesAfterWithLimit(thread: Long, timestamp: TimeSeconds, limit: Int = 30) =
+        getMms(where = "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()} ",
+            limit = limit, mapper = this::messageMapper)
+
+    fun getMessagesBeforeWithLimit(thread: Long, timestamp: TimeSeconds, limit: Int = 30) =
+        getMms(where = "$THREAD_ID = $thread AND $DATE < ${timestamp.toLong()} ",
+            limit = limit, mapper = this::messageMapper)
+
     fun getMessage(uri: Uri) = getMms(uri, mapper = this::messageMapper).firstOrNull()
+
 
     private fun <T> getMms(where: String? = "$MESSAGE_BOX <= $MESSAGE_BOX_SENT",
                            mapper: (Cursor, Long, Uri) -> T?): List<T> =
