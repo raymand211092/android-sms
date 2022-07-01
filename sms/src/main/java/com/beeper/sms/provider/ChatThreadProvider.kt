@@ -135,7 +135,12 @@ class ChatThreadProvider constructor(
             val threads = mutableListOf<ChatThread>()
             cursor?.use {
                 val contactProvider = ContactProvider(context)
-                while (it.moveToNext()) {
+                fun canFetchNextThreadDetail() = if(limit > 0 ){
+                    threads.size < limit
+                }else{
+                    true
+                }
+                while (it.moveToNext() && canFetchNextThreadDetail()) {
                     val id = it.getLong(Telephony.Threads._ID)
                     val hasUnread = it.getInt(Telephony.Threads.READ) == 0
 
@@ -290,6 +295,7 @@ class ChatThreadProvider constructor(
 
     private suspend fun getThreads(threadId: Long? = null, limit: Int = 0): List<ChatThread> {
         return withContext(Dispatchers.IO) {
+            Timber.d("SMSInbox getThreads: limit: $limit")
 
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
 
@@ -316,7 +322,12 @@ class ChatThreadProvider constructor(
                 context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
             cursor?.use {
                 val contactProvider = ContactProvider(context)
-                while (it.moveToNext()) {
+                fun canFetchNextThreadDetail() = if(limit > 0 ){
+                    threads.size < limit
+                }else{
+                    true
+                }
+                while (it.moveToNext() && canFetchNextThreadDetail()) {
                     val id = it.getLong(Telephony.Threads._ID)
                     val hasUnread = it.getInt(Telephony.Threads.READ) == 0
 
