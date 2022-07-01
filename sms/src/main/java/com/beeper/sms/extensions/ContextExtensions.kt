@@ -13,11 +13,17 @@ import java.io.File
 fun Context.getSharedPreferences(): SharedPreferences =
     getSharedPreferences("sms_bridge", Context.MODE_PRIVATE)
 
-fun Context.cacheDir(subdir: String): String =
+fun Context.cacheDirPath(subdir: String): String =
     File(cacheDir, subdir).apply { mkdirs() }.absolutePath
 
-val Context.mmsCache: String
-    get() = cacheDir("mms")
+val Context.mmsDir: File
+    get() {
+        val mmsDir = File(cacheDir,"mms")
+        if (!mmsDir.exists()) {
+            mmsDir.mkdirs()
+        }
+        return mmsDir
+    }
 
 fun Context.hasPermission(permission: String): Boolean =
     ContextCompat.checkSelfPermission(this, permission) == PERMISSION_GRANTED

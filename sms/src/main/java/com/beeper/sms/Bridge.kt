@@ -7,10 +7,10 @@ import com.beeper.sms.BridgeService.Companion.stopBridge
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.outgoing.PushKey
-import com.beeper.sms.extensions.cacheDir
+import com.beeper.sms.extensions.cacheDirPath
 import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
-import com.beeper.sms.extensions.mmsCache
+import com.beeper.sms.extensions.mmsDir
 import com.beeper.sms.helpers.newGson
 import com.beeper.sms.observers.SmsObserver
 import com.google.gson.JsonElement
@@ -54,8 +54,8 @@ class Bridge private constructor() {
         this.channelIcon = channelIcon
         this.pushKey = pushKey
         nativeLibDir = context.applicationInfo.nativeLibraryDir
-        cacheDir = context.cacheDir("mautrix")
-        if (File(context.mmsCache).deleteRecursively()) {
+        cacheDir = context.cacheDirPath("mautrix")
+        if (context.mmsDir.deleteRecursively()) {
             Log.d(TAG, "Deleted MMS cache")
         } else {
             Log.e(TAG, "Failed to delete MMS cache")
