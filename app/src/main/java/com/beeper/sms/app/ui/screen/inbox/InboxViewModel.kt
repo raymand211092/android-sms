@@ -22,7 +22,7 @@ class InboxViewModel(private val threadProvider: ChatThreadProvider) : ViewModel
     }
 
     private suspend fun loadThreads(){
-        state_.value = InboxState.Loaded(threadProvider.fetchThreads())
+        state_.value = InboxState.Loaded(threadProvider.fetchThreads(15))
     }
 
     class Factory(private val threadProvider: ChatThreadProvider) : ViewModelProvider.Factory {

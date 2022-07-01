@@ -8,6 +8,7 @@ import androidx.core.text.isDigitsOnly
 import com.beeper.sms.Log
 import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeSeconds
+import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.database.models.ChatThread
 import com.beeper.sms.extensions.getInt
 import com.beeper.sms.extensions.getLong
@@ -44,9 +45,146 @@ class ChatThreadProvider constructor(
         }
     }
 
-    suspend fun fetchThreads(): List<ChatThread> {
+    data class ThreadInfo(
+        var threadId: String,
+        var snippet: String,
+        var timestamp: TimeMillis,
+        var hasUnread: Boolean
+    )
+
+    suspend fun getChatsAfter(timestamp: TimeMillis): List<ChatThread> {
         return withContext(Dispatchers.IO) {
-            getThreads()
+            val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
+            val projection = arrayOf(
+                Telephony.Threads._ID,
+                Telephony.Threads.READ,
+                Telephony.Threads.DATE,
+                Telephony.Threads.SNIPPET,
+                Telephony.Threads.RECIPIENT_IDS
+            )
+            val selection = "${Telephony.Threads.DATE} > ? AND ${Telephony.Threads.MESSAGE_COUNT} > ?"
+            val selectionArgs: Array<String> = arrayOf(timestamp.toLong().toString(), "0")
+            val sortOrder = "${Telephony.Threads.DATE} DESC"
+            val cursor =
+                context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
+            val threads = mutableListOf<ChatThread>()
+            cursor?.use {
+                val contactProvider = ContactProvider(context)
+                while (it.moveToNext()) {
+                    val id = it.getLong(Telephony.Threads._ID)
+                    val hasUnread = it.getInt(Telephony.Threads.READ) == 0
+
+                    val snippet = it.getString(Telephony.Threads.SNIPPET)
+                    var date = cursor.getLong(Telephony.Threads.DATE)
+                    if (date.toString().length > 10) {
+                        date /= 1000
+                    }
+
+
+                    val ids = cursor.getString(Telephony.Threads.RECIPIENT_IDS)
+                    val recipientIdList = ids?.split(" ")?.filter {
+                            recipient->
+                        recipient.isDigitsOnly()
+                    }?.map { number -> number.toLong() }?.toList()
+
+                    val recipientPhoneNumbers = recipientIdList?.let { recipientIds ->
+                        getThreadPhoneNumbers(recipientIds)
+                    }
+
+                    val contacts = recipientPhoneNumbers?.let { numbers ->
+                        numbers.map {
+                                number ->
+                            number to contactProvider.getContact(number)
+                        }
+                    }?.toMap()
+
+
+
+                    if (contacts != null) {
+                        threads.add(
+                            ChatThread(
+                                id.toString(),
+                                snippet ?: "",
+                                contacts,
+                                TimeSeconds(BigDecimal.valueOf(date)).toMillis(),
+                                hasUnread
+                            )
+                        )
+                    }
+                }
+            }
+            threads
+        }
+    }
+
+    suspend fun getChatsBefore(timestamp: TimeMillis, limit: Int): List<ChatThread> {
+        return withContext(Dispatchers.IO) {
+            val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
+            val projection = arrayOf(
+                Telephony.Threads._ID,
+                Telephony.Threads.READ,
+                Telephony.Threads.DATE,
+                Telephony.Threads.SNIPPET,
+                Telephony.Threads.RECIPIENT_IDS
+            )
+            val selection = "${Telephony.Threads.DATE} < ? AND ${Telephony.Threads.MESSAGE_COUNT} > ?"
+            val selectionArgs: Array<String> = arrayOf(timestamp.toLong().toString(), "0")
+            val sortOrder = "${Telephony.Threads.DATE} DESC LIMIT $limit"
+            val cursor =
+                context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
+            val threads = mutableListOf<ChatThread>()
+            cursor?.use {
+                val contactProvider = ContactProvider(context)
+                while (it.moveToNext()) {
+                    val id = it.getLong(Telephony.Threads._ID)
+                    val hasUnread = it.getInt(Telephony.Threads.READ) == 0
+
+                    val snippet = it.getString(Telephony.Threads.SNIPPET)
+                    var date = cursor.getLong(Telephony.Threads.DATE)
+                    if (date.toString().length > 10) {
+                        date /= 1000
+                    }
+
+                    val ids = cursor.getString(Telephony.Threads.RECIPIENT_IDS)
+                    val recipientIdList = ids?.split(" ")?.filter {
+                            recipient->
+                        recipient.isDigitsOnly()
+                    }?.map { number -> number.toLong() }?.toList()
+
+                    val recipientPhoneNumbers = recipientIdList?.let { recipientIds ->
+                        getThreadPhoneNumbers(recipientIds)
+                    }
+
+                    val contacts = recipientPhoneNumbers?.let { numbers ->
+                        numbers.map {
+                                number ->
+                            number to contactProvider.getContact(number)
+                        }
+                    }?.toMap()
+
+
+
+                    if (contacts != null) {
+                        threads.add(
+                            ChatThread(
+                                id.toString(),
+                                snippet ?: "",
+                                contacts,
+                                TimeSeconds(BigDecimal.valueOf(date)).toMillis(),
+                                hasUnread
+                            )
+                        )
+                    }
+                }
+            }
+            threads
+        }
+    }
+
+
+    suspend fun fetchThreads(limit: Int): List<ChatThread> {
+        return withContext(Dispatchers.IO) {
+            getThreads(limit = limit)
         }
     }
 
@@ -122,7 +260,35 @@ class ChatThreadProvider constructor(
         }
     }
 
-    private suspend fun getThreads(threadId: Long? = null): List<ChatThread> {
+
+    suspend fun getReadStatus(threadIds: List<Long>): Map<Long,Boolean> {
+        return withContext(Dispatchers.IO) {
+            val result = mutableMapOf<Long,Boolean>()
+            threadIds.onEach {
+                threadId->
+                val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
+                val projection = arrayOf(
+                    Telephony.Threads._ID,
+                    Telephony.Threads.READ,
+                )
+                val selection = "${Telephony.Threads._ID} = ? AND ${Telephony.Threads.READ} <> 0"
+                val selectionArgs: Array<String> = arrayOf(threadId.toString())
+                val cursor =
+                    context.contentResolver.query(uri, projection, selection, selectionArgs, null
+                    )
+                cursor?.use {
+                    if (cursor.moveToFirst()) {
+                        val id = it.getLong(Telephony.Threads._ID)
+                        val hasUnread = it.getInt(Telephony.Threads.READ) == 0
+                        result[id] = hasUnread
+                    }
+                }
+            }
+            result.toMap()
+        }
+    }
+
+    private suspend fun getThreads(threadId: Long? = null, limit: Int = 0): List<ChatThread> {
         return withContext(Dispatchers.IO) {
 
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
@@ -141,8 +307,10 @@ class ChatThreadProvider constructor(
                 selection += " AND ${Telephony.Threads._ID} = ?"
                 selectionArgs = arrayOf("0", threadId.toString())
             }
+            var sortOrder = "${Telephony.Threads.DATE} DESC"
+            if(limit > 0 )
+                sortOrder += " LIMIT $limit"
 
-            val sortOrder = "${Telephony.Threads.DATE} DESC"
             val threads = mutableListOf<ChatThread>()
             val cursor =
                 context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
@@ -157,6 +325,8 @@ class ChatThreadProvider constructor(
                     if (date.toString().length > 10) {
                         date /= 1000
                     }
+
+
                     val ids = cursor.getString(Telephony.Threads.RECIPIENT_IDS)
                     val recipientIdList = ids?.split(" ")?.filter {
                         recipient->
@@ -173,6 +343,8 @@ class ChatThreadProvider constructor(
                             number to contactProvider.getContact(number)
                         }
                     }?.toMap()
+
+
 
                     if (contacts != null) {
                         threads.add(
