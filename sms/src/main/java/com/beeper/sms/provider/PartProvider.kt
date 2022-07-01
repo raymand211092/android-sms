@@ -9,7 +9,9 @@ import androidx.core.net.toUri
 import com.beeper.sms.Log
 import com.beeper.sms.commands.outgoing.Message.Attachment
 import com.beeper.sms.extensions.*
+import timber.log.Timber
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.*
@@ -24,6 +26,7 @@ class PartProvider constructor(private val context: Context) {
             val mimetype = it.getString(CONTENT_TYPE) ?: ""
 
             val fileExtension = mimetype.split("/").getOrNull(1)
+            val folder =  context.mmsDir
 
             val data = it.getString("_data")
             when (mimetype) {
@@ -35,36 +38,45 @@ class PartProvider constructor(private val context: Context) {
                     null
                 }
                 else -> {
-                    val folder = File(context.mmsCache)
-                    if (!folder.exists()) {
-                        folder.mkdir();
-                    }
-                    val fileNameSuffix = UUID.randomUUID().toString()
-                    val fileName = if (fileExtension != null) {
-                        fileNameSuffix + ".${fileExtension}"
+                    val existingFileNameSuffix = message.toString() + partId.toString()
+                    val existingFileName = if (fileExtension != null) {
+                        existingFileNameSuffix + ".${fileExtension}"
                     } else {
-                        fileNameSuffix
+                        existingFileNameSuffix
                     }
-                    val file = File(context.mmsCache, fileName)
-                    if (!file.exists()) {
-                        file.createNewFile()
-                    }
+                    val existingFile = File(folder, existingFileName)
 
-                    val uri = "$URI_PART/$partId".toUri()
-                    cr.openInputStream(uri)?.writeTo(file)
+                    val file = if(!existingFile.exists()){
+                        val newFile = File(folder, existingFileName)
+                        if (!newFile.exists()) {
+                            newFile.createNewFile()
+                        }
+                        val uri = "$URI_PART/$partId".toUri()
+                        cr.openInputStream(uri)?.writeTo(newFile)
+                        newFile
+                    }else{
+                        existingFile
+                    }
 
                     val mediaThumbnailSize: Pair<Int, Int>? =
                         extractMediaDimensions(mimetype, file)
 
-                    Part(
-                        attachment = Attachment(
-                            mime_type = mimetype,
-                            file_name = it.getString(NAME) ?: file.name,
-                            path_on_disk = file.absolutePath,
-                            mediaThumbnailSize?.first,
-                            mediaThumbnailSize?.second
+                    try {
+
+
+                        Part(
+                            attachment = Attachment(
+                                mime_type = mimetype,
+                                file_name = it.getString(NAME) ?: file.name,
+                                path_on_disk = file.absolutePath,
+                                mediaThumbnailSize?.first,
+                                mediaThumbnailSize?.second
+                            )
                         )
-                    )
+                    }catch (e: FileNotFoundException){
+                        Timber.e("Couldn't write $URI_PART/$partId to file: ${file.absolutePath} ")
+                        null
+                    }
                 }
             }
         }

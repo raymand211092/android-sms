@@ -15,10 +15,10 @@ import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.*
 import com.beeper.sms.database.BridgedEntitiesDatabase
 import com.beeper.sms.database.models.BridgedMessage
-import com.beeper.sms.extensions.cacheDir
+import com.beeper.sms.extensions.cacheDirPath
 import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
-import com.beeper.sms.extensions.mmsCache
+import com.beeper.sms.extensions.mmsDir
 import com.beeper.sms.helpers.newGson
 import com.beeper.sms.work.WorkManager
 import kotlinx.coroutines.*
@@ -82,7 +82,6 @@ class StartStopBridge private constructor() {
         this.channelIcon = channelIcon
         this.pushKey = pushKey
         nativeLibDir = context.applicationInfo.nativeLibraryDir
-        File(context.mmsCache).deleteRecursively()
     }
 
     suspend fun start(context: Context?,
@@ -401,11 +400,11 @@ class StartStopBridge private constructor() {
     }
 
     private fun getCacheDir(context: Context): String{
-        return context.cacheDir(MAUTRIX_CACHE_SUBDIR)
+        return context.cacheDirPath(MAUTRIX_CACHE_SUBDIR)
     }
 
     private fun getMMSCacheDir(context: Context): String{
-        return context.mmsCache
+        return context.mmsDir.absolutePath
     }
 
     private fun deleteBridgeFiles(context:Context){
