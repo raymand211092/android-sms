@@ -38,7 +38,7 @@ class PartProvider constructor(private val context: Context) {
                     null
                 }
                 else -> {
-                    val existingFileNameSuffix = message.toString() + partId.toString()
+                    val existingFileNameSuffix = message.toString() + "part" + partId.toString()
                     val existingFileName = if (fileExtension != null) {
                         existingFileNameSuffix + ".${fileExtension}"
                     } else {
