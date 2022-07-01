@@ -5,6 +5,7 @@ import android.database.ContentObserver
 import android.net.Uri
 import android.os.Handler
 import android.os.HandlerThread
+import android.provider.Telephony
 import com.beeper.sms.Log
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,7 +19,7 @@ class AllMessagesObserver(
     val changes = _changes.asSharedFlow()
 
     fun registerObserver() {
-        val uri = Uri.parse(BASE_THREAD_PATH)
+        val uri = Telephony.Threads.CONTENT_URI
         Log.d(TAG, "Watching $uri")
         context.contentResolver.registerContentObserver(uri, true, this)
     }
@@ -27,15 +28,12 @@ class AllMessagesObserver(
 
     override fun onChange(selfChange: Boolean, uri: Uri?) {
         super.onChange(selfChange, uri)
-        if(uri.toString() == BASE_THREAD_PATH) {
-            Log.v(TAG, "onChange $uri")
-            _changes.tryEmit(Unit)
-        }
+        Log.v(TAG, "onChange $uri")
+        _changes.tryEmit(Unit)
     }
 
     companion object {
         private const val TAG = "AllMessagesObserver"
-        private const val BASE_THREAD_PATH = "content://mms-sms/conversations/"
         fun getHandler() = HandlerThread("AllMessagesObserver").let {
             it.start()
             Handler(it.looper)
