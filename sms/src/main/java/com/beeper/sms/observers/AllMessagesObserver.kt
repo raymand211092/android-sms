@@ -5,6 +5,7 @@ import android.database.ContentObserver
 import android.net.Uri
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import android.provider.Telephony
 import com.beeper.sms.Log
 import kotlinx.coroutines.channels.BufferOverflow
@@ -13,7 +14,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 
 class AllMessagesObserver(
     private val context: Context,
-) : ContentObserver(getHandler()) {
+) : ContentObserver(Handler(Looper.getMainLooper())) {
     private val _changes = MutableSharedFlow<Unit>(
         replay = 0, extraBufferCapacity = 5, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val changes = _changes.asSharedFlow()

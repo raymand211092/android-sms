@@ -5,6 +5,7 @@ import android.database.ContentObserver
 import android.net.Uri
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import android.provider.ContactsContract
 import android.provider.Telephony
 import com.beeper.sms.Log
@@ -15,7 +16,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 class ThreadObserver(
     private val threadId: Long,
     private val context: Context,
-) : ContentObserver(getHandler()) {
+) : ContentObserver(Handler(Looper.getMainLooper())) {
     private val _threadChanges = MutableSharedFlow<Unit>(
         replay = 0, extraBufferCapacity = 5, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val threadChanges = _threadChanges.asSharedFlow()
@@ -39,9 +40,5 @@ class ThreadObserver(
     companion object {
         private val URIS = listOf(Telephony.Sms.CONTENT_URI, Telephony.Mms.CONTENT_URI)
         private const val TAG = "ThreadObserver"
-        fun getHandler() = HandlerThread("ThreadObserver").let {
-            it.start()
-            Handler(it.looper)
-        }
     }
 }
