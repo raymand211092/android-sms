@@ -8,7 +8,6 @@ import androidx.core.text.isDigitsOnly
 import com.beeper.sms.Log
 import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeSeconds
-import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.database.models.ChatThread
 import com.beeper.sms.extensions.getInt
 import com.beeper.sms.extensions.getLong
@@ -17,6 +16,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.math.BigDecimal
+
+
+data class ChatThreadSummary(
+    val timestamp: TimeMillis,
+    val preview: String,
+    val hasUnread: Boolean
+)
+
 
 class ChatThreadProvider constructor(
     val context: Context,
@@ -202,7 +209,6 @@ class ChatThreadProvider constructor(
     suspend fun getThread(threadId: Long, includeEmpty: Boolean = false): ChatThread? {
         return withContext(Dispatchers.IO) {
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
-
             val projection = arrayOf(
                 Telephony.Threads._ID,
                 Telephony.Threads.SNIPPET,
@@ -236,7 +242,6 @@ class ChatThreadProvider constructor(
                     }
                     val ids = cursor.getString(Telephony.Threads.RECIPIENT_IDS)
 
-
                     val recipientIdList = ids?.split(" ")?.map { recipientId ->
                         recipientId.toLong()
                     }?.toList()
@@ -265,6 +270,41 @@ class ChatThreadProvider constructor(
         }
     }
 
+    fun getThreadSummary(threadId: Long): ChatThreadSummary? {
+            val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
+
+            val projection = arrayOf(
+                Telephony.Threads._ID,
+                Telephony.Threads.SNIPPET,
+                Telephony.Threads.DATE,
+                Telephony.Threads.READ,
+            )
+
+            val selection = "${Telephony.Threads._ID} = ?"
+            val selectionArgs: Array<String> = arrayOf(threadId.toString())
+
+            val cursor =
+                context.contentResolver.query(uri, projection, selection, selectionArgs, null)
+            cursor?.use {
+                while (it.moveToNext()) {
+                    val hasUnread = it.getInt(Telephony.Threads.READ) == 0
+
+                    val snippet = it.getString(Telephony.Threads.SNIPPET)
+                    var date = cursor.getLong(Telephony.Threads.DATE)
+                    if (date.toString().length ==10) {
+                        date *= 1000
+                    }
+
+                    return ChatThreadSummary(
+                        TimeMillis(BigDecimal.valueOf(date)),
+                        snippet ?: "",
+                        hasUnread
+                    )
+                }
+            }
+        return null
+
+    }
 
     suspend fun getReadStatus(threadIds: List<Long>): Map<Long,Boolean> {
         return withContext(Dispatchers.IO) {
