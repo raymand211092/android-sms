@@ -333,7 +333,7 @@ class StartStopBridge private constructor() {
             ?.apply {
                 try {
                     val json = gson.toJson(command)
-                    Log.d(TAG, "send${command.requestId}: $command --- json: $json")
+                    Log.d(TAG, "send${command.requestId}: $command")
                     append("$json\n")
                     flush()
                 } catch (e: Exception) {
@@ -351,7 +351,7 @@ class StartStopBridge private constructor() {
             ?.apply {
                 try {
                     val json = gson.toJson(command)
-                    Log.d(TAG, "send${command.requestId}: $command --- json: $json")
+                    Log.d(TAG, "send${command.requestId}: $command")
                     append("$json\n")
                     flush()
                     Log.d(TAG, "DB storing bridged message:" +
