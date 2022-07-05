@@ -184,8 +184,8 @@ class SimpleBackfill constructor(
     companion object {
         private const val TAG = "SimpleBackfillWorker"
         private const val ERROR_BACKFILLING_NOTIFICATION_ID = 0
-        private const val BACKFILL_STARTUP_TIMEOUT_MILLIS = 6L * 60L * 1000L
-        private const val BACKFILL_COMPLETION_TIMEOUT_MILLIS = 20L * 60L * 1000L
+        private const val BACKFILL_STARTUP_TIMEOUT_MILLIS = 10L * 60L * 1000L
+        private const val BACKFILL_COMPLETION_TIMEOUT_MILLIS = 25L * 60L * 1000L
         private const val MAX_IDLE_PERIOD_MILLIS = 60L * 1000L
         private const val MAX_ATTEMPTS = 5
 
