@@ -23,7 +23,8 @@ abstract class SmsReceived : BroadcastReceiver() {
             val loadedMessage = MessageProvider(context).getMessage(uri)
             if(loadedMessage!=null) {
                 com.beeper.sms.Log.d(TAG, "Asked to bridge this message " +
-                        "in Android's database: ${loadedMessage.chat_guid}")
+                        "in Android's database: ${loadedMessage.guid}" +
+                        "chat_guio: ${loadedMessage.chat_guid}")
                 StartStopBridge.INSTANCE.forwardMessageToBridge(
                     BridgeThisSmsOrMms(
                         loadedMessage
