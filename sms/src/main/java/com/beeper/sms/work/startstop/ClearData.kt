@@ -41,7 +41,6 @@ class ClearData constructor(
                 database.bridgedMessageDao().clear()
                 database.bridgedChatThreadDao().clear()
                 database.close()
-                //TODO -> clear sharedPrefs to mark that sms is disabled
                 Result.success()
             }
         }catch(e : Exception){

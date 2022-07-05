@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.Telephony
 import androidx.core.text.isDigitsOnly
+import com.beeper.sms.BuildConfig
 import com.beeper.sms.Log
 import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeSeconds
@@ -201,8 +202,9 @@ class ChatThreadProvider constructor(
     }
 
     fun getOrCreateThreadId(recipients: Set<String>): Long {
-        //TODO: Remove before publishing
-        Log.d(TAG,"getOrCreateThreadId recipients: $recipients")
+        if(BuildConfig.DEBUG) {
+            Log.d(TAG, "getOrCreateThreadId recipients: $recipients")
+        }
         return Telephony.Threads.getOrCreateThreadId(context, recipients)
     }
 

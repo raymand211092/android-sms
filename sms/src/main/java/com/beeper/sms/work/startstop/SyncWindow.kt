@@ -68,10 +68,7 @@ class SyncWindow constructor(
                     job.cancel()
                     bridge.stop()
                     if(runAttemptCount > MAX_ATTEMPTS - 1){
-                        // TODO: track the issue
-                        // TODO: start a sync window after we get network back
                         Log.e(TAG, "Failure: not retrying anymore")
-
                         val avoidRestart = inputData.getBoolean(
                             "avoidRestart", false)
                         if(!avoidRestart){

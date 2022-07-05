@@ -57,7 +57,6 @@ class WorkManager constructor(val context: Context) {
     }
 
     fun disableSMSBridge() {
-        //TODO => Didn't work: cancellation is cooperative
         workManager.cancelUniqueWork(WORK_SMS_BRIDGE_RETRY_SYNC_WINDOW_WHEN_ONLINE)
         workManager.cancelUniqueWork(WORK_SMS_BRIDGE_SYNC_WINDOW)
         workManager.cancelUniqueWork(WORK_ENABLE_SMS_BRIDGE)
