@@ -46,7 +46,6 @@ class StartStopBridge private constructor() {
         get() = field?.takeIf { it.running }
     private val outgoing = newSingleThreadExecutor().asCoroutineDispatcher()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    // TODO: Adjust shared flow capacity
     private val _commandsReceived = MutableSharedFlow<Command>(
             replay = 0,
         extraBufferCapacity = 100,
@@ -421,6 +420,7 @@ class StartStopBridge private constructor() {
             deleteBridgeFiles(context)
             configPath = null
             configPathProvider = null
+            //TODO: clear snared prefs to show that
         }
     }
 
@@ -453,9 +453,9 @@ class StartStopBridge private constructor() {
 
     fun buildErrorNotification(context: Context, title: String, contentText: String) : Notification{
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            createNotificationChannel(context, BRIDGE_ERROR_CHANNEL_ID)
+            createNotificationChannel(context, DEFAULT_CHANNEL_ID)
         }
-        return NotificationCompat.Builder(context, BRIDGE_ERROR_CHANNEL_ID)
+        return NotificationCompat.Builder(context, DEFAULT_CHANNEL_ID)
             .setSound(null)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
@@ -470,7 +470,6 @@ class StartStopBridge private constructor() {
         const val DEFAULT_STARTUP_TIMEOUT_MILLIS = 30000L
         private const val TAG = "StartStopBridge"
         const val DEFAULT_CHANNEL_ID = "sms_bridge"
-        private const val BRIDGE_ERROR_CHANNEL_ID = "sms_bridge_error"
 
         private const val SMS_SHARED_PREFS = "com.beeper.sms.prefs"
         private const val BACKFILLING_PREF_KEY = "isBackfillComplete"

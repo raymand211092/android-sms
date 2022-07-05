@@ -11,7 +11,6 @@ import com.klinker.android.send_message.DeliveredReceiver
 class SmsDelivered : DeliveredReceiver() {
     override fun onMessageStatusUpdated(context: Context, intent: Intent?, resultCode: Int) {
         Log.d(TAG, "result: $resultCode extras: ${intent.printExtras()}")
-        //TODO: Reliability ->needs to start reacting to this one to be sure of the delivery
     }
 
     companion object {

@@ -20,17 +20,17 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.lang.IllegalStateException
 
 
-//TODO: -> issue with chat_guids, contact_guids and group rooms
 class SimpleBackfill constructor(
     private val context: Context,
     workerParams: WorkerParameters,
 ): CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
-        Log.d(TAG, "SimpleBackfill doWork()")
+        Log.d(TAG, "SimpleBackfill doWork() attempt: $runAttemptCount")
+        val bridge = StartStopBridge.INSTANCE
+
         return withContext(Dispatchers.Default) {
             try {
-                val bridge = StartStopBridge.INSTANCE
 
                 try {
                     setForeground(getForegroundInfo())
@@ -44,12 +44,16 @@ class SimpleBackfill constructor(
                 )
 
                 if (!started) {
-                    Log.e(TAG, "Couldn't start the bridge -> backfill didn't happen")
                     bridge.stop()
-                    //TODO: Show notification -> disable SMS
-                    return@withContext Result.failure()
+                    if(runAttemptCount > MAX_ATTEMPTS - 1) {
+                        Log.e(TAG, "Couldn't start the bridge -> not retrying anymore. $runAttemptCount")
+                        return@withContext Result.failure()
+                    }else{
+                        Log.e(TAG, "Couldn't start the bridge -> retrying backfill (attempt: $runAttemptCount)")
+                        return@withContext Result.retry()
+                    }
                 }
-                Log.w(TAG, "has the bridge -> waiting for imessage-mautrix commands")
+                Log.d(TAG, "has the bridge -> waiting for imessage-mautrix commands")
                 val database = bridge.database
 
                 // Give mautrix_imessage time to sync. It continues if it is idle for
@@ -138,22 +142,35 @@ class SimpleBackfill constructor(
                     "Finished backfilling"
                 )
                 bridge.storeBackfillingState(context, true)
-                //TODO -> Store info saying that the backfill is complete
                 bridge.stop()
-                Result.success()
+                return@withContext Result.success()
             }catch(e : Exception){
+                Log.e(
+                    TAG,
+                    "Backfill failed!!!"
+                )
                 Log.e(TAG, e)
-                val bridge = StartStopBridge.INSTANCE
-                bridge._workerExceptions.tryEmit(Pair(TAG,e))
                 bridge.stop()
+                bridge._workerExceptions.tryEmit(Pair(TAG,e))
                 with(NotificationManagerCompat.from(context)) {
                     notify(ERROR_BACKFILLING_NOTIFICATION_ID, bridge.buildErrorNotification(
                         context,context.getString(R.string.notification_backfilling_error_title),
-                        e.stackTraceToString()))
+                        "History sync failed."))
                 }
-                Result.failure()
+                if(runAttemptCount > MAX_ATTEMPTS - 1) {
+                    Log.e(TAG, "Couldn't finish backfill. Not retrying anymore. $runAttemptCount")
+                    return@withContext Result.failure()
+                }else{
+                    Log.e(TAG, "Couldn't finish backfill. Retrying - (attempt: $runAttemptCount)")
+                    return@withContext Result.retry()
+                }
+            }finally {
+                Log.d(TAG, "Backfill finishing")
+                bridge.stop()
             }
         }
+
+
     }
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
@@ -167,9 +184,11 @@ class SimpleBackfill constructor(
     companion object {
         private const val TAG = "SimpleBackfillWorker"
         private const val ERROR_BACKFILLING_NOTIFICATION_ID = 0
-        private const val BACKFILL_STARTUP_TIMEOUT_MILLIS = 10L * 60L * 1000L
+        private const val BACKFILL_STARTUP_TIMEOUT_MILLIS = 6L * 60L * 1000L
         private const val BACKFILL_COMPLETION_TIMEOUT_MILLIS = 20L * 60L * 1000L
         private const val MAX_IDLE_PERIOD_MILLIS = 60L * 1000L
+        private const val MAX_ATTEMPTS = 5
+
 
     }
 }
