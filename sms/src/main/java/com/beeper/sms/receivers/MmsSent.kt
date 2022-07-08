@@ -1,10 +1,10 @@
 package com.beeper.sms.receivers
 
 import android.app.Activity
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Telephony
 import android.telephony.SmsManager.*
 import androidx.core.net.toUri
 import com.beeper.sms.Log
@@ -28,6 +28,10 @@ abstract class MmsSent : MmsSentReceiver() {
         val commandId =
             (intent?.getParcelableExtra(Transaction.SENT_MMS_BUNDLE) as? Bundle)?.getInt(Transaction.COMMAND_ID)
         val message = uri?.let { MmsProvider(context).getMessageInfo(it) }
+
+        // Notify content observers about MMS changes
+        context.contentResolver.notifyChange(Telephony.Mms.CONTENT_URI, null)
+
 
         if(uri?.toString()?.startsWith("content://mms/outbox") == true){
             Log.d(TAG, "MMS is only on outbox, it wasn't delivered yet")
