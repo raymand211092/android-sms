@@ -1,6 +1,7 @@
 package com.beeper.sms.receivers
 
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -17,6 +18,7 @@ import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.MmsProvider
+import com.google.android.mms.util_alt.SqliteWrapper
 import com.klinker.android.send_message.MmsSentReceiver
 import com.klinker.android.send_message.Transaction
 
@@ -28,6 +30,23 @@ abstract class MmsSent : MmsSentReceiver() {
         val commandId =
             (intent?.getParcelableExtra(Transaction.SENT_MMS_BUNDLE) as? Bundle)?.getInt(Transaction.COMMAND_ID)
         val message = uri?.let { MmsProvider(context).getMessageInfo(it) }
+
+        if(uri!= null) {
+            try {
+                val values = ContentValues(1)
+                if (resultCode != Activity.RESULT_OK) {
+                    values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_SENT)
+                } else {
+                    values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_FAILED);
+                }
+                SqliteWrapper.update(
+                    context, context.contentResolver, uri, values,
+                    null, null
+                )
+            }catch (e: Exception){
+                Log.e(TAG, "Couldn't update MMS status MmsSent:onMessageStatusUpdated")
+            }
+        }
 
         // Notify content observers about MMS changes
         context.contentResolver.notifyChange(Telephony.Mms.CONTENT_URI, null)
