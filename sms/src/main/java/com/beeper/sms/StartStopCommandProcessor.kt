@@ -683,7 +683,7 @@ class StartStopCommandProcessor constructor(
 
     fun <T>deserialize(command: Command,c: Class<T>): T =
         gson.fromJson(command.dataTree, c)
-            .apply { Log.d(TAG, "receive #$command.id: $this") }
+            .apply { Log.d(TAG, "receive #${command.id}: $this") }
 
     private fun noPermissionError(commandId: Int) {
         bridge.send(
