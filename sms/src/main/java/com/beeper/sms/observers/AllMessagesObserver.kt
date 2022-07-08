@@ -24,6 +24,10 @@ class AllMessagesObserver(
         context.contentResolver.registerContentObserver(uri, true, this)
     }
 
+    fun unregisterObserver(){
+        context.contentResolver.unregisterContentObserver(this)
+    }
+
     override fun deliverSelfNotifications() = true
 
     override fun onChange(selfChange: Boolean, uri: Uri?) {

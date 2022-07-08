@@ -28,6 +28,10 @@ class ThreadObserver(
         }
     }
 
+    fun unregisterObserver(){
+        context.contentResolver.unregisterContentObserver(this)
+    }
+
     override fun deliverSelfNotifications() = true
 
     override fun onChange(selfChange: Boolean, uri: Uri?) {
