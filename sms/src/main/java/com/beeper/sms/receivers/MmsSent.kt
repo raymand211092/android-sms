@@ -37,7 +37,12 @@ abstract class MmsSent : MmsSentReceiver() {
                 if (resultCode != Activity.RESULT_OK) {
                     values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_SENT)
                 } else {
-                    values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_FAILED);
+                    if(resultCode != MMS_ERROR_NO_DATA_NETWORK) {
+                        values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_FAILED);
+                    }else{
+                        // Keep the waiting status because it could be sent later
+                        // TODO: Ensure it is marked as SENT if system sends it again
+                    }
                 }
                 SqliteWrapper.update(
                     context, context.contentResolver, uri, values,
