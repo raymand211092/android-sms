@@ -34,7 +34,7 @@ abstract class MmsSent : MmsSentReceiver() {
         if(uri!= null) {
             try {
                 val values = ContentValues(1)
-                if (resultCode != Activity.RESULT_OK) {
+                if (resultCode == Activity.RESULT_OK) {
                     values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_SENT)
                 } else {
                     if(resultCode != MMS_ERROR_NO_DATA_NETWORK) {
