@@ -49,7 +49,7 @@ class SyncWindow constructor(
                 Log.d(TAG, "lastCommandReceivedTime: $lastCommandReceivedMillis")
                 val job = bridge.commandsReceived.onEach {
                     val validCommandsToKeepItOpen = listOf(
-                        "get_chat", "get_contact", "send_message",
+                        "get_chat", "get_contact", "send_message", "get_recent_messages",
                         "send_media", "send_read_receipt", "bridge_this_message"
                     )
                     bridge.commandProcessor.handleSyncWindowScopedCommands(it)
@@ -155,7 +155,7 @@ class SyncWindow constructor(
                 }
 
                 val bridgedChats = database.bridgedMessageDao().getBridgedChats()
-                Log.d(TAG, "Bridging ${bridgedChats?.size ?: 0} unbridged read receipts:")
+                Log.d(TAG, "Checking ${bridgedChats?.size ?: 0} unbridged read receipts:")
 
                         bridgedChats?.onEach {
                     chat_guid ->
@@ -226,9 +226,9 @@ class SyncWindow constructor(
                     }
                 }
 
-                //Shouldn't run for more than 5min, shouldn't be idle for more than 20 seconds
+                //Shouldn't run for more than 5min, shouldn't be idle for more than 30 seconds
                 val syncTimeout = 5.toDuration(DurationUnit.MINUTES).inWholeMilliseconds
-                val maxIdlePeriod = 20.toDuration(DurationUnit.SECONDS).inWholeMilliseconds
+                val maxIdlePeriod = 30.toDuration(DurationUnit.SECONDS).inWholeMilliseconds
 
                 lastCommandReceivedMillis = now()
 

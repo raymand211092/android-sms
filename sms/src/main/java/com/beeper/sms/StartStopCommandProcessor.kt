@@ -211,9 +211,12 @@ class StartStopCommandProcessor constructor(
             }
             "get_recent_messages" -> {
                 Log.d(TAG + "syncWindowScope", "receive: $command")
-                bridge.send(
-                    Command("response", listOf<Message>(), command.id)
-                )
+                val data = deserialize(command,GetRecentMessages::class.java)
+
+                val threadId = context.getThread(data)
+                val messages = messageProvider.getRecentMessages(threadId, data.limit.toInt())
+
+                bridge.send(Command("response", messages, command.id))
             }
             "get_chat_avatar" -> {
                 Log.d(TAG + "syncWindowScope", "receive: $command")

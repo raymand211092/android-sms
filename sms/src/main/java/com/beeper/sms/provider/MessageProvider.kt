@@ -134,11 +134,24 @@ class MessageProvider constructor(
         }
     }
 
+    suspend fun getLastSmsIdFromThread(threadId: Long): Long? =
+        smsProvider.getLastSmsIdFromThread(threadId)
+
+
     fun getNewSmsMessages(smsInitialId: Long): List<Message> =
         smsProvider.getNewSmsMessages(smsInitialId)
 
+    fun getNewSmsMessagesMetadata(smsInitialId: Long): List<Pair<Long,Long>> =
+        smsProvider.getNewSmsMessagesMetadata(smsInitialId)
+
+    suspend fun getLastMmsIdFromThread(threadId: Long): Long? =
+        mmsProvider.getLastMmsIdFromThread(threadId)
+
     fun getNewMmsMessages(mmsInitialId: Long): List<Message> =
         mmsProvider.getNewMmsMessages(mmsInitialId)
+
+    fun getNewMmsMessagesMetadata(mmsInitialId: Long): List<Pair<Long,Long>> =
+        mmsProvider.getNewMmsMessagesMetadata(mmsInitialId)
 
     companion object {
         private val Uri.isMms: Boolean
