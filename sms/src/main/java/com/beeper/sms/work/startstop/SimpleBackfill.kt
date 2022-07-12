@@ -10,6 +10,8 @@ import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.helpers.now
+import com.beeper.sms.provider.ChatThreadProvider
+import com.beeper.sms.provider.GuidProvider
 import com.beeper.sms.provider.MessageProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -72,7 +74,7 @@ class SimpleBackfill constructor(
                     }
                 }.launchIn(this)
 
-                //Shouldn't run for more than 20min, shouldn't be idle for more than 1 minute
+                //Shouldn't run for more than 30min, shouldn't be idle for more than 30 seconds
                 val syncTimeout = BACKFILL_COMPLETION_TIMEOUT_MILLIS
                 val maxIdlePeriod = MAX_IDLE_PERIOD_MILLIS
 
@@ -95,48 +97,61 @@ class SimpleBackfill constructor(
                     Log.d(TAG, "Bridge is idle -> finished portal sync")
                 }
 
-                // -> Mark all messages as 'bridged' after the backfill
+                val chatThreadProvider = ChatThreadProvider(context)
+                val guidProvider = GuidProvider(context)
                 val messageProvider = MessageProvider(context)
-                val messages =
-                    messageProvider.getNewSmsMessages(0)
-                Log.w(TAG, "Recent sms messages: ${messages.map { it.guid }}")
 
-                //store bridged message ids
-                withContext(Dispatchers.IO) {
-                    val bridgedMessages = messages.map {
-                        BridgedMessage(
-                            it.chat_guid,
-                            it.rowId,
-                            it.is_mms
-                        )
+                val threadIds = chatThreadProvider.getValidThreadIdsAfter(0)
+                val smsMessagesToStore = mutableListOf<BridgedMessage>()
+                val mmsMessagesToStore = mutableListOf<BridgedMessage>()
+
+                threadIds.onEach {
+                    threadId ->
+                    val chatGuid = guidProvider.getChatGuid(threadId)
+                    if(chatGuid != null){
+                        Log.d(TAG, "Checking last messages for the following threadId: " +
+                                "$threadId")
+                        val lastSmsRowId = messageProvider.getLastSmsIdFromThread(threadId)
+                        if(lastSmsRowId != null){
+                            //store last sms in database
+                            smsMessagesToStore.add(
+                                BridgedMessage(
+                                    chatGuid,
+                                    lastSmsRowId,
+                                    false
+                                )
+                            )
+                        }
+                        val lastMmsRowId = messageProvider.getLastMmsIdFromThread(threadId)
+                        if(lastMmsRowId != null){
+                            mmsMessagesToStore.add(
+                                BridgedMessage(
+                                    chatGuid,
+                                    lastMmsRowId,
+                                    true
+                                )
+                            )
+                        }
+                        Log.d(TAG, "Last lastSmsRowId: $lastSmsRowId " +
+                                "lastMmsRowId: $lastMmsRowId")
                     }
-                    database.bridgedMessageDao().insertAll(bridgedMessages)
                 }
 
-                Log.d(
-                    TAG,
-                    "Finished storing all bridged sms"
-                )
-
-                val mmsMessages =
-                    messageProvider.getNewMmsMessages(0)
-                Log.w(TAG, "Recent mms messages: $mmsMessages")
-
-                //store bridged message ids
                 withContext(Dispatchers.IO) {
-                    val bridgedMessages = mmsMessages.map {
-                        BridgedMessage(
-                            it.chat_guid,
-                            it.rowId,
-                            it.is_mms
-                        )
-                    }
-                    database.bridgedMessageDao().insertAll(bridgedMessages)
+                    // -> Mark bridged sms messages after the backfill
+                    database.bridgedMessageDao().insertAll(smsMessagesToStore)
+                    Log.d(
+                        TAG,
+                        "Finished storing all bridged sms"
+                    )
+                    // -> Mark bridged mms messages after the backfill
+                    database.bridgedMessageDao().insertAll(mmsMessagesToStore)
+                    Log.d(
+                        TAG,
+                        "Finished storing all bridged mms"
+                    )
                 }
-                Log.d(
-                    TAG,
-                    "Finished storing all bridged mms"
-                )
+
                 Log.d(
                     TAG,
                     "Finished backfilling"
@@ -185,8 +200,8 @@ class SimpleBackfill constructor(
         private const val TAG = "SimpleBackfillWorker"
         private const val ERROR_BACKFILLING_NOTIFICATION_ID = 0
         private const val BACKFILL_STARTUP_TIMEOUT_MILLIS = 10L * 60L * 1000L
-        private const val BACKFILL_COMPLETION_TIMEOUT_MILLIS = 25L * 60L * 1000L
-        private const val MAX_IDLE_PERIOD_MILLIS = 60L * 1000L
+        private const val BACKFILL_COMPLETION_TIMEOUT_MILLIS = 30L * 60L * 1000L
+        private const val MAX_IDLE_PERIOD_MILLIS = 30L * 1000L
         private const val MAX_ATTEMPTS = 5
 
 

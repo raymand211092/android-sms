@@ -9,7 +9,7 @@ import com.beeper.sms.database.models.*
     BridgedChatThread::class,
     BridgedMessage::class, BridgedReadReceipt::class],
     version = 2, autoMigrations = [
-                 AutoMigration (from = 1, to = 2)
+        AutoMigration (from = 1, to = 2)
     ])
 abstract class BridgedEntitiesDatabase : RoomDatabase() {
     abstract fun bridgedChatThreadDao(): BridgedChatThreadDao

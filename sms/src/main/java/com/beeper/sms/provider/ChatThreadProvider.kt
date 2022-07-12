@@ -31,14 +31,15 @@ class ChatThreadProvider constructor(
 ) {
 
     // Fetch all chats after an ID -> to be bridged
-    suspend fun getNewChatThreadIds(initialId: Long): List<Long> {
+    suspend fun getValidThreadIdsAfter(initialId: Long): List<Long> {
         return withContext(Dispatchers.IO) {
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
             val projection = arrayOf(
                 Telephony.Threads._ID,
-            )
-            val selection = "${Telephony.Threads._ID} >= ?"
-            val selectionArgs: Array<String> = arrayOf(initialId.toString())
+                Telephony.Threads.MESSAGE_COUNT,
+                )
+            val selection = "${Telephony.Threads._ID} >= ? AND ${Telephony.Threads.MESSAGE_COUNT} > ?"
+            val selectionArgs: Array<String> = arrayOf(initialId.toString(), "0")
             val sortOrder = "${Telephony.Threads._ID} ASC"
             val cursor =
                 context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)

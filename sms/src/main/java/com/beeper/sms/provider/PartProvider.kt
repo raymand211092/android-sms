@@ -28,13 +28,18 @@ class PartProvider constructor(private val context: Context) {
             val fileExtension = mimetype.split("/").getOrNull(1)
             val folder =  context.mmsDir
 
-            val data = it.getString("_data")
             when (mimetype) {
                 "text/plain" -> {
+                    try {
+                        val data = it.getString("_data")
                     Part(text = data?.let { getMmsText(partId) } ?: it.getString(TEXT))
+                    }catch (e: FileNotFoundException){
+                        Timber.e("Column _data not found! Message:$message PartId:$partId")
+                        null
+                    }
                 }
                 "application/smil" -> {
-                    Log.v(TAG, "Ignoring $mimetype: ${it.getString(TEXT)}")
+                    Log.v(TAG, "Ignoring $mimetype")
                     null
                 }
                 else -> {

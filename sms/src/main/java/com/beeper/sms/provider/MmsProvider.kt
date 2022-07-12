@@ -18,6 +18,8 @@ import com.beeper.sms.commands.outgoing.MessageStatus
 import com.beeper.sms.extensions.*
 import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import com.google.android.mms.pdu_alt.PduHeaders
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MmsProvider constructor(
     context: Context,
@@ -64,6 +66,27 @@ class MmsProvider constructor(
                            mapper: (Cursor, Long, Uri) -> T?): List<T> =
         listOf(CONTENT_URI).flatMap { uri ->
             getMms(uri = uri, where = where, mapper = mapper)
+        }
+
+
+    private fun getMmsMetadata(
+        uri: Uri = CONTENT_URI,
+        where: String? = null,
+        limit: Int = 0,
+        order: String? =  if (limit > 0) "$DATE DESC LIMIT $limit" else null,
+    ): List<Pair<Long,Long>> =
+        cr.map(
+            uri = uri,
+            where = where,
+            projection = listOf(
+                _ID,
+                THREAD_ID,
+            ).toTypedArray(),
+            order = order
+        ) {
+            val rowId = it.getLong(_ID)
+            val threadId = it.getLong(THREAD_ID)
+            Pair(rowId, threadId)
         }
 
     private fun <T> getMms(
@@ -165,6 +188,28 @@ class MmsProvider constructor(
     }
 
     /* SyncWindow */
+
+    suspend fun getLastMmsIdFromThread(threadId : Long) : Long?{
+        return withContext(Dispatchers.IO) {
+            val query = cr.query(
+                CONTENT_URI,
+                listOf(
+                    _ID,
+                    THREAD_ID,
+                ).toTypedArray(),
+                "$THREAD_ID = $threadId ",
+                null,
+                "$_ID DESC"
+            )
+            query?.use{
+                while(it.moveToNext()){
+                    return@withContext it.getLong(_ID)
+                }
+            }
+            return@withContext null
+        }
+    }
+
     fun getNewMmsMessages(initialId: Long) =
         getDistinctMms(
             "$_ID >= $initialId " +
@@ -172,6 +217,12 @@ class MmsProvider constructor(
                     "AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT ",
             this::messageMapper
         )
+
+    fun getNewMmsMessagesMetadata(initialId: Long) =
+        getMmsMetadata(
+            where = "$_ID >= $initialId ",
+        )
+
     private fun <T> getDistinctMms(
         where: String,
         mapper: (Cursor, Long, Uri) -> T?,
@@ -180,6 +231,7 @@ class MmsProvider constructor(
         listOf(CONTENT_URI).flatMap { uri ->
             getMms(uri = uri, where = where, order = order, mapper = mapper)
         }
+
 
     private fun getSender(message: Long): String? =
         cr.firstOrNull(
