@@ -10,6 +10,7 @@ import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.*
+import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
@@ -468,7 +469,7 @@ class StartStopCommandProcessor constructor(
                             " message_id:${bridgedMessage.message_id} " +
                             " isMms:${bridgedMessage.is_mms}"
                     )
-                    bridge.database.bridgedMessageDao().insert(bridgedMessage)
+                    BridgeDatabase.getInstance(context).bridgedMessageDao().insert(bridgedMessage)
                 }
             }
             else -> {

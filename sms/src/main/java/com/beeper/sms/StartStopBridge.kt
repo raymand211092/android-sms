@@ -13,6 +13,7 @@ import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.internal.BridgeReadReceipt
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.*
+import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.BridgedEntitiesDatabase
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.database.models.PendingReadReceipt
@@ -34,8 +35,6 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class StartStopBridge private constructor() {
     lateinit var commandProcessor : StartStopCommandProcessor
-    lateinit var database : BridgedEntitiesDatabase
-        private set
     private lateinit var nativeLibDir: String
     private var channelId: String = DEFAULT_CHANNEL_ID
 
@@ -99,10 +98,7 @@ class StartStopBridge private constructor() {
                 }
 
                 // Open database
-                database = Room.databaseBuilder(
-                    context,
-                    BridgedEntitiesDatabase::class.java, "sms-bridged-entities"
-                ).build()
+                BridgeDatabase.getInstance(context)
 
                 if(!context.hasPermissions){
                     Log.e(TAG, "Error: Permissions aren't setup for the SMS bridge")
@@ -126,11 +122,6 @@ class StartStopBridge private constructor() {
                 }
 
                 Log.d(TAG, "SMS bridge was successfully started")
-                // Open database
-                database = Room.databaseBuilder(
-                    context,
-                    BridgedEntitiesDatabase::class.java, "sms-bridged-entities"
-                ).build()
                 true
             } catch (e: Exception) {
                 Log.e(TAG, e.message ?: "Error")
@@ -339,7 +330,8 @@ class StartStopBridge private constructor() {
             ?: Log.e(TAG, "failed to send: $command")
     }
 
-    internal fun confirmMessageDeliveryAndStoreMessage(command: Command, bridgedMessage: BridgedMessage)
+    internal fun confirmMessageDeliveryAndStoreMessage(context: Context,
+                                                       command: Command, bridgedMessage: BridgedMessage)
     = scope.launch(outgoing) {
         process
             ?.outputStream
@@ -355,7 +347,8 @@ class StartStopBridge private constructor() {
                                 " message_id:${bridgedMessage.message_id} " +
                                 " isMms:${bridgedMessage.is_mms}"
                     )
-                    database.bridgedMessageDao().insert(bridgedMessage)
+                    BridgeDatabase.getInstance(context)
+                        .bridgedMessageDao().insert(bridgedMessage)
                 } catch (e: Exception) {
                     Log.e(TAG, e)
                 }
@@ -386,20 +379,14 @@ class StartStopBridge private constructor() {
     }
 
     suspend fun addPendingReadReceipt(context: Context, readReceiptToBeBridged: BridgeReadReceipt) {
-        val isInitalized = this::database.isInitialized
         withContext(Dispatchers.IO) {
-            if (!isInitalized) {
-                // Open database
-                database = Room.databaseBuilder(
-                    context,
-                    BridgedEntitiesDatabase::class.java, "sms-bridged-entities"
-                ).build()
-            }
+            val databaseInstance = BridgeDatabase.getInstance(context)
+
             Log.d(
                 TAG, "Adding pending readReceipt to be bridged in next sync window: " +
                         "${readReceiptToBeBridged.readReceipt}"
             )
-            database.pendingReadReceiptDao().insert(
+            databaseInstance.pendingReadReceiptDao().insert(
                 PendingReadReceipt(
                     readReceiptToBeBridged.readReceipt.chat_guid,
                     readReceiptToBeBridged.readReceipt.read_up_to,

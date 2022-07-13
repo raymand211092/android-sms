@@ -109,6 +109,7 @@ abstract class MmsSent : MmsSentReceiver() {
                     TAG, "confirmMessageDeliveryAndStoreMessage"
                 )
                 StartStopBridge.INSTANCE.confirmMessageDeliveryAndStoreMessage(
+                    context,
                     Command("response", SendMessage.Response(guid, timestamp), commandId),
                     bridgedMessage
                 )
