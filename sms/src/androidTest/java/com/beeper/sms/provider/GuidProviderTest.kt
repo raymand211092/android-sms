@@ -48,14 +48,18 @@ class GuidProviderTest {
         assertEquals("user@example.com", GuidProvider.normalizeAddress("abc user@example.com 123"))
 
     @Test
-    fun stripWhitespace() = assertEquals("whitespace", GuidProvider.normalizeAddress("white space"))
+    fun encodeSingleQuotations() = assertEquals("ab%27c", GuidProvider.normalizeAddress("ab'c"))
 
     @Test
-    fun stripSingleQuotations() = assertEquals("abc", GuidProvider.normalizeAddress("ab'c"))
+    fun encodeDoubleQuotations() = assertEquals("ab%22c", GuidProvider.normalizeAddress("ab\"c"))
 
     @Test
-    fun stripDoubleQuotations() = assertEquals("abc", GuidProvider.normalizeAddress("ab\"c"))
+    //Input of this tests fails when starting a new chat if the dashes aren't removed
+    fun stripDashesIfNumber() = assertEquals("991976040", GuidProvider.normalizeAddress("9919-760-40"))
 
     @Test
-    fun stripDashes() = assertEquals("991976040", GuidProvider.normalizeAddress("9919-760-40"))
+    fun encodeWhitespace() = assertEquals("wz data", GuidProvider.normalizeAddress("wz data"))
+
+    @Test
+    fun preserveDashesIfNotANumber() = assertEquals("wz-data", GuidProvider.normalizeAddress("wz-data"))
 }

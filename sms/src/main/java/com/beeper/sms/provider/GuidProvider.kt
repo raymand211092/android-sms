@@ -5,8 +5,10 @@ import android.provider.Telephony.*
 import android.telephony.PhoneNumberUtils
 import android.util.Patterns
 import androidx.core.net.toUri
+import androidx.core.text.isDigitsOnly
 import com.beeper.sms.extensions.firstOrNull
 import com.beeper.sms.extensions.getString
+import java.net.URLEncoder
 import java.util.*
 
 class GuidProvider constructor(
@@ -41,18 +43,25 @@ class GuidProvider constructor(
         private val EMAIL = Patterns.EMAIL_ADDRESS.toRegex()
 
         fun normalizeAddress(address : String) : String {
-                PhoneNumberUtils
-                    .formatNumberToE164(address, Locale.getDefault().country)
-                    ?.let { return it }
+            // Return formatted numbers
+            PhoneNumberUtils
+                .formatNumberToE164(address, Locale.getDefault().country)
+                ?.let { return it }
 
-                EMAIL.find(address, 0)?.let { return it.value }
-
-                return address.filterNot { it.isWhitespace()
-                        || it == '"'
-                        || it == '\''
-                        || it=='-'
-                }
+            // Return formatted emails
+            EMAIL.find(address, 0)?.let { return it.value }
+            
+            // Didn't detect a number
+            val addressWithoutDashes = address.filterNot {
+                it=='-'
             }
+
+            return if(addressWithoutDashes.isDigitsOnly()){
+                addressWithoutDashes
+            }else{
+                address.replace("\"", "%22").replace("\'", "%27")
+            }
+        }
 
         val String.chatGuid: String
             get() = listOf(this).chatGuid
