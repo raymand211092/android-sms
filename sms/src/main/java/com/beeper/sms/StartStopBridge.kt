@@ -15,6 +15,7 @@ import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.*
 import com.beeper.sms.database.BridgedEntitiesDatabase
 import com.beeper.sms.database.models.BridgedMessage
+import com.beeper.sms.database.models.PendingReadReceipt
 import com.beeper.sms.extensions.cacheDirPath
 import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
@@ -389,6 +390,36 @@ class StartStopBridge private constructor() {
             readReceiptToBeBridged.readReceipt, 5000)
     }
 
+    suspend fun addPendingReadReceipt(context: Context, readReceiptToBeBridged: BridgeReadReceipt) {
+        val isInitalized = this::database.isInitialized
+        withContext(Dispatchers.IO) {
+            if (!isInitalized) {
+                // Open database
+                database = Room.databaseBuilder(
+                    context,
+                    BridgedEntitiesDatabase::class.java, "sms-bridged-entities"
+                ).build()
+            }
+            Log.d(
+                TAG, "Adding pending readReceipt to be bridged in next sync window: " +
+                        "${readReceiptToBeBridged.readReceipt}"
+            )
+            database.pendingReadReceiptDao().insert(
+                PendingReadReceipt(
+                    readReceiptToBeBridged.readReceipt.chat_guid,
+                    readReceiptToBeBridged.readReceipt.read_up_to,
+                    readReceiptToBeBridged.readReceipt.read_at.toLong(),
+                )
+            )
+            Log.d(
+                TAG, "Pending read receipt added: " +
+                        "${readReceiptToBeBridged.readReceipt}"
+            )
+            if (database.isOpen) {
+                database.close()
+            }
+        }
+    }
 
     fun getDBFile(context: Context): File{
         return File(context.filesDir, "mautrix-imessage.db")
