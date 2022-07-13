@@ -10,6 +10,7 @@ import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.ReadReceipt
+import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedReadReceipt
 import com.beeper.sms.helpers.now
 import com.beeper.sms.provider.MessageProvider
@@ -88,7 +89,7 @@ class SyncWindow constructor(
                 Log.w(TAG, "has the bridge")
 
                 //Sync our local SMS and MMS messages
-                val database = bridge.database
+                val database = BridgeDatabase.getInstance(context)
 
 
                 //-> Create new chat ID if needed

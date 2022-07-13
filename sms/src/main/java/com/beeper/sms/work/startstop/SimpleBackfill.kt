@@ -8,6 +8,7 @@ import androidx.work.WorkerParameters
 import com.beeper.sms.Log
 import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
+import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.helpers.now
 import com.beeper.sms.provider.ChatThreadProvider
@@ -56,7 +57,7 @@ class SimpleBackfill constructor(
                     }
                 }
                 Log.d(TAG, "has the bridge -> waiting for imessage-mautrix commands")
-                val database = bridge.database
+                val database = BridgeDatabase.getInstance(context)
 
                 // Give mautrix_imessage time to sync. It continues if it is idle for
                 // *maxIdlePeriodSeconds* or if the task takes more than *syncTimeoutMinutes*

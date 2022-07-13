@@ -81,6 +81,7 @@ abstract class SmsSent : SentReceiver() {
                     isMms
                 )
                 StartStopBridge.INSTANCE.confirmMessageDeliveryAndStoreMessage(
+                    context,
                     Command("response", SendMessage.Response(guid, timestamp), commandId),
                     bridgedMessage
                 )
