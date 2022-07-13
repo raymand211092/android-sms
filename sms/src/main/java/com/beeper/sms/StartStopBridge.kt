@@ -259,11 +259,6 @@ class StartStopBridge private constructor() {
         configPath ?: configPathProvider?.invoke()?.takeIf { it.exists() }?.also { configPath = it }
 
     fun killProcess() {
-        if(this::database.isInitialized) {
-            if(database.isOpen) {
-                database.close()
-            }
-        }
         if(process!=null) {
             process?.kill()
         }else{
@@ -415,9 +410,6 @@ class StartStopBridge private constructor() {
                 TAG, "Pending read receipt added: " +
                         "${readReceiptToBeBridged.readReceipt}"
             )
-            if (database.isOpen) {
-                database.close()
-            }
         }
     }
 
