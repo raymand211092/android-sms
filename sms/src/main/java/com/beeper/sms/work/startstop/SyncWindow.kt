@@ -155,11 +155,12 @@ class SyncWindow constructor(
                 }
 
                 val bridgedChats = database.bridgedMessageDao().getBridgedChats()
-                Log.d(TAG, "Checking ${bridgedChats?.size ?: 0} unbridged read receipts:")
+                Log.d(TAG, "Checking ${bridgedChats?.size ?: 0} chats for " +
+                        "unbridged read receipts:")
 
                         bridgedChats?.onEach {
                     chat_guid ->
-                    val lastReadMessage = messageProvider.getLastReadMessage(chat_guid)
+                    val lastReadMessage = messageProvider.getLastReadReceiptInfoForMessage(chat_guid)
                     if(lastReadMessage != null){
                         val readReceiptDao = database.bridgedReadReceiptDao()
                         val lastReadMessageBridged =
@@ -167,28 +168,28 @@ class SyncWindow constructor(
                         if(lastReadMessageBridged!=null){
                             if(lastReadMessageBridged.read_up_to_timestamp <
                                 lastReadMessage.timestamp.toMillis().toLong()){
-                                Log.d(TAG, "Bridging ${lastReadMessage.guid} read receipt")
+                                Log.d(TAG, "Bridging ${lastReadMessage.message_guid} read receipt")
                                 //Bridge timestamp
                                 //Store new bridgedReadReceipt upon confirmation
                                 val result = bridge.commandProcessor.sendReadReceiptCommandAndAwaitForResponse(
                                     ReadReceipt(
                                         chat_guid,
-                                        read_up_to = lastReadMessage.guid,
+                                        read_up_to = lastReadMessage.message_guid,
                                         read_at = lastReadMessage.timestamp
                                     ),
                                     5000
                                 )
                                 if(result!=null) {
-                                    Log.d(TAG, "Read receipt for ${lastReadMessage.guid} was bridged")
+                                    Log.d(TAG, "Read receipt for ${lastReadMessage.message_guid} was bridged")
                                     readReceiptDao.insert(
                                         BridgedReadReceipt(
                                             chat_guid,
-                                            lastReadMessage.guid,
+                                            lastReadMessage.message_guid,
                                             lastReadMessage.timestamp.toMillis().toLong()
                                         )
                                     )
                                 }else{
-                                    Log.d(TAG, "Timeout bridging ${lastReadMessage.guid} read receipt")
+                                    Log.d(TAG, "Timeout bridging ${lastReadMessage.message_guid} read receipt")
                                 }
                             }   else{
                                 //Not bridging timestamp, ignoring
@@ -196,33 +197,32 @@ class SyncWindow constructor(
                                         "ignoring $chat_guid")
                             }
                         }else{
-                            //Not bridging timestamp, ignoring
-                            Log.d(TAG, "Bridging ${lastReadMessage.guid} read receipt (null lastReadMessageBridged)")
+                            Log.d(TAG, "Bridging ${lastReadMessage.message_guid} read receipt (null lastReadMessageBridged)")
                             //Bridge timestamp
                             //Store new bridgedReadReceipt upon confirmation
                             val result = bridge.commandProcessor.sendReadReceiptCommandAndAwaitForResponse(
                                 ReadReceipt(
                                     chat_guid,
-                                    read_up_to = lastReadMessage.guid,
+                                    read_up_to = lastReadMessage.message_guid,
                                     read_at = lastReadMessage.timestamp
                                 ),
                                 5000
                             )
                             if(result!=null) {
-                                Log.d(TAG, "Read receipt for ${lastReadMessage.guid} was bridged")
+                                Log.d(TAG, "Read receipt for ${lastReadMessage.message_guid} was bridged")
                                 readReceiptDao.insert(
                                     BridgedReadReceipt(
                                         chat_guid,
-                                        lastReadMessage.guid,
+                                        lastReadMessage.message_guid,
                                         lastReadMessage.timestamp.toMillis().toLong()
                                     )
                                 )
                             }else{
-                                Log.d(TAG, "Timeout bridging ${lastReadMessage.guid} read receipt")
+                                Log.e(TAG, "Timeout bridging ${lastReadMessage.message_guid} read receipt")
                             }
                         }
                     }else{
-                        Log.d(TAG, "Last read message is null")
+                        Log.w(TAG, "Last read message is null: $chat_guid")
                     }
                 }
 

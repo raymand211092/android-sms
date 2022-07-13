@@ -187,6 +187,33 @@ class MmsProvider constructor(
         ).firstOrNull()
     }
 
+    fun getLastReadMessageMetadata(threadId: Long) : MessageProvider.ReadReceiptInfo? {
+        val query = cr.query(
+            CONTENT_URI,
+            listOf(
+                _ID,
+                THREAD_ID,
+                DATE,
+                ).toTypedArray(),
+            "$THREAD_ID = $threadId " +
+                    "AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT AND $READ = 1",
+            null,
+            "$_ID DESC"
+        )
+        query?.use{
+            while(it.moveToNext()){
+                val rowId =  it.getLong(_ID)
+                val mmsId = "$MMS_PREFIX$rowId"
+                val timestamp = it.getLong(DATE).toSeconds()
+                return MessageProvider.ReadReceiptInfo(
+                    mmsId,
+                    timestamp
+                )
+            }
+        }
+        return null
+    }
+
     /* SyncWindow */
 
     suspend fun getLastMmsIdFromThread(threadId : Long) : Long?{

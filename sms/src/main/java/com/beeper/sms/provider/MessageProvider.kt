@@ -83,6 +83,36 @@ class MessageProvider constructor(
         }
     }
 
+    data class ReadReceiptInfo(val message_guid: String,
+                               val timestamp: TimeSeconds)
+
+    fun getLastReadReceiptInfoForMessage(chat_guid: String) : ReadReceiptInfo? {
+        val recipients = chat_guid.removePrefix().split(" ")
+        val chatThreadProvider = ChatThreadProvider(context)
+        val threadId = chatThreadProvider.getOrCreateThreadId(recipients.toSet())
+
+        val lastMmsReadMessageMetadata = mmsProvider.getLastReadMessageMetadata(threadId)
+        val lastSmsReadMessageMetadata = smsProvider.getLastReadMessageMetadata(threadId)
+        val lastMmsTimestamp = lastMmsReadMessageMetadata?.timestamp
+        val lastSmsTimestamp = lastSmsReadMessageMetadata?.timestamp
+
+        if(lastMmsTimestamp == null && lastSmsTimestamp == null){
+            return null
+        }
+
+        if(lastMmsTimestamp == null){
+            return lastSmsReadMessageMetadata
+        }
+        if(lastSmsTimestamp == null){
+            return lastMmsReadMessageMetadata
+        }
+        return if(lastMmsTimestamp > lastSmsTimestamp){
+            lastSmsReadMessageMetadata
+        }else{
+            lastSmsReadMessageMetadata
+        }
+    }
+
     fun markConversationAsRead(threadId: Long) {
         val threadUri =
             ContentUris.withAppendedId(Telephony.Threads.CONTENT_URI, threadId)
