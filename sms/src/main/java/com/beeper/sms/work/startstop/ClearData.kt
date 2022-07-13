@@ -33,6 +33,8 @@ class ClearData constructor(
             }
             Log.d(TAG, "Clearing SMS bridge data...")
             return withContext(Dispatchers.Default) {
+                val bridge = StartStopBridge.INSTANCE
+                bridge.clearBridgeData(context)
                 val database = BridgeDatabase.getInstance(context)
                 database.bridgedMessageDao().clear()
                 database.bridgedChatThreadDao().clear()
