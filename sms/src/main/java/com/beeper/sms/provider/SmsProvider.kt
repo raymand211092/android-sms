@@ -15,6 +15,7 @@ import android.text.TextUtils
 import com.beeper.sms.Log
 import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeMillis.Companion.toMillis
+import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageInfo
 import com.beeper.sms.commands.outgoing.MessageStatus
@@ -178,6 +179,33 @@ class SmsProvider constructor(context: Context) {
             mapper = this::messageMapper,
             order = "$_ID DESC",
         ).firstOrNull()
+    }
+
+
+    fun getLastReadMessageMetadata(threadId: Long) : MessageProvider.ReadReceiptInfo? {
+        val query = cr.query(
+            CONTENT_URI,
+            listOf(
+                _ID,
+                DATE,
+            ).toTypedArray(),
+            "$THREAD_ID = $threadId " +
+                    "AND $TYPE <= $MESSAGE_TYPE_SENT AND $READ = 1 ",
+            null,
+            "$_ID DESC"
+        )
+        query?.use{
+            while(it.moveToNext()){
+                val rowId =  it.getLong(_ID)
+                val smsId = "${SMS_PREFIX}$rowId"
+                val timestamp = it.getLong(DATE).toSeconds()
+                return MessageProvider.ReadReceiptInfo(
+                    smsId,
+                    timestamp
+                )
+            }
+        }
+        return null
     }
 
     /* SyncWindow */
