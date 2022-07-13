@@ -9,6 +9,7 @@ import androidx.work.WorkerParameters
 import com.beeper.sms.Log
 import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
+import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.BridgedEntitiesDatabase
 import kotlinx.coroutines.*
 import java.lang.Exception
@@ -32,15 +33,11 @@ class ClearData constructor(
             }
             Log.d(TAG, "Clearing SMS bridge data...")
             return withContext(Dispatchers.Default) {
-                val bridge = StartStopBridge.INSTANCE
-                bridge.clearBridgeData(context)
-                val database = Room.databaseBuilder(
-                    context,
-                    BridgedEntitiesDatabase::class.java, "sms-bridged-entities"
-                ).build()
+                val database = BridgeDatabase.getInstance(context)
                 database.bridgedMessageDao().clear()
                 database.bridgedChatThreadDao().clear()
-                database.close()
+                database.bridgedReadReceiptDao().clear()
+                database.pendingReadReceiptDao().clear()
                 Result.success()
             }
         }catch(e : Exception){
