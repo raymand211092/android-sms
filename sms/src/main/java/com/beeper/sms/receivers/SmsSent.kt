@@ -25,7 +25,13 @@ abstract class SmsSent : SentReceiver() {
         val uri = intent?.getStringExtra("uri")?.toUri() ?: intent?.getStringExtra("message_uri")?.toUri()
         val commandId =
             (intent?.getParcelableExtra(Transaction.SENT_SMS_BUNDLE)
-                    as? Bundle)?.getInt(Transaction.COMMAND_ID)
+                    as? Bundle)?.getInt(Transaction.COMMAND_ID, -1).let {
+                if(it != null && it < 0) {
+                    null
+                }else{
+                    it
+                }
+            }
 
         val message = uri?.let { SmsProvider(context).getMessageInfo(it) }
 

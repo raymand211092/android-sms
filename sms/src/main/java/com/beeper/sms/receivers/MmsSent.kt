@@ -1,6 +1,7 @@
 package com.beeper.sms.receivers
 
 import android.app.Activity
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -27,8 +28,14 @@ abstract class MmsSent : MmsSentReceiver() {
         Log.d(TAG, "result: $resultCode intent: ${intent.printExtras()}")
 
         val uri = intent?.getStringExtra(EXTRA_CONTENT_URI)?.toUri()
-        val commandId =
-            (intent?.getParcelableExtra(Transaction.SENT_MMS_BUNDLE) as? Bundle)?.getInt(Transaction.COMMAND_ID)
+        val commandId : Int? =
+            (intent?.getParcelableExtra(Transaction.SENT_MMS_BUNDLE) as? Bundle)?.getInt(Transaction.COMMAND_ID, -1).let {
+                if(it != null && it < 0) {
+                    null
+                }else{
+                    it
+                }
+            }
         val message = uri?.let { MmsProvider(context).getMessageInfo(it) }
 
         if(uri!= null) {
@@ -51,6 +58,8 @@ abstract class MmsSent : MmsSentReceiver() {
             }catch (e: Exception){
                 Log.e(TAG, "Couldn't update MMS status MmsSent:onMessageStatusUpdated")
             }
+        }else{
+            Log.e(TAG, "Couldn't update MMS status, null URI")
         }
 
         // Notify content observers about MMS changes
@@ -106,7 +115,7 @@ abstract class MmsSent : MmsSentReceiver() {
                 // has a command id -> this message was delivered because mautrix asked to
                 // we just need to answer it and save in db
                 Log.d(
-                    TAG, "confirmMessageDeliveryAndStoreMessage"
+                    TAG, "confirmMessageDeliveryAndStoreMessage $commandId"
                 )
                 StartStopBridge.INSTANCE.confirmMessageDeliveryAndStoreMessage(
                     context,
@@ -114,15 +123,21 @@ abstract class MmsSent : MmsSentReceiver() {
                     bridgedMessage
                 )
             }else{
+                Log.d(TAG, "MMS is being forwarded to a running sync window")
+
                 // null command id -> a brand new message was locally delivered by the user ->
                 // as the bridge is running, we should bridge a message command
-                val newMessage = MessageProvider(context).getMessage(uri)
+                val newUri = ContentUris.withAppendedId(Telephony.Mms.CONTENT_URI, rowId)
+                val newMessage = MmsProvider(context).getMessage(newUri)
                 if(newMessage!=null) {
+                    Log.d(TAG, "MMS forwarded to running bridge")
                     StartStopBridge.INSTANCE.forwardMessageToBridge(
                         BridgeThisSmsOrMms(
                             newMessage
                         )
                     )
+                }else{
+                    Log.e(TAG, "Couldn't load MMS message, it was not forwarded!!!")
                 }
             }
         }else{
