@@ -22,6 +22,7 @@ import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.extensions.mmsDir
 import com.beeper.sms.helpers.newGson
+import com.beeper.sms.receivers.MmsSent
 import com.beeper.sms.work.WorkManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
@@ -358,7 +359,9 @@ class StartStopBridge private constructor() {
 
     internal fun forwardMessageToBridge(postMeThisMessage: BridgeThisSmsOrMms)
             = scope.launch(outgoing) {
-            _commandsReceived.tryEmit(
+        Log.d(TAG, "forwardMessageToBridge before posting MMS message")
+
+        _commandsReceived.tryEmit(
                 Command(
                     "bridge_this_message",
                     data = postMeThisMessage
