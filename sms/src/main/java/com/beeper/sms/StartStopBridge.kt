@@ -419,6 +419,7 @@ class StartStopBridge private constructor() {
         return context.mmsDir.absolutePath
     }
 
+    // Deletes all mautrix-imessage related data
     private fun deleteBridgeFiles(context:Context){
         getDBFile(context).delete()
         getLogFile(context).delete()
@@ -430,7 +431,7 @@ class StartStopBridge private constructor() {
         withContext(scope.coroutineContext){
             storeBackfillingState(context,false)
             stop()
-            deleteBridgeFiles(context)
+            // Keep bridge files after clearing the bridge
             configPath = null
             configPathProvider = null
             //TODO: clear snared prefs to show that
