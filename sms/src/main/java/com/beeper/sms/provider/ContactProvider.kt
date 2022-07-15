@@ -12,6 +12,7 @@ import android.provider.ContactsContract.CommonDataKinds.StructuredName
 import android.provider.ContactsContract.Contacts
 import android.provider.ContactsContract.PhoneLookup
 import android.util.Base64
+import com.beeper.sms.Log
 import com.beeper.sms.extensions.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -79,13 +80,24 @@ class ContactProvider constructor(private val context: Context) {
             cr.query(
                 Phone.CONTENT_URI,
                 null,
-                "${Phone.CONTACT_ID} =?",
+                "${Phone.CONTACT_ID} = ?",
                 arrayOf(contactId.toString()),
                 null
             )?.use {
                 if (it.moveToFirst()) {
                     do {
-                        result.add(it.getString(it.getColumnIndex(Phone.NUMBER)))
+                        try {
+                            val numberColumnIndex = it.getColumnIndex(Phone.NUMBER)
+                            Log.d(TAG,"NumberColumnIndex: $numberColumnIndex, " +
+                                    "contactId: $contactId")
+                            val number = it.getString(numberColumnIndex)
+                            Log.d(TAG,"is number null: ${number == null}," +
+                                    " is number blank: ${number.isNullOrBlank()}")
+                            Log.e(TAG,"Fetched a phone number for contactId: $contactId")
+                            result.add(number)
+                        } catch(e : NullPointerException){
+                            Log.e(TAG,"Couldn't fetch phone number for contactId: $contactId")
+                        }
                     } while (it.moveToNext())
                 }
             }
@@ -140,6 +152,8 @@ class ContactProvider constructor(private val context: Context) {
         }
 
     companion object {
+        private const val TAG = "ContactProvider"
+
         private val String.defaultResponse: ContactRow
             get() = ContactRow(nickname = this, phoneNumber = this)
 
