@@ -32,7 +32,13 @@ class SyncWindow constructor(
 
     override suspend fun doWork(): Result {
         Log.d(TAG, "SMSSyncWindow doWork()")
+        //Shouldn't run for more than 10min, shouldn't be idle for more than 30 seconds
+        val syncTimeout = 10.toDuration(DurationUnit.MINUTES).inWholeMilliseconds
+        val maxIdlePeriod = 30.toDuration(DurationUnit.SECONDS).inWholeMilliseconds
+
         try {
+            val pendingMessages = mutableListOf<String>()
+
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                 try {
                     setForeground(getForegroundInfo())
@@ -52,9 +58,32 @@ class SyncWindow constructor(
                 val job = bridge.commandsReceived.onEach {
                     val validCommandsToKeepItOpen = listOf(
                         "get_chat", "get_contact", "send_message", "get_recent_messages",
-                        "send_media", "send_read_receipt", "bridge_this_message"
+                        "send_media", "send_read_receipt", "bridge_this_message",
+                        "bridge_send_response", "bridge_send_response_error"
                     )
-                    bridge.commandProcessor.handleSyncWindowScopedCommands(it)
+                    when(it.command){
+                        // Store message as pending after sending so we wait for the result
+                        "send_message" -> {
+                            val commandId = it.id?.toString()
+                            if(commandId != null){
+                                pendingMessages.add(commandId)
+                                bridge.commandProcessor.handleSyncWindowScopedCommands(it)
+                            }
+                        }
+                        // only bridge send responses if we are waiting
+                        "bridge_send_response", "bridge_send_response_error" -> {
+                            val commandId = it.id?.toString()
+                            if(pendingMessages.contains(commandId)){
+                                bridge.commandProcessor.handleSyncWindowScopedCommands(it)
+                            }
+                            //TODO: uncomment this URGENT!
+                            //pendingMessages.remove(commandId)
+                        }
+                        else -> {
+                            // pass any other event type to be normally processed
+                            bridge.commandProcessor.handleSyncWindowScopedCommands(it)
+                        }
+                    }
                     if (validCommandsToKeepItOpen.contains(it.command)) {
                         lastCommandReceivedMillis = now()
                         Log.d(TAG, "lastCommandReceivedTime updated: $lastCommandReceivedMillis")
@@ -65,6 +94,8 @@ class SyncWindow constructor(
                     context, timeoutMillis =
                     StartStopBridge.DEFAULT_STARTUP_TIMEOUT_MILLIS
                 )
+
+                // Handle bridge initialization and internet connectivity issues
                 if (!started) {
                     Log.e(TAG, "Bridge couldn't be started!")
                     job.cancel()
@@ -90,7 +121,6 @@ class SyncWindow constructor(
 
                 //Sync our local SMS and MMS messages
                 val database = BridgeDatabase.getInstance(context)
-
 
                 //-> Create new chat ID if needed
                 // Replace after starting to use the endpoint
@@ -157,11 +187,12 @@ class SyncWindow constructor(
                 }
 
 
+                // Check if we have any pending read receipt to be bridged
                 val readReceiptDao = database.pendingReadReceiptDao()
                 val pendingReadReceipts = readReceiptDao.getAll()
                 Log.d(TAG, "Checking ${pendingReadReceipts.size} chats for " +
                     "unbridged read receipts:")
-
+                // Bridge pending read receipts
                 pendingReadReceipts.onEach {
                     pendingReadReceipt ->
                     val readReceipt = ReadReceipt(
@@ -182,18 +213,19 @@ class SyncWindow constructor(
                     readReceiptDao.delete(pendingReadReceipt)
                 }
 
-                //Shouldn't run for more than 5min, shouldn't be idle for more than 30 seconds
-                val syncTimeout = 5.toDuration(DurationUnit.MINUTES).inWholeMilliseconds
-                val maxIdlePeriod = 30.toDuration(DurationUnit.SECONDS).inWholeMilliseconds
-
                 lastCommandReceivedMillis = now()
 
                 val result = withTimeoutOrNull(syncTimeout) {
-                    while (now() - lastCommandReceivedMillis < maxIdlePeriod) {
+                    while (
+                        //isIdle or
+                        now() - lastCommandReceivedMillis < maxIdlePeriod   ||
+                        //isWaitingForPendingSMSLayerResponse
+                        pendingMessages.isNotEmpty()
+                    ) {
                         delay(maxIdlePeriod)
                         Log.d(
-                            TAG, "lastCommandReceivedMillis - System.currentTimeMillis():" +
-                                    " ${now() - lastCommandReceivedMillis}"
+                            TAG, "idlePeriod: ${now() - lastCommandReceivedMillis} " +
+                                    "hasPendingResponse: ${pendingMessages.isNotEmpty()}"
                         )
                     }
                     true

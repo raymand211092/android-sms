@@ -8,6 +8,7 @@ import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_SMS_GUIDS
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
+import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.*
 import com.beeper.sms.database.BridgeDatabase
@@ -184,6 +185,40 @@ class StartStopCommandProcessor constructor(
                 withContext(Dispatchers.IO){
                     bridge.commandProcessor.sendMessageCommandAndAwaitForResponse(
                         data.message, 5000)
+                }
+            }
+            "bridge_send_response" -> {
+                withContext(Dispatchers.IO){
+                    debugPrintCommand(TAG + "syncWindowScope",command)
+                    val data = deserialize(command,BridgeSendResponse::class.java)
+                    try {
+                        bridge.send(
+                            Command("response", data.response, data.commandId)
+                        )
+                        Log.d(
+                            TAG, "DB storing bridged message:" +
+                                " chat_guid:${data.bridgedMessage.chat_guid} " +
+                                " message_id:${data.bridgedMessage.message_id} " +
+                                " isMms:${data.bridgedMessage.is_mms}"
+                        )
+                        BridgeDatabase.getInstance(context)
+                            .bridgedMessageDao().insert(data.bridgedMessage)
+                    } catch (e: Exception) {
+                        Log.e(TAG, e)
+                    }
+                }
+            }
+            "bridge_send_response_error" -> {
+                debugPrintCommand(TAG + "syncWindowScope",command)
+                val error = deserialize(command,Error::class.java)
+                withContext(Dispatchers.IO){
+                    val commandId = command.id
+                    if(commandId != null) {
+                        bridge.send(
+                            commandId,
+                            error
+                        )
+                    }
                 }
             }
             "get_chat" -> {
