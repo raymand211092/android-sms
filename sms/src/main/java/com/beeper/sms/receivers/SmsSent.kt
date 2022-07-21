@@ -10,6 +10,7 @@ import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
+import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.database.models.BridgedMessage
@@ -42,8 +43,12 @@ abstract class SmsSent : SentReceiver() {
         }
 
         if(commandId != null && resultCode != Activity.RESULT_OK){
-            Log.e(TAG, "Error on SMS sent: ${resultCode.toError(intent)}")
-            StartStopBridge.INSTANCE.send(commandId, resultCode.toError(intent))
+            Log.e(TAG, "Bridging error response to SMS not delivered:" +
+                    " uri:$uri error:${resultCode.toError(intent)}")
+            StartStopBridge.INSTANCE.forwardSendErrorToBridge(
+                    commandId,
+                    resultCode.toError(intent)
+                )
             return
         }
 
@@ -86,21 +91,31 @@ abstract class SmsSent : SentReceiver() {
                     rowId,
                     isMms
                 )
-                StartStopBridge.INSTANCE.confirmMessageDeliveryAndStoreMessage(
-                    context,
-                    Command("response", SendMessage.Response(guid, timestamp), commandId),
-                    bridgedMessage
+
+                StartStopBridge.INSTANCE.forwardSendResponseToBridge(
+                    BridgeSendResponse(
+                        commandId,
+                        bridgedMessage,
+                        SendMessage.Response(guid, timestamp)
+                    )
                 )
             }else{
                 // Null command id -> a brand new message was locally delivered by the user ->
                 // As the bridge is running, we should ask it to bridge the message
                 val loadedMessage = MessageProvider(context).getMessage(uri)
-                if(loadedMessage!=null) {
-                    StartStopBridge.INSTANCE.forwardMessageToBridge(
-                        BridgeThisSmsOrMms(
-                            loadedMessage
+                if(resultCode == Activity.RESULT_OK){
+                    if (loadedMessage != null) {
+                        StartStopBridge.INSTANCE.forwardMessageToBridge(
+                            BridgeThisSmsOrMms(
+                                loadedMessage
+                            )
                         )
+                    }
+                }else{
+                    Log.w(
+                        TAG, "message failed -> we're not bridging failures yet"
                     )
+                    // TODO: we're not bridging failures right now
                 }
             }
         }else{

@@ -27,8 +27,8 @@ class WorkManager constructor(val context: Context) {
     fun startSMSBridgeSyncWindow(inputData: Data = Data.EMPTY) {
         val isBackfillComplete = StartStopBridge.INSTANCE.getBackfillingState(context)
         if(isBackfillComplete) {
-            Log.d(TAG,"startSMSBridgeSyncWindow -> backfill is complete." +
-                    "Will be discarded if an existing SMSSyncWindow is running")
+            Log.d(TAG,"startSMSBridgeSyncWindow -> backfill is complete," +
+                    " starting sync window.")
             buildSyncWindowWorkRequest(inputData).apply {
                 workManager.enqueueUniqueWork(
                     WORK_SMS_BRIDGE_SYNC_WINDOW,
@@ -44,7 +44,7 @@ class WorkManager constructor(val context: Context) {
         val isBackfillComplete = StartStopBridge.INSTANCE.getBackfillingState(context)
         if(isBackfillComplete) {
             Log.d(TAG,"scheduleBridgeWorkOnOnline -> backfill is complete." +
-                    "Will be scheduled.")
+                    "work will be scheduled.")
             buildScheduleSyncWindowWorkRequest().apply {
                 workManager.enqueueUniqueWork(
                     WORK_SMS_BRIDGE_RETRY_SYNC_WINDOW_WHEN_ONLINE,

@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.room.Room
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.internal.BridgeReadReceipt
+import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.*
 import com.beeper.sms.database.BridgeDatabase
@@ -359,7 +360,7 @@ class StartStopBridge private constructor() {
 
     internal fun forwardMessageToBridge(postMeThisMessage: BridgeThisSmsOrMms)
             = scope.launch(outgoing) {
-        Log.d(TAG, "forwardMessageToBridge before posting MMS message")
+        Log.d(TAG, "forwardMessageToBridge before posting SMS/MMS message")
 
         _commandsReceived.tryEmit(
                 Command(
@@ -367,6 +368,32 @@ class StartStopBridge private constructor() {
                     data = postMeThisMessage
                 )
             )
+    }
+
+    internal fun forwardSendResponseToBridge(bridgeSendResponse: BridgeSendResponse)
+            = scope.launch(outgoing) {
+        Log.d(TAG, "forwardSendResponseToBridge -> message successfully sent commandId#: $bridgeSendResponse.commandId")
+
+        _commandsReceived.tryEmit(
+            Command(
+                "bridge_send_response",
+                data = bridgeSendResponse,
+                id = bridgeSendResponse.commandId
+            )
+        )
+    }
+
+    internal fun forwardSendErrorToBridge(commandId: Int, error: Error)
+            = scope.launch(outgoing) {
+        Log.w(TAG, "forwardSendErrorToBridge -> error sending message commandId#:$commandId")
+
+        _commandsReceived.tryEmit(
+            Command(
+                "bridge_send_response_error",
+                data = error,
+                id = commandId
+            )
+        )
     }
 
     suspend fun forwardChatToBridge(threadId: Long) {

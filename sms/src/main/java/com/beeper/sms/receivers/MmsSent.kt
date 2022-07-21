@@ -13,11 +13,11 @@ import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
+import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.extensions.printExtras
-import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.MmsProvider
 import com.google.android.mms.util_alt.SqliteWrapper
 import com.klinker.android.send_message.MmsSentReceiver
@@ -44,12 +44,7 @@ abstract class MmsSent : MmsSentReceiver() {
                 if (resultCode == Activity.RESULT_OK) {
                     values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_SENT)
                 } else {
-                    if(resultCode != MMS_ERROR_NO_DATA_NETWORK) {
-                        values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_FAILED);
-                    }else{
-                        // Keep the waiting status because it could be sent later
-                        // TODO: Ensure it is marked as SENT if system sends it again
-                    }
+                    values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_FAILED);
                 }
                 SqliteWrapper.update(
                     context, context.contentResolver, uri, values,
@@ -79,16 +74,12 @@ abstract class MmsSent : MmsSentReceiver() {
         if(commandId != null && resultCode != Activity.RESULT_OK){
             Log.e(TAG, "Bridging error response to MMS not delivered:" +
                     " ${errorToString(resultCode, intent)}")
+            val error = Error("network_error", errorToString(resultCode, intent))
             // Bridge should be running, otherwise it will just fail
-            StartStopBridge.INSTANCE.send(
+            StartStopBridge.INSTANCE.forwardSendErrorToBridge(
                 commandId,
-                Error("network_error", errorToString(resultCode, intent))
+                error
             )
-            return
-        }
-
-        if(resultCode != Activity.RESULT_OK){
-            Log.e(TAG, "Error when sending MMS: ${errorToString(resultCode, intent)}")
             return
         }
 
@@ -117,27 +108,37 @@ abstract class MmsSent : MmsSentReceiver() {
                 Log.d(
                     TAG, "confirmMessageDeliveryAndStoreMessage $commandId"
                 )
-                StartStopBridge.INSTANCE.confirmMessageDeliveryAndStoreMessage(
-                    context,
-                    Command("response", SendMessage.Response(guid, timestamp), commandId),
-                    bridgedMessage
+
+                StartStopBridge.INSTANCE.forwardSendResponseToBridge(
+                    BridgeSendResponse(
+                        commandId,
+                        bridgedMessage,
+                        SendMessage.Response(guid, timestamp)
+                    )
                 )
             }else{
                 Log.d(TAG, "MMS is being forwarded to a running sync window")
 
-                // null command id -> a brand new message was locally delivered by the user ->
-                // as the bridge is running, we should bridge a message command
-                val newUri = ContentUris.withAppendedId(Telephony.Mms.CONTENT_URI, rowId)
-                val newMessage = MmsProvider(context).getMessage(newUri)
-                if(newMessage!=null) {
-                    Log.d(TAG, "MMS forwarded to running bridge")
-                    StartStopBridge.INSTANCE.forwardMessageToBridge(
-                        BridgeThisSmsOrMms(
-                            newMessage
+                if(resultCode != Activity.RESULT_OK) {
+                    // null command id -> a brand new message was locally delivered by the user ->
+                    // as the bridge is running, we should bridge a message command
+                    val newUri = ContentUris.withAppendedId(Telephony.Mms.CONTENT_URI, rowId)
+                    val newMessage = MmsProvider(context).getMessage(newUri)
+                    if (newMessage != null) {
+                        Log.d(TAG, "MMS forwarded to running bridge")
+                        StartStopBridge.INSTANCE.forwardMessageToBridge(
+                            BridgeThisSmsOrMms(
+                                newMessage
+                            )
                         )
-                    )
+                    } else {
+                        Log.e(TAG, "Couldn't load MMS message to bridge,")
+                    }
                 }else{
-                    Log.e(TAG, "Couldn't load MMS message, it was not forwarded!!!")
+                    Log.w(
+                        TAG, "message failed -> we're not bridging failures yet"
+                    )
+                    // TODO: we're not bridging failures right now
                 }
             }
         }else{
