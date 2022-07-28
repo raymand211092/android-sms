@@ -90,7 +90,8 @@ class SmsProvider constructor(context: Context) {
                 BODY,
                 SUBSCRIPTION_ID
             ).toTypedArray(),
-            order = order
+            order = order,
+            limit = limit
         ) {
             val rowId = it.getLong(_ID)
             mapper(
@@ -104,8 +105,8 @@ class SmsProvider constructor(context: Context) {
     private fun getSmsMetadata(
         uri: Uri = CONTENT_URI,
         where: String? = null,
-        limit: Int = 0,
-        order: String? =  if (limit > 0) "${Telephony.Mms.DATE} DESC LIMIT $limit" else null,
+        limit: Int? = null,
+        order: String? =  if (limit != null && limit > 0) "${Telephony.Mms.DATE} DESC LIMIT $limit" else null,
     ): List<Pair<Long,Long>> =
         cr.map(
             uri = uri,
@@ -114,7 +115,8 @@ class SmsProvider constructor(context: Context) {
                 _ID,
                 THREAD_ID,
             ).toTypedArray(),
-            order = order
+            order = order,
+            limit = limit
         ) {
             val rowId = it.getLong(_ID)
             val threadId = it.getLong(THREAD_ID)
@@ -160,6 +162,7 @@ class SmsProvider constructor(context: Context) {
             subject = it.getString(SUBJECT)?.takeUnless { sub -> sub == "NoSubject" } ?: "",
             text = it.getString(BODY) ?: "",
             chat_guid = messageInfo.chat_guid,
+            thread_id = it.getLong(THREAD_ID),
             sender_guid = if (isFromMe) null else messageInfo.chat_guid,
             is_from_me = isFromMe,
             is_mms = false,

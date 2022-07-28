@@ -1,7 +1,9 @@
 package com.beeper.sms.work.startstop
 
+import android.content.ContentUris
 import android.content.Context
 import android.os.Build
+import android.provider.ContactsContract
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -9,10 +11,13 @@ import com.beeper.sms.Log
 import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
+import com.beeper.sms.commands.outgoing.Contact
 import com.beeper.sms.commands.outgoing.ReadReceipt
 import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedReadReceipt
 import com.beeper.sms.helpers.now
+import com.beeper.sms.provider.ContactProvider
+import com.beeper.sms.provider.GuidProvider
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.work.WorkManager
 import kotlinx.coroutines.Dispatchers
@@ -70,14 +75,14 @@ class SyncWindow constructor(
                                 bridge.commandProcessor.handleSyncWindowScopedCommands(it)
                             }
                         }
-                        // only bridge send responses if we are waiting
+                        // only bridge send responses if we are waiting for that message in this
+                        // session
                         "bridge_send_response", "bridge_send_response_error" -> {
                             val commandId = it.id?.toString()
                             if(pendingMessages.contains(commandId)){
                                 bridge.commandProcessor.handleSyncWindowScopedCommands(it)
                             }
-                            //TODO: uncomment this URGENT!
-                            //pendingMessages.remove(commandId)
+                            pendingMessages.remove(commandId)
                         }
                         else -> {
                             // pass any other event type to be normally processed
@@ -211,6 +216,49 @@ class SyncWindow constructor(
                         Log.e(TAG, "Timeout bridging ${readReceipt.read_up_to} read receipt")
                     }
                     readReceiptDao.delete(pendingReadReceipt)
+                }
+
+                // Check if we have any pending contacts to be bridged
+                val pendingContactUpdateDao = database.pendingContactUpdateDao()
+                val pendingContactUpdates = pendingContactUpdateDao.getAll()
+                Log.d(TAG, "Checking ${pendingContactUpdates.size} chats for " +
+                        "unbridged contact updates:")
+                // Bridge pending read receipts
+                pendingContactUpdates.onEach {
+                        pendingContactUpdate ->
+                    // Using phone number as user_guid
+                    // TODO: align a better id within mautrix-imessage? what about the canonical_id?
+                    val userGuid = pendingContactUpdate.phoneNumber
+                    if(userGuid!=null) {
+                        val contactProvider = ContactProvider(context)
+
+                        val contactUri = ContentUris.withAppendedId(
+                            ContactsContract.Contacts.CONTENT_URI, pendingContactUpdate.canonical_address_id
+                        )
+                        val address = GuidProvider.normalizeAddress(userGuid)
+                        val contact = Contact(
+                            "SMS;-;$address",
+                            pendingContactUpdate.first_name,
+                            pendingContactUpdate.last_name,
+                            pendingContactUpdate.nickname,
+                            contactProvider.getAvatar(contactUri),
+                            listOfNotNull(address),
+                        )
+                        val result =
+                            bridge.commandProcessor.sendContactUpdateCommandAndAwaitForResponse(
+                                contact,
+                                5000
+                            )
+                        if (result != null) {
+                            Log.d(
+                                TAG, "Contact for " +
+                                        "${contact.user_guid} was bridged"
+                            )
+                        } else {
+                            Log.e(TAG, "Timeout bridging ${contact.user_guid} contact")
+                        }
+                    }
+                    pendingContactUpdateDao.delete(pendingContactUpdate)
                 }
 
                 lastCommandReceivedMillis = now()

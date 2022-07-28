@@ -7,6 +7,7 @@ import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 
 data class ChatThread(
     var threadId: String,
+    var chatGuid: String,
     var snippet: String,
     var members: Map<String,ContactRow>,
     var timestamp: TimeMillis,
@@ -24,18 +25,6 @@ data class ChatThread(
             "Unknown contact"
         }else{
             threadMemberNames.reduce { acc, s -> "$acc, $s" }
-        }
-    }
-
-    fun getChatGuid() : String?{
-        return members.values.mapNotNull {
-            it.phoneNumber?.chatGuid
-        }.let {
-            if (it.isEmpty()) {
-                null
-            } else {
-                it.first()
-            }
         }
     }
 

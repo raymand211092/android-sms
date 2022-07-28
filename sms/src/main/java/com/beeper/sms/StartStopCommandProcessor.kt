@@ -90,7 +90,9 @@ class StartStopCommandProcessor constructor(
                 val room =
                     contactProvider
                         .getContacts(recipients)
-                        .map { it.nickname }
+                        .map {
+                            it.nickname
+                        }
                         .joinToString()
                 bridge.send(
                     Command("response", GetChat.Response(room, recipients), command.id)
@@ -165,7 +167,7 @@ class StartStopCommandProcessor constructor(
             "send_read_receipt" -> {
                 val data = deserialize(command,SendReadReceipt::class.java)
                 Log.v(TAG + "portalSyncScope" , "send_read_receipt $command $data")
-                markMessageAsRead(data.read_up_to)
+                bridge.markMessageAsRead(data.read_up_to, context)
             }
             "error" -> {
                 Log.v(TAG + "portalSyncScope", "error: $command")
@@ -322,7 +324,7 @@ class StartStopCommandProcessor constructor(
             "send_read_receipt" -> {
                 val data = deserialize(command,SendReadReceipt::class.java)
                 Log.v(TAG + "syncWindowScope", "send_read_receipt $command $data")
-                markMessageAsRead(data.read_up_to)
+                bridge.markMessageAsRead(data.read_up_to, context)
             }
             "error" -> {
                 Log.v(TAG + "syncWindowScope", "error: $command")
@@ -471,7 +473,7 @@ class StartStopCommandProcessor constructor(
             "send_read_receipt" -> {
                 val data = deserialize(command,SendReadReceipt::class.java)
                 Log.v(TAG , "send_read_receipt $command $data")
-                markMessageAsRead(data.read_up_to)
+                bridge.markMessageAsRead(data.read_up_to, context)
             }
             "error" -> {
                 Log.v(TAG, "error: $command")
@@ -647,32 +649,24 @@ class StartStopCommandProcessor constructor(
         if (chatThread != null) {
             val title = chatThread.getTitleFromMembers()
             Log.d(TAG, "Bridging chat: $title")
-            val chatGuid = chatThread.getChatGuid()
-            if (chatGuid == null) {
-                Log.e(
-                    TAG,
-                    "Couldn't find chat members for chat_guid: $chatGuid"
-                )
-            } else {
-
-                val chat = Chat(chatGuid,
-                    chatThread.getTitleFromMembers(),
-                    chatThread.members.values.mapNotNull {
-                        it.phoneNumber?.chatGuid
-                    }
-                )
-
-                val chatBridged =
-                    bridge.commandProcessor.sendChatCommandAndAwaitForResponse(
-                        chat,
-                        10000
-                    )
-
-                if (chatBridged != null) {
-                    Log.w(TAG, "Chat was bridged $threadId")
-                } else {
-                    Log.e(TAG, "Couldn't bridge chat $threadId")
+            val chatGuid = chatThread.threadId.chatGuid
+            val chat = Chat(chatGuid,
+                chatThread.getTitleFromMembers(),
+                chatThread.members.values.mapNotNull {
+                    it.phoneNumber?.chatGuid
                 }
+            )
+
+            val chatBridged =
+                bridge.commandProcessor.sendChatCommandAndAwaitForResponse(
+                    chat,
+                    10000
+                )
+
+            if (chatBridged != null) {
+                Log.w(TAG, "Chat was bridged $threadId")
+            } else {
+                Log.e(TAG, "Couldn't bridge chat $threadId")
             }
         }
     }
@@ -694,11 +688,24 @@ class StartStopCommandProcessor constructor(
         }
     }
 
-    private fun markMessageAsRead(message_guid: String){
-        val messageProvider = MessageProvider(context)
-        Log.v(TAG, "marking message_guid as read: $message_guid")
-        messageProvider.markMessagesInThreadAsRead(message_guid)
+    suspend fun sendContactUpdateCommandAndAwaitForResponse(contact: Contact,
+                                                          timeoutMillis: Long) : Unit?{
+        return withTimeoutOrNull(timeoutMillis) {
+            val completableDeferred = CompletableDeferred<Unit>()
+            val command = bridge.buildContactCommand(contact)
+            val job = commandsReceived.onSubscription {
+                bridge.send(command)
+            }.onEach {
+                if (it.id == command.id) {
+                    completableDeferred.complete(Unit)
+                }
+            }.launchIn(scope)
+            completableDeferred.await()
+            job.cancel()
+        }
     }
+
+
 
     private fun markThreadAsRead(recipients: List<String>){
         val chatThreadProvider = ChatThreadProvider(context)

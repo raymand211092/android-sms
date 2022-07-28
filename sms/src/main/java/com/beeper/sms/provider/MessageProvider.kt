@@ -123,7 +123,7 @@ class MessageProvider constructor(
             "(read=0 OR seen=0)", null);
     }
 
-    fun markMessagesInThreadAsRead(messageId: String) {
+    internal fun markMessageAsRead(messageId: String) {
         val mms = "mms"
         val sms = "sms"
 

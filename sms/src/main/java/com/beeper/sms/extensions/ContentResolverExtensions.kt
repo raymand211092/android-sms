@@ -14,10 +14,11 @@ fun <T> ContentResolver.flatMap(
     where: String? = null,
     projection: Array<String>? = null,
     order: String? = null,
+    limit: Int? = null,
     block: (Cursor) -> List<T>?
 ): List<T> {
     val result = ArrayList<T>()
-    map(uri, where, projection, order) {
+    map(uri, where, projection, order, limit) {
         block(it)?.let { l -> result.addAll(l)}
     }
     return result
@@ -29,13 +30,14 @@ fun <T> ContentResolver.map(
     where: String? = null,
     projection: Array<String>? = null,
     order: String? = null,
-    block: (Cursor) -> T?
+    limit: Int? = null,
+    block: (Cursor) -> T?,
 ): List<T> {
     val result = ArrayList<T>()
     query(uri, projection, where, null, order)
         ?.use {
             //Log.d(TAG, "$uri where=$where order=$order: ${it.count} results\n${it.dumpToString()}")
-            while (it.moveToNext()) {
+            while (it.moveToNext() && (limit == null || result.size <= limit)) {
                 block(it)?.let { t -> result.add(t) }
             }
         }
@@ -48,8 +50,9 @@ fun <T> ContentResolver.firstOrNull(
     where: String? = null,
     projection: Array<String>? = null,
     order: String? = null,
-    block: (Cursor) -> T?
-): T? = map(uri, where, projection, order, block).firstOrNull()
+    limit: Int? = null,
+    block: (Cursor) -> T?,
+    ): T? = map(uri, where, projection, order, limit, block).firstOrNull()
 
 private fun Cursor.dumpToString(): String {
     val sb = StringBuilder()

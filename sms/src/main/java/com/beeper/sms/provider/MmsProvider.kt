@@ -72,8 +72,8 @@ class MmsProvider constructor(
     private fun getMmsMetadata(
         uri: Uri = CONTENT_URI,
         where: String? = null,
-        limit: Int = 0,
-        order: String? =  if (limit > 0) "$DATE DESC LIMIT $limit" else null,
+        limit: Int? = null,
+        order: String? =  if (limit != null && limit > 0) "$DATE DESC LIMIT $limit" else null,
     ): List<Pair<Long,Long>> =
         cr.map(
             uri = uri,
@@ -82,7 +82,8 @@ class MmsProvider constructor(
                 _ID,
                 THREAD_ID,
             ).toTypedArray(),
-            order = order
+            order = order,
+            limit = limit
         ) {
             val rowId = it.getLong(_ID)
             val threadId = it.getLong(THREAD_ID)
@@ -92,8 +93,8 @@ class MmsProvider constructor(
     private fun <T> getMms(
         uri: Uri = CONTENT_URI,
         where: String? = null,
-        limit: Int = 0,
-        order: String? =  if (limit > 0) "$DATE DESC LIMIT $limit" else null,
+        limit: Int? = null,
+        order: String? =  if (limit != null && limit > 0) "$DATE DESC LIMIT $limit" else null,
         mapper: (Cursor, Long, Uri) -> T?,
     ): List<T> =
         cr.map(
@@ -110,7 +111,8 @@ class MmsProvider constructor(
                 RESPONSE_STATUS,
                 SUBSCRIPTION_ID
             ).toTypedArray(),
-            order = order
+            order = order,
+            limit = limit
         ) {
             val rowId = it.getLong(_ID)
             mapper(
@@ -164,6 +166,7 @@ class MmsProvider constructor(
             subject = it.getString(SUBJECT)?.takeUnless { sub -> sub == "NoSubject" } ?: "",
             text = attachments.mapNotNull { a -> a.text }.joinToString(""),
             chat_guid = messageInfo.chat_guid,
+            thread_id = it.getLong(THREAD_ID),
             sender_guid = sender,
             is_from_me = isFromMe,
             attachments = attachments.mapNotNull { a -> a.attachment },

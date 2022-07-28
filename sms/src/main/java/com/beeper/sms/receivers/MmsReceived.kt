@@ -1,22 +1,33 @@
 package com.beeper.sms.receivers
 
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
+import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.database.models.InboxPreviewCache
+import com.beeper.sms.provider.InboxPreviewProviderLocator
 import com.beeper.sms.provider.MessageProvider
-import com.beeper.sms.provider.SmsProvider
 import com.klinker.android.send_message.MmsReceivedReceiver
 import timber.log.Timber
 
 abstract class MmsReceived : MmsReceivedReceiver() {
+    abstract fun mapMessageToInboxPreviewCache(message: Message): InboxPreviewCache
     override fun onMessageReceived(context: Context?, uri: Uri?) {
         if(context != null && uri != null) {
             com.beeper.sms.Log.d(TAG, "a new MMS message was received")
+
+            val loadedMessage = MessageProvider(context).getMessage(uri)
+            if(loadedMessage!=null){
+                com.beeper.sms.Log.d(TAG, "updating inbox preview cache")
+                val preview = mapMessageToInboxPreviewCache(loadedMessage)
+                val inboxPreviewProvider = InboxPreviewProviderLocator.getInstance(context)
+                inboxPreviewProvider.update(
+                    preview
+                )
+            }
+
             if (StartStopBridge.INSTANCE.running) {
-                val loadedMessage = MessageProvider(context).getMessage(uri)
                 if (loadedMessage != null) {
                     com.beeper.sms.Log.d(
                         TAG, "Asked to bridge this message " +

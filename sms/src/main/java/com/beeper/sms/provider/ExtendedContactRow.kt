@@ -8,4 +8,5 @@ data class ExtendedContactRow(
     val starred: Boolean = false,
     val avatarUri: Uri? = null,
     val phoneNumbers: List<String> = listOf(),
-    val emails: List<String> = listOf())
+    val emails: List<String> = listOf()
+)

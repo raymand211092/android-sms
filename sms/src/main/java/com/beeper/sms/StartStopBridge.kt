@@ -23,6 +23,8 @@ import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.extensions.mmsDir
 import com.beeper.sms.helpers.newGson
+import com.beeper.sms.provider.InboxPreviewProviderLocator
+import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.receivers.MmsSent
 import com.beeper.sms.work.WorkManager
 import kotlinx.coroutines.*
@@ -310,6 +312,14 @@ class StartStopBridge private constructor() {
         )
     }
 
+    internal fun buildContactCommand(contact: Contact) : Command {
+        return Command(
+            "contact",
+            data = contact,
+            requestId.addAndGet(1)
+        )
+    }
+
     internal fun send(id: Int, error: Error) = send(Command("error", error, id))
 
     val running: Boolean
@@ -430,6 +440,17 @@ class StartStopBridge private constructor() {
         }
     }
 
+    fun markMessageAsRead(message_guid: String, context: Context){
+        //val databaseInstance = BridgeDatabase.getInstance(context)
+        //val inboxPreviewCacheDao = databaseInstance.inboxPreviewCacheDao()
+
+        //if(lastMessage != null){
+            val inboxPreviewProvider = InboxPreviewProviderLocator.getInstance(context)
+            Log.v(TAG, "marking message_guid as read: $message_guid")
+            inboxPreviewProvider.markMessagesInThreadAsRead(message_guid)
+                //}
+    }
+
     fun getDBFile(context: Context): File{
         return File(context.filesDir, "mautrix-imessage.db")
     }
@@ -461,7 +482,6 @@ class StartStopBridge private constructor() {
             // Keep bridge files after clearing the bridge
             configPath = null
             configPathProvider = null
-            //TODO: clear snared prefs to show that
         }
     }
 

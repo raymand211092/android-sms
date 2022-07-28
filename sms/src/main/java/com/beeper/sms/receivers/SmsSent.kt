@@ -8,19 +8,26 @@ import android.telephony.SmsManager.*
 import androidx.core.net.toUri
 import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
-import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
 import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Error
+import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.commands.outgoing.MessageStatus
 import com.beeper.sms.database.models.BridgedMessage
+import com.beeper.sms.database.models.InboxPreviewCache
 import com.beeper.sms.extensions.printExtras
+import com.beeper.sms.provider.ChatThreadProvider
+import com.beeper.sms.provider.InboxPreviewProviderLocator
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.SmsProvider
 import com.klinker.android.send_message.SentReceiver
 import com.klinker.android.send_message.Transaction
 
 abstract class SmsSent : SentReceiver() {
+
+    abstract fun mapMessageToInboxPreviewCache(message: Message) : InboxPreviewCache
+
     override fun onMessageStatusUpdated(context: Context, intent: Intent?, resultCode: Int) {
         Log.d(TAG, "result: $resultCode extras: ${intent.printExtras()}")
         val uri = intent?.getStringExtra("uri")?.toUri() ?: intent?.getStringExtra("message_uri")?.toUri()
@@ -34,12 +41,29 @@ abstract class SmsSent : SentReceiver() {
                 }
             }
 
-        val message = uri?.let { SmsProvider(context).getMessageInfo(it) }
+        val message = uri?.let { SmsProvider(context).getMessage(it) }
 
         if(commandId == null && message == null){
             Log.e(TAG, "Error on SMS sent: Missing commandId and message uri")
             Log.e(TAG, "Missing message (uri=$uri) (commandId=$commandId)")
             return
+        }
+
+        if(message != null){
+            val inboxPreviewProvider = InboxPreviewProviderLocator.getInstance(context)
+            Log.d(TAG, "updating inbox preview cache")
+            val messageStatus = if(resultCode == Activity.RESULT_OK) {
+                MessageStatus.Sent
+            }else{
+                MessageStatus.Failed
+            }
+            inboxPreviewProvider.update(
+                mapMessageToInboxPreviewCache(message.copy(
+                    messageStatus = messageStatus
+                ))
+            )
+        }else{
+            Log.e(TAG, "not updating inbox preview cache, failed to load message: $uri")
         }
 
         if(commandId != null && resultCode != Activity.RESULT_OK){
