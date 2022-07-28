@@ -135,6 +135,8 @@ class SimpleBackfill constructor(
                         }
                         Log.d(TAG, "Last lastSmsRowId: $lastSmsRowId " +
                                 "lastMmsRowId: $lastMmsRowId")
+
+                        // TODO: check which one is the last and update the preview info
                     }
                 }
 

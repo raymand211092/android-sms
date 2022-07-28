@@ -3,7 +3,7 @@ package com.beeper.sms.database
 import android.content.Context
 import androidx.room.Room
 
-object BridgeDatabase  {
+internal object BridgeDatabase  {
     @Volatile private var INSTANCE: BridgedEntitiesDatabase? = null
 
     fun getInstance(context: Context): BridgedEntitiesDatabase =

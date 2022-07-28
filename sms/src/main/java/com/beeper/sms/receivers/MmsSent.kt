@@ -11,19 +11,27 @@ import android.telephony.SmsManager.*
 import androidx.core.net.toUri
 import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
-import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.incoming.SendMessage
 import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Error
+import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.commands.outgoing.MessageStatus
+import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedMessage
+import com.beeper.sms.database.models.InboxMessageStatus
+import com.beeper.sms.database.models.InboxPreviewCache
 import com.beeper.sms.extensions.printExtras
+import com.beeper.sms.provider.InboxPreviewProviderLocator
+import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.MmsProvider
 import com.google.android.mms.util_alt.SqliteWrapper
 import com.klinker.android.send_message.MmsSentReceiver
 import com.klinker.android.send_message.Transaction
 
 abstract class MmsSent : MmsSentReceiver() {
+    abstract fun mapMessageToInboxPreviewCache(message: Message): InboxPreviewCache
+
     override fun onMessageStatusUpdated(context: Context, intent: Intent?, resultCode: Int) {
         Log.d(TAG, "result: $resultCode intent: ${intent.printExtras()}")
 
@@ -36,15 +44,38 @@ abstract class MmsSent : MmsSentReceiver() {
                     it
                 }
             }
-        val message = uri?.let { MmsProvider(context).getMessageInfo(it) }
+        val message = uri?.let { MmsProvider(context).getMessage(it) }
 
         if(uri!= null) {
             try {
                 val values = ContentValues(1)
+                val inboxPreviewProvider = InboxPreviewProviderLocator.getInstance(context)
                 if (resultCode == Activity.RESULT_OK) {
                     values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_SENT)
+                        if(message!= null) {
+                            Log.d(TAG, "updating inbox preview cache")
+                            val preview = mapMessageToInboxPreviewCache(message.copy(
+                                messageStatus = MessageStatus.Sent
+                            ))
+                            inboxPreviewProvider.update(
+                                preview
+                            )
+                        }else{
+                            Log.e(TAG, "not updating inbox preview cache, failed to load message: $uri")
+                        }
                 } else {
-                    values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_FAILED);
+                    values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_FAILED)
+                    if(message!= null) {
+                        Log.d(TAG, "updating inbox preview cache")
+                        val preview = mapMessageToInboxPreviewCache(message.copy(
+                            messageStatus = MessageStatus.Failed
+                        ))
+                        inboxPreviewProvider.update(
+                            preview
+                        )
+                    }else{
+                        Log.e(TAG, "not updating inbox preview cache, failed to load message: $uri")
+                    }
                 }
                 SqliteWrapper.update(
                     context, context.contentResolver, uri, values,

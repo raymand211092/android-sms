@@ -4,6 +4,7 @@ import android.net.Uri
 
 data class ContactRow(
     var first_name: String? = null,
+    var middle_name: String? = null,
     var last_name: String? = null,
     var nickname: String? = null,
     var phoneNumber: String? = null,

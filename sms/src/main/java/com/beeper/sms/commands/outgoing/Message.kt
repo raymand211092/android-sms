@@ -16,6 +16,7 @@ data class Message(
     var subject: String,
     var text: String,
     var chat_guid: String,
+    @Transient var thread_id: Long,
     var sender_guid: String?,
     var is_from_me: Boolean = false,
     var thread_originator_guid: String? = null,
