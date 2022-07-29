@@ -184,6 +184,14 @@ class SmsProvider constructor(context: Context) {
         ).firstOrNull()
     }
 
+    fun getLastMessage(threadId: Long) : Message? {
+        return getDistinctSms(
+            where = "${Telephony.Sms.THREAD_ID} = $threadId",
+            mapper = this::messageMapper,
+            order = "$_ID DESC",
+            limit = 1
+        ).firstOrNull()
+    }
 
     fun getLastReadMessageMetadata(threadId: Long) : MessageProvider.ReadReceiptInfo? {
         val query = cr.query(
@@ -250,9 +258,9 @@ class SmsProvider constructor(context: Context) {
             where = "$_ID >= $initialId ",
         )
 
-    private fun <T> getDistinctSms(where: String, order: String, mapper: (Cursor, Long, Uri) -> T?): List<T> =
+    private fun <T> getDistinctSms(where: String, order: String, mapper: (Cursor, Long, Uri) -> T?, limit: Int = 0): List<T> =
         listOf(CONTENT_URI).flatMap { uri ->
-            getSms(uri = uri, where = where, order = order, mapper = mapper)
+            getSms(uri = uri, where = where, order = order, mapper = mapper, limit = limit)
         }
 
     /**

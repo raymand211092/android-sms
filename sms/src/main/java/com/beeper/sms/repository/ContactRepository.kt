@@ -1,14 +1,11 @@
 package com.beeper.sms.repository
 
 import com.beeper.sms.Log
-import com.beeper.sms.StartStopBridge
-import com.beeper.sms.commands.incoming.SendMessage
-import com.beeper.sms.commands.internal.BridgeSendResponse
+import com.beeper.sms.commands.incoming.GroupMessaging.Companion.removeSMSGuidPrefix
 import com.beeper.sms.database.models.*
 import com.beeper.sms.observers.ContactObserver
 import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.ContactRow
-import com.beeper.sms.provider.EntityChange
 import com.beeper.sms.provider.ExtendedContactRow
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +46,13 @@ class ContactRepository(
     }
 
     fun getContacts(phones: List<String>) = contactProvider.getContacts(phones)
+
+
+    fun getContactBySenderGuid(sender_guid: String): ContactRow {
+        val phone = sender_guid.removeSMSGuidPrefix()
+        return contactProvider.getContact(phone)
+    }
+
 
     fun getContact(phone: String): ContactRow = contactProvider.getContact(phone)
 

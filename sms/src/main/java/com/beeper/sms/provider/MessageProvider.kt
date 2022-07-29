@@ -5,9 +5,8 @@ import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.provider.Telephony
-import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeSeconds
-import com.beeper.sms.commands.incoming.GroupMessaging.Companion.removePrefix
+import com.beeper.sms.commands.incoming.GroupMessaging.Companion.removeSMSGuidPrefix
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageInfo
 import timber.log.Timber
@@ -38,6 +37,19 @@ class MessageProvider constructor(
             .distinctBy { it.guid }
             .sortedBy { it.timestamp }
 
+    fun getLastMessage(thread: Long): Message?{
+        val lastMessages = mutableListOf<Message>()
+        smsProvider.getLastMessage(thread)?.let {
+            lastMessages.add(it)
+        }
+        mmsProvider.getLastMessage(thread)?.let {
+            lastMessages.add(it)
+        }
+        return lastMessages.minByOrNull {
+            it.timestamp
+        }
+    }
+
     fun getRecentMessages(thread: Long, limit: Int): List<Message> =
         smsProvider.getLatest(thread, limit)
             .plus(mmsProvider.getLatest(thread, limit))
@@ -61,7 +73,7 @@ class MessageProvider constructor(
             .sortedBy { it.timestamp }
 
     fun getLastReadMessage(chat_guid: String) : Message? {
-        val recipients = chat_guid.removePrefix().split(" ")
+        val recipients = chat_guid.removeSMSGuidPrefix().split(" ")
         val chatThreadProvider = ChatThreadProvider(context)
         val threadId = chatThreadProvider.getOrCreateThreadId(recipients.toSet())
 
@@ -87,7 +99,7 @@ class MessageProvider constructor(
                                val timestamp: TimeSeconds)
 
     fun getLastReadReceiptInfoForMessage(chat_guid: String) : ReadReceiptInfo? {
-        val recipients = chat_guid.removePrefix().split(" ")
+        val recipients = chat_guid.removeSMSGuidPrefix().split(" ")
         val chatThreadProvider = ChatThreadProvider(context)
         val threadId = chatThreadProvider.getOrCreateThreadId(recipients.toSet())
 
@@ -137,7 +149,7 @@ class MessageProvider constructor(
         }
 
         if (message != null) {
-            val recipients = message.chat_guid.removePrefix().split(" ")
+            val recipients = message.chat_guid.removeSMSGuidPrefix().split(" ")
             val chatThreadProvider = ChatThreadProvider(context)
             val threadId = chatThreadProvider.getOrCreateThreadId(recipients.toSet())
             val timestamp = message.timestamp

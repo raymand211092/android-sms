@@ -5,13 +5,13 @@ interface GroupMessaging {
     var chat_guid: String
 
     val recipients: String
-        get() = chat_guid.removePrefix()
+        get() = chat_guid.removeSMSGuidPrefix()
 
     val recipientList: List<String>
         get() = recipients.split(" ")
 
     companion object {
         private val REGEX = "^SMS;[+-];".toRegex()
-        fun String.removePrefix() = replace(REGEX, "")
+        fun String.removeSMSGuidPrefix() = replace(REGEX, "")
     }
 }

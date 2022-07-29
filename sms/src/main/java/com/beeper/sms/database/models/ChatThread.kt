@@ -7,7 +7,7 @@ import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 
 data class ChatThread(
     var threadId: String,
-    var chatGuid: String,
+    var recipientIds: String,
     var snippet: String,
     var members: Map<String,ContactRow>,
     var timestamp: TimeMillis,

@@ -196,7 +196,7 @@ class ChatThreadProvider constructor(
                         threads.add(
                             ChatThread(
                                 id.toString(),
-                                ids.chatGuid,
+                                ids,
                                 snippet ?: "",
                                 contacts,
                                 TimeSeconds(BigDecimal.valueOf(date)).toMillis(),
@@ -265,7 +265,7 @@ class ChatThreadProvider constructor(
                         threads.add(
                             ChatThread(
                                 id.toString(),
-                                ids.chatGuid,
+                                ids,
                                 snippet ?: "",
                                 contacts,
                                 TimeSeconds(BigDecimal.valueOf(date)).toMillis(),
@@ -345,7 +345,7 @@ class ChatThreadProvider constructor(
 
                     return@withContext ChatThread(
                         id.toString(),
-                        ids.chatGuid,
+                        ids,
                         snippet ?: "",
                         contacts,
                         TimeMillis(BigDecimal.valueOf(date)),
@@ -486,7 +486,7 @@ class ChatThreadProvider constructor(
                         threads.add(
                             ChatThread(
                                 id.toString(),
-                                ids.chatGuid,
+                                ids,
                                 snippet ?: "",
                                 contacts,
                                 TimeSeconds(BigDecimal.valueOf(date)).toMillis(),

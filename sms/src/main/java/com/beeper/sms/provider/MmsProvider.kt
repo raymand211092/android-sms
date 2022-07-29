@@ -181,6 +181,16 @@ class MmsProvider constructor(
         )
     }
 
+
+    fun getLastMessage(threadId: Long) : Message? {
+        return getDistinctMms(
+            where = "$THREAD_ID = $threadId",
+            mapper = this::messageMapper,
+            order = "$_ID DESC",
+            limit = 1,
+        ).firstOrNull()
+    }
+
     fun getLastReadMessage(threadId: Long) : Message? {
         return getDistinctMms(
             where = "$THREAD_ID = $threadId " +
@@ -256,10 +266,11 @@ class MmsProvider constructor(
     private fun <T> getDistinctMms(
         where: String,
         mapper: (Cursor, Long, Uri) -> T?,
-        order : String = "$_ID ASC"
+        order : String = "$_ID ASC",
+        limit: Int? = null
     ): List<T> =
         listOf(CONTENT_URI).flatMap { uri ->
-            getMms(uri = uri, where = where, order = order, mapper = mapper)
+            getMms(uri = uri, where = where, order = order, mapper = mapper, limit = limit)
         }
 
 
