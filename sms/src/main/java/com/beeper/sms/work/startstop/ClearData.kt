@@ -11,6 +11,9 @@ import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.BridgedEntitiesDatabase
+import com.beeper.sms.database.models.*
+import com.beeper.sms.provider.InboxPreviewProviderLocator
+import com.beeper.sms.repository.ContactRepositoryLocator
 import kotlinx.coroutines.*
 import java.lang.Exception
 import java.lang.IllegalStateException
@@ -41,7 +44,10 @@ class ClearData constructor(
                 database.bridgedReadReceiptDao().clear()
                 database.pendingReadReceiptDao().clear()
                 database.inboxPreviewCacheDao().clear()
+                database.chatThreadMetadataCache().clear()
+                database.contactCacheDao().clear()
                 database.pendingContactUpdateDao().clear()
+
                 Result.success()
             }
         }catch(e : Exception){

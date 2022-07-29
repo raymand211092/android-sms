@@ -52,7 +52,8 @@ class InboxPreviewProvider constructor(
             val lastInboxPreview = inboxPreviewCacheDao.getPreviewForChat(
                 inboxPreviewCache.chat_guid
             )
-            Log.d(TAG, "InboxPreview cache debug: update lastInboxPreview: $lastInboxPreview")
+            Log.d(TAG, "InboxPreview cache debug: update lastInboxPreview threadID:" +
+                    " ${lastInboxPreview?.thread_id}")
 
             val recipientIds =
                 lastInboxPreview?.recipient_ids ?: chatThreadProvider.getThreadRecipients(
@@ -65,8 +66,8 @@ class InboxPreviewProvider constructor(
                     recipient_ids = recipientIds
                 )
             Log.d(
-                TAG, "InboxPreview cache debug: inboxPreviewWithRecipients:" +
-                        " $inboxPreviewWithRecipients"
+                TAG, "InboxPreview cache debug: inboxPreviewWithRecipients threadId:" +
+                        " ${inboxPreviewWithRecipients.thread_id}"
             )
 
             inboxPreviewCacheDao.insert(inboxPreviewWithRecipients)
@@ -118,10 +119,9 @@ class InboxPreviewProvider constructor(
                 )
                 val chatThread = chatThreadProvider.getThread(threadId)
                 if (chatThread != null) {
-                    val lastMessage = messageProvider.getRecentMessages(
-                        threadId,
-                        1
-                    ).firstOrNull()
+                    val lastMessage = messageProvider.getLastMessage(
+                        threadId
+                    )
                     if (lastMessage != null) {
                             val newPreview = mapMessageToInboxPreview(
                                 lastMessage
@@ -132,9 +132,9 @@ class InboxPreviewProvider constructor(
                             )
                             update(newPreview)
                             previews.add(newPreview)
-
                     } else {
-                        Log.e(TAG, "InboxPreview cache debug: null lastMessage")
+                        Log.e(TAG, "InboxPreview cache debug: null lastMessage ${chatThread.recipientIds}" +
+                                "title: ${chatThread.getTitleFromMembers()} ")
                     }
                 } else {
                     Log.e(TAG, "InboxPreview cache debug: null chatThread")
