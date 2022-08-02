@@ -1,12 +1,15 @@
 package com.beeper.sms.work.startstop
 
 import android.content.Context
-import androidx.core.app.NotificationManagerCompat
+import android.content.Intent
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.beeper.sms.Log
 import com.beeper.sms.R
+import com.beeper.sms.receivers.BackfillFailed
+import com.klinker.android.send_message.BroadcastUtils
+import androidx.core.app.NotificationManagerCompat
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedMessage
@@ -21,7 +24,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.lang.IllegalStateException
-
 
 class SimpleBackfill constructor(
     private val context: Context,
@@ -50,6 +52,9 @@ class SimpleBackfill constructor(
                     bridge.stop()
                     if(runAttemptCount > MAX_ATTEMPTS - 1) {
                         Log.e(TAG, "Couldn't start the bridge -> not retrying anymore. $runAttemptCount")
+                        // We are notifying the app, so it can handle backfill failed statements
+                        val intent = Intent(BackfillFailed.ACTION)
+                        BroadcastUtils.sendExplicitBroadcast(context,intent,BackfillFailed.ACTION)
                         return@withContext Result.failure()
                     }else{
                         Log.e(TAG, "Couldn't start the bridge -> retrying backfill (attempt: $runAttemptCount)")
