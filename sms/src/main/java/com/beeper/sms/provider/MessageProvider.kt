@@ -45,7 +45,8 @@ class MessageProvider constructor(
         mmsProvider.getLastMessage(thread)?.let {
             lastMessages.add(it)
         }
-        return lastMessages.minByOrNull {
+
+        return lastMessages.maxByOrNull {
             it.timestamp
         }
     }
