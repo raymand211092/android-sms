@@ -68,11 +68,16 @@ class SyncWindow constructor(
                     )
                     when(it.command){
                         // Store message as pending after sending so we wait for the result
-                        "send_message" -> {
+                        "send_message", "send_media" -> {
                             val commandId = it.id?.toString()
                             if(commandId != null){
+                                Log.d(TAG, "storing pending ack to send command:" +
+                                        " ${it.command} commandId: $commandId")
+
                                 pendingMessages.add(commandId)
                                 bridge.commandProcessor.handleSyncWindowScopedCommands(it)
+                            }else{
+                                Log.e(TAG, "${it.command} with null commandId")
                             }
                         }
                         // only bridge send responses if we are waiting for that message in this
@@ -80,8 +85,15 @@ class SyncWindow constructor(
                         "bridge_send_response", "bridge_send_response_error" -> {
                             val commandId = it.id?.toString()
                             if(pendingMessages.contains(commandId)){
+                                Log.d(TAG, "handling ack command" +
+                                        " ${it.command} commandId: $commandId")
                                 bridge.commandProcessor.handleSyncWindowScopedCommands(it)
+                            }else{
+                                Log.e(TAG, "${it.command} ack command with null commandId " +
+                                        "=> not handled")
                             }
+                            Log.d(TAG, "releasing pending ack to send command " +
+                                    " ${it.command} commandId: $commandId")
                             pendingMessages.remove(commandId)
                         }
                         else -> {
