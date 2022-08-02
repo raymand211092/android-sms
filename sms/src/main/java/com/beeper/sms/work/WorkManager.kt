@@ -81,9 +81,6 @@ class WorkManager constructor(val context: Context) {
                 RETRY_INTERVAL_MS,
                 TimeUnit.MILLISECONDS
             )
-            .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-            )
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
     }
@@ -117,9 +114,6 @@ class WorkManager constructor(val context: Context) {
                 RETRY_POLICY,
                 RETRY_INTERVAL_MS,
                 TimeUnit.MILLISECONDS
-            )
-            .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
             )
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
