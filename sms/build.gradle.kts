@@ -9,7 +9,7 @@ plugins {
 object Version {
     const val major = 0
     const val minor = 2
-    const val patch = 76
+    const val patch = 77
 }
 
 android {
