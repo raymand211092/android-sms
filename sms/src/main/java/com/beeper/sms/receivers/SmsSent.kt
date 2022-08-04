@@ -129,22 +129,33 @@ abstract class SmsSent : SentReceiver() {
                 val loadedMessage = MessageProvider(context).getMessage(uri)
                 if(resultCode == Activity.RESULT_OK){
                     if (loadedMessage != null) {
+                        Log.d(TAG, "SMS forwarded to running bridge: ${loadedMessage.guid}")
+
                         StartStopBridge.INSTANCE.forwardMessageToBridge(
                             BridgeThisSmsOrMms(
                                 loadedMessage
                             )
                         )
+                    }else{
+                        Log.e(TAG, "Couldn't load SMS message to bridge: $guid")
                     }
                 }else{
                     Log.w(
-                        TAG, "message failed -> we're not bridging failures yet"
+                        TAG, "message failed -> we're not bridging failures yet $guid"
                     )
                     // TODO: we're not bridging failures right now
                 }
             }
         }else{
-            // Just start a sync window and it'll bridge the delivered message
-            startSyncWindow()
+            // just create a sync worker and it'll bridge the delivered message for us
+            if(resultCode == Activity.RESULT_OK) {
+                Log.d(TAG, "Starting a sync window to bridge a SMS message")
+                startSyncWindow()
+            }else{
+                Log.w(
+                    TAG, "Not starting a new sync window to bridge a user initiated" +
+                        " failed SMS message")
+            }
         }
     }
 
