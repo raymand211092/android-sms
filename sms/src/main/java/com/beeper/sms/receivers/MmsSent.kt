@@ -53,7 +53,7 @@ abstract class MmsSent : MmsSentReceiver() {
                 if (resultCode == Activity.RESULT_OK) {
                     values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_SENT)
                         if(message!= null) {
-                            Log.d(TAG, "updating inbox preview cache")
+                            Log.d(TAG, "updating inbox preview cache: message sent")
                             val preview = mapMessageToInboxPreviewCache(message.copy(
                                 messageStatus = MessageStatus.Sent
                             ))
@@ -66,7 +66,7 @@ abstract class MmsSent : MmsSentReceiver() {
                 } else {
                     values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_FAILED)
                     if(message!= null) {
-                        Log.d(TAG, "updating inbox preview cache")
+                        Log.d(TAG, "updating inbox preview cache: message failed to send")
                         val preview = mapMessageToInboxPreviewCache(message.copy(
                             messageStatus = MessageStatus.Failed
                         ))
@@ -150,31 +150,37 @@ abstract class MmsSent : MmsSentReceiver() {
             }else{
                 Log.d(TAG, "MMS is being forwarded to a running sync window")
 
-                if(resultCode != Activity.RESULT_OK) {
+                if(resultCode == Activity.RESULT_OK) {
                     // null command id -> a brand new message was locally delivered by the user ->
                     // as the bridge is running, we should bridge a message command
                     val newUri = ContentUris.withAppendedId(Telephony.Mms.CONTENT_URI, rowId)
                     val newMessage = MmsProvider(context).getMessage(newUri)
                     if (newMessage != null) {
-                        Log.d(TAG, "MMS forwarded to running bridge")
+                        Log.d(TAG, "MMS forwarded to running bridge ${newMessage.guid}")
                         StartStopBridge.INSTANCE.forwardMessageToBridge(
                             BridgeThisSmsOrMms(
                                 newMessage
                             )
                         )
                     } else {
-                        Log.e(TAG, "Couldn't load MMS message to bridge,")
+                        Log.e(TAG, "Couldn't load MMS message to bridge: $guid")
                     }
                 }else{
                     Log.w(
-                        TAG, "message failed -> we're not bridging failures yet"
+                        TAG, "message failed -> we're not bridging user initiated failures $guid"
                     )
                     // TODO: we're not bridging failures right now
                 }
             }
         }else{
             // just create a sync worker and it'll bridge the delivered message for us
-            startSyncWindow()
+            if(resultCode == Activity.RESULT_OK) {
+                Log.d(TAG, "Starting a sync window to bridge a MMS message $guid")
+                startSyncWindow()
+            }else{
+                Log.w(TAG, "Not starting a new sync window to bridge a user initiated" +
+                        " failed MMS message $guid")
+            }
         }
 
     }
