@@ -13,6 +13,6 @@ interface PendingContactUpdateDao {
     @Delete
     fun delete(pendingContactUpdate: PendingContactUpdate)
 
-    @Query("DELETE FROM pendingreadreceipt")
+    @Query("DELETE FROM pendingcontactupdate")
     fun clear()
 }
