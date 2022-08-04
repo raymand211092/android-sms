@@ -154,6 +154,18 @@ class ContactProvider constructor(private val context: Context) {
             val middleName = contact.getString(StructuredName.MIDDLE_NAME)
             val familyName = contact.getString(StructuredName.FAMILY_NAME)
             val avatarUri = Uri.withAppendedPath(contactUri, Contacts.Photo.CONTENT_DIRECTORY)
+
+            val displayName = contact.getString(StructuredName.DISPLAY_NAME)
+            val alternativeDisplayName = if(givenName != null
+                && givenName.isNotBlank()
+                && familyName != null
+                && familyName.isNotBlank()
+            ){
+                "$givenName $familyName".trim()
+            }else{
+                givenName
+            }
+
             ContactRow(
                 first_name = givenName,
                 middle_name = middleName,
@@ -164,8 +176,8 @@ class ContactProvider constructor(private val context: Context) {
                  */
                 avatar = null,
                 avatarUri = avatarUri,
-                nickname = contact.getString(StructuredName.DISPLAY_NAME)
-                    ?: "$givenName $familyName".trim().takeIf { it.isNotBlank() }
+                nickname = displayName
+                    ?: alternativeDisplayName
             )
         }
 
