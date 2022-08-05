@@ -37,6 +37,14 @@ import java.util.concurrent.Executors.newSingleThreadExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
+sealed class SyncWindowState{
+    object Running : SyncWindowState()
+
+    object Stopping : SyncWindowState()
+
+    object Stopped : SyncWindowState()
+}
+
 class StartStopBridge private constructor() {
     lateinit var commandProcessor : StartStopCommandProcessor
     private lateinit var nativeLibDir: String
@@ -70,6 +78,21 @@ class StartStopBridge private constructor() {
     private var commandHandling: Job? = null
     private val COMMAND = "^\\{.*\\}$".toRegex()
 
+
+
+    private val _syncWindowState = MutableStateFlow<SyncWindowState>(SyncWindowState.Stopped)
+    val syncWindowState = _syncWindowState.asStateFlow()
+
+    internal fun onSyncWindowStarted(){
+        _syncWindowState.value = SyncWindowState.Running
+    }
+
+    internal fun onSyncWindowStopping(){
+        _syncWindowState.value = SyncWindowState.Stopping
+    }
+    internal fun onSyncWindowFinished(){
+        _syncWindowState.value = SyncWindowState.Stopped
+    }
 
     fun init(
         context: Context,
@@ -259,18 +282,13 @@ class StartStopBridge private constructor() {
         }else{
             Log.d(TAG, "No process to kill")
         }
-
     }
 
     private fun Process.kill() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
                 Log.d(TAG, "destroyForcibly")
-                val success = destroyForcibly().waitFor(10, TimeUnit.SECONDS)
-                Log.d(TAG, "destroyForcibly success=$success")
-                if (success) {
-                    process = null
-                }
+                destroyForcibly()
             } catch (e: InterruptedException) {
                 Log.e(TAG, e)
             }

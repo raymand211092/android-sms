@@ -3,13 +3,17 @@ package com.beeper.sms.receivers
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
+import com.beeper.sms.SyncWindowState
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.database.models.InboxPreviewCache
 import com.beeper.sms.provider.InboxPreviewProviderLocator
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.SmsProvider
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 
 abstract class SmsReceived : BroadcastReceiver() {
     abstract fun mapMessageToInboxPreviewCache(message: Message): InboxPreviewCache
@@ -23,7 +27,7 @@ abstract class SmsReceived : BroadcastReceiver() {
             return
         }
         com.beeper.sms.Log.d(TAG, "Message was successfully stored " +
-                    "in Android's database")
+                "in Android's database")
 
         val loadedMessage = MessageProvider(context).getMessage(uri)
         if(loadedMessage!=null){
@@ -35,7 +39,8 @@ abstract class SmsReceived : BroadcastReceiver() {
             )
         }
 
-        if(StartStopBridge.INSTANCE.running){
+        val syncWindowState = StartStopBridge.INSTANCE.syncWindowState.value
+        if(syncWindowState == SyncWindowState.Running){
             if(loadedMessage!=null) {
                 com.beeper.sms.Log.d(TAG, "Asked to bridge this message " +
                         "in Android's database: ${loadedMessage.guid}" +
@@ -52,7 +57,7 @@ abstract class SmsReceived : BroadcastReceiver() {
         }
         else{
             com.beeper.sms.Log.d(TAG, "SyncWindow is stopped ->" +
-                    " starting sms bridge sync window")
+                    " starting sms bridge sync window to bridge a received SMS")
             startSyncWindow()
         }
     }
