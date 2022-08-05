@@ -38,6 +38,8 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 sealed class SyncWindowState{
+    object Starting : SyncWindowState()
+
     object Running : SyncWindowState()
 
     object Stopping : SyncWindowState()
@@ -83,6 +85,9 @@ class StartStopBridge private constructor() {
     private val _syncWindowState = MutableStateFlow<SyncWindowState>(SyncWindowState.Stopped)
     val syncWindowState = _syncWindowState.asStateFlow()
 
+    internal fun onSyncWindowStarting(){
+        _syncWindowState.value = SyncWindowState.Starting
+    }
     internal fun onSyncWindowStarted(){
         _syncWindowState.value = SyncWindowState.Running
     }
