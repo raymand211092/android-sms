@@ -10,8 +10,6 @@ import android.webkit.MimeTypeMap
 import com.beeper.sms.extensions.hasPermission
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.receivers.SmsDelivered
-import com.beeper.sms.receivers.MmsSent
-import com.beeper.sms.receivers.SmsSent
 import com.klinker.android.send_message.Message
 import com.klinker.android.send_message.Settings
 import com.klinker.android.send_message.Transaction
@@ -27,7 +25,7 @@ class SmsMmsSender(
         thread: Long = 0,
         sentMessageParcelable: Parcelable? = null,
         subject: String? = null,
-    ) {
+    ): List<Uri> {
         val subscriptionId = getSubscriptionId(thread)
         val transaction = newTransaction(subscriptionId)
         val message = Message(text, recipients.toTypedArray()).apply {
@@ -36,7 +34,7 @@ class SmsMmsSender(
                 setupMms()
             }
         }
-        transaction.sendNewMessage(message, thread, sentMessageParcelable, null)
+        return transaction.sendNewMessage(message, thread, sentMessageParcelable, null)
     }
 
     fun sendMessage(
@@ -47,14 +45,14 @@ class SmsMmsSender(
         filename: String,
         thread: Long = 0,
         sentMessageParcelable: Parcelable,
-    ) {
+    ): List<Uri> {
         val subscriptionId = getSubscriptionId(thread)
         val transaction = newTransaction(subscriptionId)
         val message = Message(text, recipients.toTypedArray()).apply {
             addMedia(bytes, mimeType, filename)
             setupMms()
         }
-        transaction.sendNewMessage(message, thread, sentMessageParcelable, null)
+        return transaction.sendNewMessage(message, thread, sentMessageParcelable, null)
     }
 
     fun sendMessage(
@@ -63,31 +61,29 @@ class SmsMmsSender(
         fileURI: Uri,
         thread: Long = 0,
         sentMessageParcelable: Parcelable,
-    ) : Boolean{
+    ) : List<Uri> {
         val filename = fileURI.lastPathSegment ?: "File"
         val mimeType = fileURI.getMimeType(context)
         val bytes = context.contentResolver.openInputStream(fileURI)?.readBytes()
             ?: ByteArray(0)
         return if(mimeType != null && bytes.size <= MAX_FILE_SIZE && bytes.size >= 0) {
             sendMessage(text, recipients, bytes, mimeType, filename, thread, sentMessageParcelable)
-            true
         }else{
-            false
+            emptyList()
         }
     }
 
-    private fun newTransaction(subscriptionId: Int?) : Transaction {
+    private fun newTransaction(subscriptionId: Int?): Transaction {
         val smsSentIntent = Intent("com.beeper.sms.SMS_SENT")
         smsSentIntent.setPackage(context.packageName)
 
         val mmsSentIntent = Intent("com.beeper.sms.MMS_SENT")
         mmsSentIntent.setPackage(context.packageName)
 
-        val transaction = Transaction(context, newSettings(subscriptionId))
+        return Transaction(context, newSettings(subscriptionId))
             .setExplicitBroadcastForDeliveredSms(Intent(context, SmsDelivered::class.java))
             .setExplicitBroadcastForSentSms(smsSentIntent)
             .setExplicitBroadcastForSentMms(mmsSentIntent)
-        return transaction
     }
 
     private fun getSubscriptionId(thread: Long): Int? =

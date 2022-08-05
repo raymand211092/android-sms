@@ -73,7 +73,7 @@ class ConversationViewModel(
                         },
                         fileUri,
                         threadId.toLong(), Bundle()
-                    )
+                    ).isNotEmpty()
                 }else{
                     false
                 }
