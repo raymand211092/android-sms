@@ -11,6 +11,7 @@ import android.telephony.SmsManager.*
 import androidx.core.net.toUri
 import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
+import com.beeper.sms.SyncWindowState
 import com.beeper.sms.commands.incoming.SendMessage
 import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
@@ -28,6 +29,7 @@ import com.beeper.sms.provider.MmsProvider
 import com.google.android.mms.util_alt.SqliteWrapper
 import com.klinker.android.send_message.MmsSentReceiver
 import com.klinker.android.send_message.Transaction
+import kotlinx.coroutines.*
 
 abstract class MmsSent : MmsSentReceiver() {
     abstract fun mapMessageToInboxPreviewCache(message: Message): InboxPreviewCache
@@ -52,17 +54,17 @@ abstract class MmsSent : MmsSentReceiver() {
                 val inboxPreviewProvider = InboxPreviewProviderLocator.getInstance(context)
                 if (resultCode == Activity.RESULT_OK) {
                     values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_SENT)
-                        if(message!= null) {
-                            Log.d(TAG, "updating inbox preview cache: message sent")
-                            val preview = mapMessageToInboxPreviewCache(message.copy(
-                                messageStatus = MessageStatus.Sent
-                            ))
-                            inboxPreviewProvider.update(
-                                preview
-                            )
-                        }else{
-                            Log.e(TAG, "not updating inbox preview cache, failed to load message: $uri")
-                        }
+                    if(message!= null) {
+                        Log.d(TAG, "updating inbox preview cache: message sent")
+                        val preview = mapMessageToInboxPreviewCache(message.copy(
+                            messageStatus = MessageStatus.Sent
+                        ))
+                        inboxPreviewProvider.update(
+                            preview
+                        )
+                    }else{
+                        Log.e(TAG, "not updating inbox preview cache, failed to load message: $uri")
+                    }
                 } else {
                     values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_FAILED)
                     if(message!= null) {
@@ -132,7 +134,8 @@ abstract class MmsSent : MmsSentReceiver() {
             isMms
         )
 
-        if(StartStopBridge.INSTANCE.running){
+        val syncWindowState = StartStopBridge.INSTANCE.syncWindowState.value
+        if(syncWindowState == SyncWindowState.Running){
             if(commandId != null) {
                 // has a command id -> this message was delivered because mautrix asked to
                 // we just need to answer it and save in db
@@ -148,7 +151,7 @@ abstract class MmsSent : MmsSentReceiver() {
                     )
                 )
             }else{
-                Log.d(TAG, "MMS is being forwarded to a running sync window")
+                Log.d(TAG, "Sent MMS is being forwarded to a running sync window")
 
                 if(resultCode == Activity.RESULT_OK) {
                     // null command id -> a brand new message was locally delivered by the user ->
@@ -175,7 +178,8 @@ abstract class MmsSent : MmsSentReceiver() {
         }else{
             // just create a sync worker and it'll bridge the delivered message for us
             if(resultCode == Activity.RESULT_OK) {
-                Log.d(TAG, "Starting a sync window to bridge a MMS message $guid")
+                // simple approach to avoid a stopping bridge
+                Log.d(TAG, "Starting a sync window to bridge a sent MMS message $guid")
                 startSyncWindow()
             }else{
                 Log.w(TAG, "Not starting a new sync window to bridge a user initiated" +

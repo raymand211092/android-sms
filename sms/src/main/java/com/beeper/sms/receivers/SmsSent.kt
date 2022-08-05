@@ -8,6 +8,7 @@ import android.telephony.SmsManager.*
 import androidx.core.net.toUri
 import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
+import com.beeper.sms.SyncWindowState
 import com.beeper.sms.commands.incoming.SendMessage
 import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
@@ -23,6 +24,8 @@ import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.SmsProvider
 import com.klinker.android.send_message.SentReceiver
 import com.klinker.android.send_message.Transaction
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 
 abstract class SmsSent : SentReceiver() {
 
@@ -70,9 +73,9 @@ abstract class SmsSent : SentReceiver() {
             Log.e(TAG, "Bridging error response to SMS not delivered:" +
                     " uri:$uri error:${resultCode.toError(intent)}")
             StartStopBridge.INSTANCE.forwardSendErrorToBridge(
-                    commandId,
-                    resultCode.toError(intent)
-                )
+                commandId,
+                resultCode.toError(intent)
+            )
             return
         }
 
@@ -102,8 +105,9 @@ abstract class SmsSent : SentReceiver() {
         }
 
 
+        val syncWindowState = StartStopBridge.INSTANCE.syncWindowState.value
 
-        if(StartStopBridge.INSTANCE.running){
+        if(syncWindowState == SyncWindowState.Running){
             if(commandId != null) {
                 // Has a command id -> this message was delivered because mautrix asked to.
                 // We just need to answer it and save in db
@@ -149,12 +153,13 @@ abstract class SmsSent : SentReceiver() {
         }else{
             // just create a sync worker and it'll bridge the delivered message for us
             if(resultCode == Activity.RESULT_OK) {
-                Log.d(TAG, "Starting a sync window to bridge a SMS message")
+                // simple approach to avoid a stopping bridge
+                Log.d(TAG, "Starting a sync window to bridge a sent SMS message $guid")
                 startSyncWindow()
             }else{
                 Log.w(
                     TAG, "Not starting a new sync window to bridge a user initiated" +
-                        " failed SMS message")
+                            " failed SMS message")
             }
         }
     }

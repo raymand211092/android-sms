@@ -2,20 +2,24 @@ package com.beeper.sms.receivers
 
 import android.content.Context
 import android.net.Uri
+import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
+import com.beeper.sms.SyncWindowState
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.database.models.InboxPreviewCache
 import com.beeper.sms.provider.InboxPreviewProviderLocator
 import com.beeper.sms.provider.MessageProvider
 import com.klinker.android.send_message.MmsReceivedReceiver
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 
 abstract class MmsReceived : MmsReceivedReceiver() {
     abstract fun mapMessageToInboxPreviewCache(message: Message): InboxPreviewCache
     override fun onMessageReceived(context: Context?, uri: Uri?) {
         if(context != null && uri != null) {
-            com.beeper.sms.Log.d(TAG, "a new MMS message was received")
+            com.beeper.sms.Log.d(TAG, "a new MMS message was received $uri")
 
             val loadedMessage = MessageProvider(context).getMessage(uri)
             if(loadedMessage!=null){
@@ -27,7 +31,9 @@ abstract class MmsReceived : MmsReceivedReceiver() {
                 )
             }
 
-            if (StartStopBridge.INSTANCE.running) {
+            val syncWindowState = StartStopBridge.INSTANCE.syncWindowState.value
+
+            if(syncWindowState == SyncWindowState.Running){
                 if (loadedMessage != null) {
                     com.beeper.sms.Log.d(
                         TAG, "Asked to bridge this message " +
@@ -48,8 +54,7 @@ abstract class MmsReceived : MmsReceivedReceiver() {
             } else {
                 com.beeper.sms.Log.d(
                     TAG, "SyncWindow is stopped ->" +
-                            " starting SMS bridge's sync window"
-                )
+                            " starting sms bridge sync window to bridge a received MMS")
                 startSyncWindow()
             }
         }else{

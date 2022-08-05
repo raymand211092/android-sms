@@ -135,6 +135,8 @@ class SyncWindow constructor(
                     }
                 }
                 Log.w(TAG, "has the bridge")
+                bridge.onSyncWindowStarted()
+
 
                 //Sync our local SMS and MMS messages
                 val database = BridgeDatabase.getInstance(context)
@@ -297,9 +299,12 @@ class SyncWindow constructor(
                     Log.d(TAG, "Bridge is idle -> successfully finishing the work")
                 }
 
+                Log.d(TAG, "SMSSyncWindow window stopping")
+                bridge.onSyncWindowStopping()
                 job.cancel()
                 Log.d(TAG, "SMSSyncWindow window finished -> stopping mautrix-imessage")
                 bridge.stop()
+                bridge.onSyncWindowFinished()
                 Result.success()
             }
         }catch (e : Exception){
