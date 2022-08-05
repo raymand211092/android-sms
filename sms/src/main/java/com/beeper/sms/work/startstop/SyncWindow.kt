@@ -37,6 +37,10 @@ class SyncWindow constructor(
 
     override suspend fun doWork(): Result {
         Log.d(TAG, "SMSSyncWindow doWork()")
+        val bridge = StartStopBridge.INSTANCE
+
+        bridge.onSyncWindowStarting()
+
         //Shouldn't run for more than 10min, shouldn't be idle for more than 30 seconds
         val syncTimeout = 10.toDuration(DurationUnit.MINUTES).inWholeMilliseconds
         val maxIdlePeriod = 30.toDuration(DurationUnit.SECONDS).inWholeMilliseconds
@@ -54,7 +58,6 @@ class SyncWindow constructor(
             }
 
             return withContext(Dispatchers.Default) {
-                val bridge = StartStopBridge.INSTANCE
 
                 // Give mautrix_imessage time to sync. It will continue if it's idle for
                 // *maxIdlePeriodSeconds* or if the task takes more than *syncTimeoutMinutes*
@@ -292,6 +295,8 @@ class SyncWindow constructor(
                     }
                     true
                 }
+                bridge.onSyncWindowStopping()
+                Log.d(TAG, "SMSSyncWindow window stopping")
 
                 if(result == null){
                     Log.e(TAG, "Timeout waiting for SyncWindow inactivity")
@@ -310,7 +315,6 @@ class SyncWindow constructor(
         }catch (e : Exception){
             Log.e(TAG, "SMSSyncWindow caught an exception ->")
             Log.e(TAG, e)
-            val bridge = StartStopBridge.INSTANCE
             bridge.stop()
             return Result.failure()
         }
