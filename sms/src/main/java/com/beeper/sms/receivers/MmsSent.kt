@@ -18,18 +18,15 @@ import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Error
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageStatus
-import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedMessage
-import com.beeper.sms.database.models.InboxMessageStatus
 import com.beeper.sms.database.models.InboxPreviewCache
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.InboxPreviewProviderLocator
-import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.MmsProvider
+import com.beeper.sms.receivers.SmsDelivered.Companion.toError
 import com.google.android.mms.util_alt.SqliteWrapper
 import com.klinker.android.send_message.MmsSentReceiver
 import com.klinker.android.send_message.Transaction
-import kotlinx.coroutines.*
 
 abstract class MmsSent : MmsSentReceiver() {
     abstract fun mapMessageToInboxPreviewCache(message: Message): InboxPreviewCache
@@ -38,6 +35,13 @@ abstract class MmsSent : MmsSentReceiver() {
         Log.d(TAG, "result: $resultCode intent: ${intent.printExtras()}")
 
         val uri = intent?.getStringExtra(EXTRA_CONTENT_URI)?.toUri()
+
+        if(resultCode != Activity.RESULT_OK) {
+            Log.w(
+                TAG, "Error sending MMS: " +
+                    " uri:$uri error:${resultCode.toError(intent).message}")
+        }
+
         val commandId : Int? =
             (intent?.getParcelableExtra(Transaction.SENT_MMS_BUNDLE) as? Bundle)?.getInt(Transaction.COMMAND_ID, -1).let {
                 if(it != null && it < 0) {
