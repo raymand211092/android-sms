@@ -207,7 +207,7 @@ abstract class MmsSent : MmsSentReceiver() {
                 null
             }
 
-        private fun errorToString(rc: Int, intent: Intent?): String {
+        fun errorToString(rc: Int, intent: Intent?): String {
             return when (rc) {
                 MMS_ERROR_UNSPECIFIED -> "MMS_ERROR_UNSPECIFIED"
                 MMS_ERROR_INVALID_APN -> "MMS_ERROR_INVALID_APN"
