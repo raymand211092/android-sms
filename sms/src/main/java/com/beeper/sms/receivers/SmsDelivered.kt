@@ -19,7 +19,7 @@ class SmsDelivered : DeliveredReceiver() {
             private const val ERR_TIMEOUT = "timeout"
             private const val ERR_UNSUPPORTED = "unsupported"
 
-            private fun Int.toError(intent: Intent?): Error {
+            fun Int.toError(intent: Intent?): Error {
                 val message = errorToString(this, intent)
                 return when (this) {
                     SmsManager.RESULT_ERROR_NO_SERVICE,
