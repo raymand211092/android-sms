@@ -27,8 +27,8 @@ class ComposeSmsActivity : AppCompatActivity() {
         if (text == null) {
             val room =
                 ContactProvider(this)
-                    .getContacts(recipients)
-                    .map { contact -> contact.nickname }
+                    .getRecipients(recipients)
+                    .map { contact -> contact.first.nickname }
                     .joinToString()
             Bridge.INSTANCE.send(
                 Command(

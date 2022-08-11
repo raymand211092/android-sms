@@ -59,8 +59,8 @@ class CommandProcessor constructor(
                         .recipientList
                 val room =
                     contactProvider
-                        .getContacts(recipients)
-                        .map { it.nickname }
+                        .getRecipients(recipients)
+                        .map { it.first.nickname }
                         .joinToString()
                 bridge.send(
                     Command("response", GetChat.Response(room, recipients), command.id)
@@ -71,7 +71,7 @@ class CommandProcessor constructor(
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getContact(data.user_guid).asResponse,
+                        contactProvider.getRecipientInfo(data.user_guid).first.asResponse,
                         command.id
                     )
                 )

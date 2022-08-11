@@ -89,9 +89,9 @@ class StartStopCommandProcessor constructor(
                     .recipientList
                 val room =
                     contactProvider
-                        .getContacts(recipients)
+                        .getRecipients(recipients)
                         .map {
-                            it.nickname
+                            it.first.nickname
                         }
                         .joinToString()
                 bridge.send(
@@ -119,7 +119,7 @@ class StartStopCommandProcessor constructor(
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getContact(data.user_guid).asResponse,
+                        contactProvider.getRecipientInfo(data.user_guid).first.asResponse,
                         command.id
                     )
                 )
@@ -229,8 +229,8 @@ class StartStopCommandProcessor constructor(
                     .recipientList
                 val room =
                     contactProvider
-                        .getContacts(recipients)
-                        .map { it.nickname }
+                        .getRecipients(recipients)
+                        .map { it.first.nickname }
                         .joinToString()
                 bridge.send(
                     Command("response", GetChat.Response(room, recipients), command.id)
@@ -242,7 +242,7 @@ class StartStopCommandProcessor constructor(
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getContact(data.user_guid).asResponse,
+                        contactProvider.getRecipientInfo(data.user_guid).first.asResponse,
                         command.id
                     )
                 )
@@ -352,8 +352,8 @@ class StartStopCommandProcessor constructor(
                         .recipientList
                 val room =
                     contactProvider
-                        .getContacts(recipients)
-                        .map { it.nickname }
+                        .getRecipients(recipients)
+                        .map { it.first.nickname }
                         .joinToString()
                 bridge.send(
                     Command("response", GetChat.Response(room, recipients), command.id)
@@ -365,7 +365,7 @@ class StartStopCommandProcessor constructor(
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getContact(data.user_guid).asResponse,
+                        contactProvider.getRecipientInfo(data.user_guid).first.asResponse,
                         command.id
                     )
                 )
@@ -633,7 +633,7 @@ class StartStopCommandProcessor constructor(
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getContact(data.user_guid).asResponse,
+                        contactProvider.getRecipientInfo(data.user_guid).first.asResponse,
                         command.id
                     )
                 )

@@ -6,12 +6,13 @@ import androidx.room.PrimaryKey
 import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.outgoing.ReadReceipt
 
-@Entity(primaryKeys = ["canonical_address_id"])
-data class PendingContactUpdate(
-    val canonical_address_id: Long,
+@Entity(primaryKeys = ["recipient_id"])
+data class PendingRecipientUpdate(
+    val recipient_id: Long,
+    var contact_id: Long?,
+    var phone: String? = null,
     var first_name: String? = null,
+    var middle_name: String?,
     var last_name: String? = null,
     var nickname: String? = null,
-    var avatarUri: String? = null,
-    var phoneNumber: String? = null,
 )

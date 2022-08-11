@@ -6,7 +6,7 @@ import com.beeper.sms.database.models.*
 import com.beeper.sms.observers.ContactObserver
 import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.ContactRow
-import com.beeper.sms.provider.ExtendedContactRow
+import com.beeper.sms.provider.ContactInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,11 +17,11 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 
-class ContactRepository(
-    private val contactCacheDao: ContactCacheDao,
+class RecipientRepository(
+    private val recipientCacheDao: RecipientCacheDao,
     private val contactProvider: ContactProvider,
     private val contactObserver: ContactObserver,
-    private val pendingContactUpdateDao: PendingContactUpdateDao,
+    private val pendingRecipientUpdateDao: PendingRecipientUpdateDao,
     dispatcher : CoroutineDispatcher = Dispatchers.IO
 ) {
     private val coroutineScope = CoroutineScope(dispatcher)
@@ -41,110 +41,108 @@ class ContactRepository(
 
     suspend fun fetchContacts(
         limit: Int = 0,
-    ): List<ExtendedContactRow> {
+    ): List<ContactInfo> {
         return contactProvider.fetchContacts(limit)
     }
 
-    fun getContacts(phones: List<String>) = contactProvider.getContacts(phones)
+    fun getContacts(phones: List<String>) = contactProvider.getRecipients(phones)
 
 
     fun getContactBySenderGuid(sender_guid: String): ContactRow {
         val phone = sender_guid.removeSMSGuidPrefix()
-        return contactProvider.getContact(phone)
+        return contactProvider.getRecipientInfo(phone).first
     }
 
 
-    fun getContact(phone: String): ContactRow = contactProvider.getContact(phone)
+    fun getContact(phone: String): ContactRow = contactProvider.getRecipientInfo(phone).first
 
-    suspend fun getContact(canonicalAddressId: Long): ContactCache? {
-        val cacheAddress = contactCacheDao.getContact(canonicalAddressId)
-        if(cacheAddress != null){
-            Log.d(TAG,"InboxPreview ContactRepository getContact: returning cached cacheAddress:$canonicalAddressId")
+    suspend fun getContact(recipientId: Long): RecipientCache? {
+        val loadedRecipient = recipientCacheDao.getContact(recipientId)
+        if(loadedRecipient != null){
+            Log.d(TAG,"InboxPreview ContactRepository getContact: returning cached cacheAddress:$recipientId")
             coroutineScope.launch {
                 Log.w(TAG,"InboxPreview CacheUpdate ContactRepository checking if we have changes on the cachedAddress")
-                val address = contactProvider.getContactAddressFromRecipientId(canonicalAddressId)
+                val address = contactProvider.getAddressFromRecipientId(recipientId)
                 if(address == null){
-                    Log.w(TAG,"InboxPreview CacheUpdate ContactRepository getContact: $canonicalAddressId wasn't found in low level layer")
+                    Log.w(TAG,"InboxPreview CacheUpdate ContactRepository getContact: $recipientId wasn't found in low level layer")
                     return@launch
                 }
-                val contactRow = contactProvider.getContact(address)
-                val contactCache = ContactCache(
-                    canonicalAddressId,
+                val (contactRow, contactId) = contactProvider.getRecipientInfo(address)
+                val recipientCache = RecipientCache(
+                    recipientId,
+                    contactId,
                     contactRow.phoneNumber,
-                    contactRow.phoneType,
                     contactRow.first_name,
                     contactRow.middle_name,
                     contactRow.last_name,
                     contactRow.nickname,
-                    contactRow.avatarUri?.path,
                 )
 
-                if(contactCache != cacheAddress){
-                    Log.w(TAG,"InboxPreview CacheUpdate updating contact in cache!!! #${contactCache.canonical_address_id}")
+                if(recipientCache != loadedRecipient){
+                    Log.w(TAG,"InboxPreview CacheUpdate updating contact in cache!!! #${recipientCache.recipient_id}")
                     coroutineScope.launch {
-                        contactCacheDao.insert(contactCache)
+                        recipientCacheDao.insert(recipientCache)
                         //notify listener that we have a change on existing items
                         // Trigger repo contact list changed
                         Log.d(TAG, "Emitting contact change event")
                         mutContactListChanged.emit(Unit)
                         // Saving changes to be bridged to mautrix-imessage
                         // -> will be loaded by the bridge in the next sync window
-                        pendingContactUpdateDao.insert(
-                            PendingContactUpdate(
-                                contactCache.canonical_address_id,
-                                contactCache.first_name,
-                                contactCache.last_name,
-                                contactCache.nickname,
-                                contactCache.avatarUri,
-                                contactCache.phoneNumber
+                        pendingRecipientUpdateDao.insert(
+                            PendingRecipientUpdate(
+                                recipientCache.recipient_id,
+                                contactId,
+                                recipientCache.phone,
+                                recipientCache.first_name,
+                                recipientCache.middle_name,
+                                recipientCache.last_name,
+                                recipientCache.nickname,
                             )
                         )
                     }
                 }
             }
-            contactObserver.registerObserver(cacheAddress.canonical_address_id)
-            return cacheAddress
+            contactObserver.registerObserver(loadedRecipient.recipient_id)
+            return loadedRecipient
         }else{
             Log.d(TAG,"InboxPreview ContactRepository getContact: cache miss -> asking for low level layer")
 
-            val address = contactProvider.getContactAddressFromRecipientId(canonicalAddressId)
+            val address = contactProvider.getAddressFromRecipientId(recipientId)
             if(address == null){
-                Log.e(TAG,"InboxPreview ContactRepository getContact: $canonicalAddressId wasn't found in low level layer")
+                Log.e(TAG,"InboxPreview ContactRepository getContact: $recipientId wasn't found in low level layer")
                 return null
             }
-            val contactRow = contactProvider.getContact(address)
+            val (contactRow, contactId) = contactProvider.getRecipientInfo(address)
             
-            val contactCache = ContactCache(
-                canonicalAddressId,
+            val contactCache = RecipientCache(
+                recipientId,
+                contactId,
                 contactRow.phoneNumber,
-                contactRow.phoneType,
                 contactRow.first_name,
                 contactRow.middle_name,
                 contactRow.last_name,
                 contactRow.nickname,
-                contactRow.avatarUri?.path,
             )
-            Log.d(TAG,"InboxPreview ContactRepository getContact: $canonicalAddressId being inserted in the cache")
+            Log.d(TAG,"InboxPreview ContactRepository getContact: $recipientId being inserted in the cache")
 
             coroutineScope.launch {
-                contactCacheDao.insert(contactCache)
+                recipientCacheDao.insert(contactCache)
             }
 
-            contactObserver.registerObserver(canonicalAddressId)
-            return ContactCache(
-                canonicalAddressId,
+            contactObserver.registerObserver(recipientId)
+            return RecipientCache(
+                recipientId,
+                contactId,
                 contactRow.phoneNumber,
-                contactRow.phoneType,
                 contactRow.first_name,
                 contactRow.middle_name,
                 contactRow.last_name,
                 contactRow.nickname,
-                contactRow.avatarUri?.path,
             )
         }
     }
 
     companion object {
-        val TAG = "ContactRepository"
+        val TAG = "RecipientRepository"
     }
 }

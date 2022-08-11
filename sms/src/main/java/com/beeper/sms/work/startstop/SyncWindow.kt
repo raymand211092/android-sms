@@ -14,7 +14,6 @@ import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.Contact
 import com.beeper.sms.commands.outgoing.ReadReceipt
 import com.beeper.sms.database.BridgeDatabase
-import com.beeper.sms.database.models.BridgedReadReceipt
 import com.beeper.sms.helpers.now
 import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.GuidProvider
@@ -236,28 +235,28 @@ class SyncWindow constructor(
                 }
 
                 // Check if we have any pending contacts to be bridged
-                val pendingContactUpdateDao = database.pendingContactUpdateDao()
-                val pendingContactUpdates = pendingContactUpdateDao.getAll()
-                Log.d(TAG, "Checking ${pendingContactUpdates.size} chats for " +
+                val pendingContactUpdateDao = database.pendingRecipientUpdateDao()
+                val pendingRecipientUpdates = pendingContactUpdateDao.getAll()
+                Log.d(TAG, "Checking ${pendingRecipientUpdates.size} chats for " +
                         "unbridged contact updates:")
                 // Bridge pending read receipts
-                pendingContactUpdates.onEach {
-                        pendingContactUpdate ->
+                pendingRecipientUpdates.onEach {
+                        pendingRecipientUpdate ->
                     // Using phone number as user_guid
                     // TODO: align a better id within mautrix-imessage? what about the canonical_id?
-                    val userGuid = pendingContactUpdate.phoneNumber
+                    val userGuid = pendingRecipientUpdate.phone
                     if(userGuid!=null) {
                         val contactProvider = ContactProvider(context)
 
                         val contactUri = ContentUris.withAppendedId(
-                            ContactsContract.Contacts.CONTENT_URI, pendingContactUpdate.canonical_address_id
+                            ContactsContract.Contacts.CONTENT_URI, pendingRecipientUpdate.recipient_id
                         )
                         val address = GuidProvider.normalizeAddress(userGuid)
                         val contact = Contact(
                             "SMS;-;$address",
-                            pendingContactUpdate.first_name,
-                            pendingContactUpdate.last_name,
-                            pendingContactUpdate.nickname,
+                            pendingRecipientUpdate.first_name,
+                            pendingRecipientUpdate.last_name,
+                            pendingRecipientUpdate.nickname,
                             contactProvider.getAvatar(contactUri),
                             listOfNotNull(address),
                         )
@@ -275,7 +274,7 @@ class SyncWindow constructor(
                             Log.e(TAG, "Timeout bridging ${contact.user_guid} contact")
                         }
                     }
-                    pendingContactUpdateDao.delete(pendingContactUpdate)
+                    pendingContactUpdateDao.delete(pendingRecipientUpdate)
                 }
 
                 lastCommandReceivedMillis = now()

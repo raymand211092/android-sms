@@ -2,7 +2,6 @@ package com.beeper.sms.work.startstop
 
 import android.content.Context
 import android.os.Build
-import androidx.room.Room
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -10,10 +9,6 @@ import com.beeper.sms.Log
 import com.beeper.sms.R
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.database.BridgeDatabase
-import com.beeper.sms.database.BridgedEntitiesDatabase
-import com.beeper.sms.database.models.*
-import com.beeper.sms.provider.InboxPreviewProviderLocator
-import com.beeper.sms.repository.ContactRepositoryLocator
 import kotlinx.coroutines.*
 import java.lang.Exception
 import java.lang.IllegalStateException
@@ -45,8 +40,9 @@ class ClearData constructor(
                 database.pendingReadReceiptDao().clear()
                 database.inboxPreviewCacheDao().clear()
                 database.chatThreadMetadataCache().clear()
-                database.contactCacheDao().clear()
-                database.pendingContactUpdateDao().clear()
+                database.contactInfoCacheDao().clear()
+                database.recipientCacheDao().clear()
+                database.pendingRecipientUpdateDao().clear()
 
                 Result.success()
             }
