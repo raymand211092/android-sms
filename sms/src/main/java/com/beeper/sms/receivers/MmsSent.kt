@@ -39,7 +39,7 @@ abstract class MmsSent : MmsSentReceiver() {
         if(resultCode != Activity.RESULT_OK) {
             Log.w(
                 TAG, "Error sending MMS: " +
-                    " uri:$uri error:${resultCode.toError(intent).message}")
+                        " uri:$uri error:${errorToString(resultCode, intent)}")
         }
 
         val commandId : Int? =
