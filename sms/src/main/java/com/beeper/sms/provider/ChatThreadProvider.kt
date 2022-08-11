@@ -13,7 +13,6 @@ import com.beeper.sms.database.models.ChatThread
 import com.beeper.sms.extensions.getInt
 import com.beeper.sms.extensions.getLong
 import com.beeper.sms.extensions.getString
-import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -186,7 +185,7 @@ class ChatThreadProvider constructor(
 
                     val contacts = recipientPhoneNumbers?.let { numbers ->
                         numbers.map { number ->
-                            number to contactProvider.getContact(number)
+                            number to contactProvider.getRecipientInfo(number).first
                         }
                     }?.toMap()
 
@@ -255,7 +254,7 @@ class ChatThreadProvider constructor(
 
                     val contacts = recipientPhoneNumbers?.let { numbers ->
                         numbers.map { number ->
-                            number to contactProvider.getContact(number)
+                            number to contactProvider.getRecipientInfo(number).first
                         }
                     }?.toMap()
 
@@ -339,7 +338,7 @@ class ChatThreadProvider constructor(
 
                     val contacts = recipientPhoneNumbers?.let { numbers ->
                         numbers.map { number ->
-                            number to contactProvider.getContact(number)
+                            number to contactProvider.getRecipientInfo(number).first
                         }
                     }?.toMap() ?: return@withContext null
 
@@ -476,7 +475,7 @@ class ChatThreadProvider constructor(
 
                     val contacts = recipientPhoneNumbers?.let { numbers ->
                         numbers.map { number ->
-                            number to contactProvider.getContact(number)
+                            number to contactProvider.getRecipientInfo(number).first
                         }
                     }?.toMap()
 

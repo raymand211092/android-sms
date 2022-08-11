@@ -62,12 +62,11 @@ class NewChatViewModel(
     private suspend fun loadContacts() {
         contacts.value = contactProvider.fetchContacts().map {
             UIContact(
-                it.id.toString(),
+                it.contactId.toString(),
                 it.name,
                 it.starred,
                 it.avatarUri,
                 it.phoneNumbers.toSet(),
-                it.emails.firstOrNull()
             )
         }
 

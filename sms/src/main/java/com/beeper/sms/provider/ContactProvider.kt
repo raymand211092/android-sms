@@ -14,6 +14,7 @@ import android.provider.ContactsContract.PhoneLookup
 import android.provider.Telephony
 import android.util.Base64
 import com.beeper.sms.Log
+import com.beeper.sms.database.models.ContactInfoCache
 import com.beeper.sms.extensions.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -23,10 +24,68 @@ import timber.log.Timber
 class ContactProvider constructor(private val context: Context) {
     private val cr = context.contentResolver
 
+    suspend fun fetchAllContactIds() : List<Long> {
+        return withContext(Dispatchers.IO) {
+            val contactProjection = arrayOf(
+                Contacts._ID,
+            )
+            val result: MutableList<Long> = mutableListOf()
+            cr.query(
+                Contacts.CONTENT_URI,
+                contactProjection,
+                null,
+                null,
+                Contacts.DISPLAY_NAME_PRIMARY + " ASC"
+            )?.use {
+                if (it.moveToFirst()) {
+                    do {
+                        val contactId = it.getLong(Contacts._ID)
+                        result.add(contactId)
+                    } while (it.moveToNext())
+                }
+            }
+            result.toList()
+        }
+    }
+
+    suspend fun getContactInfo(contactId: Long) : ContactInfoCache? {
+        return withContext(Dispatchers.IO) {
+            val contactProjection = arrayOf(
+                Contacts._ID,
+                StructuredName.HAS_PHONE_NUMBER,
+                StructuredName.DISPLAY_NAME_PRIMARY,
+                StructuredName.STARRED
+            )
+            cr.query(
+                Contacts.CONTENT_URI,
+                contactProjection,
+                "${Contacts._ID} = ?",
+                arrayOf(contactId.toString()),
+                Contacts.DISPLAY_NAME_PRIMARY + " ASC"
+            )?.use {
+                if (it.moveToFirst()) {
+                        val hasPhoneNumber = it.getInt(StructuredName.HAS_PHONE_NUMBER)
+                        val favorite = it.getInt(StructuredName.STARRED) > 0
+                        val phoneNumbers: List<String> = if (hasPhoneNumber > 0) {
+                            fetchPhoneNumbers(contactId)
+                        } else mutableListOf()
+                        return@withContext ContactInfoCache(
+                            contact_id = contactId,
+                            display_name  = it.getString(StructuredName.DISPLAY_NAME_PRIMARY)
+                                ?: phoneNumbers.firstOrNull() ?: contactId.toString(),
+                            starred = favorite,
+                            phone_numbers = phoneNumbers.joinToString(";"),
+                        )
+                }
+            }
+            return@withContext null
+        }
+    }
+
     suspend fun fetchContacts(
         limit: Int = -1,
         offset: Int = -1
-    ): List<ExtendedContactRow> {
+    ): List<ContactInfo> {
         return withContext(Dispatchers.IO) {
             val contactProjection = arrayOf(
                 Contacts._ID,
@@ -34,7 +93,7 @@ class ContactProvider constructor(private val context: Context) {
                 StructuredName.HAS_PHONE_NUMBER,
                 StructuredName.STARRED
             )
-            val result: MutableList<ExtendedContactRow> = mutableListOf()
+            val result: MutableList<ContactInfo> = mutableListOf()
             cr.query(
                 Contacts.CONTENT_URI,
                 contactProjection,
@@ -52,8 +111,8 @@ class ContactProvider constructor(private val context: Context) {
                         val phoneNumbers: List<String> = if (hasPhoneNumber > 0) {
                             fetchPhoneNumbers(contactId)
                         } else mutableListOf()
-                        result.add(ExtendedContactRow(
-                            id = contactId,
+                        result.add(ContactInfo(
+                            contactId = contactId,
                             name = it.getString(StructuredName.DISPLAY_NAME_PRIMARY)
                                 ?: phoneNumbers.firstOrNull() ?: contactId.toString(),
                             starred = favorite,
@@ -62,7 +121,6 @@ class ContactProvider constructor(private val context: Context) {
                                 Contacts.Photo.CONTENT_DIRECTORY
                             ),
                             phoneNumbers = phoneNumbers,
-                            emails = listOf()
                         ))
                     } while (it.moveToNext())
                 }
@@ -99,7 +157,7 @@ class ContactProvider constructor(private val context: Context) {
                             val number = it.getString(numberColumnIndex)
                             Log.d(TAG,"is number null: ${number == null}," +
                                     " is number blank: ${number.isNullOrBlank()}")
-                            Log.e(TAG,"Fetched a phone number for contactId: $contactId")
+                            Log.d(TAG,"Fetched a phone number for contactId: $contactId")
                             result.add(number)
                         } catch(e : NullPointerException){
                             Log.e(TAG,"Couldn't fetch phone number for contactId: $contactId")
@@ -111,18 +169,19 @@ class ContactProvider constructor(private val context: Context) {
         }
     }
 
-    fun getContacts(phones: List<String>) = phones.map { getContact(it) }
+    fun getRecipients(phones: List<String>) = phones.map { getRecipientInfo(it) }
 
     @SuppressLint("InlinedApi")
-    fun getContact(phone: String): ContactRow = when {
-        !context.hasPermission(Manifest.permission.READ_CONTACTS) -> phone.defaultResponse
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> phone.defaultResponse
+    fun getRecipientInfo(phone: String): Pair<ContactRow, Long?> = when {
+        !context.hasPermission(Manifest.permission.READ_CONTACTS) -> Pair(phone.defaultResponse, null)
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Pair(phone.defaultResponse, null)
         else ->
             cr
                 .firstOrNull(phone.lookupUri) {
-                    getContact(it.getLong(PhoneLookup.CONTACT_ID))?.apply {
+                    val contactId = it.getLong(PhoneLookup.CONTACT_ID)
+                    Pair(getRecipientInfo(contactId)?.apply {
                         phoneNumber = phone
-                    }
+                    } ?: phone.defaultResponse, contactId)
                 }
                 ?: cr
                     .firstOrNull(
@@ -130,14 +189,16 @@ class ContactProvider constructor(private val context: Context) {
                         // hack to match short codes
                         where = "REPLACE(${Phone.NUMBER}, '-', '') == \"$phone\""
                     ) {
-                        getContact(it.getLong(Phone.CONTACT_ID))?.apply {
+                        val contactId = it.getLong(Phone.CONTACT_ID)
+                        Pair(
+                        getRecipientInfo(contactId)?.apply {
                             phoneNumber = phone
-                        }
+                        } ?: phone.defaultResponse, contactId)
                     }
-                ?: phone.defaultResponse
+                ?: Pair(phone.defaultResponse, null)
     }
 
-    fun getContact(id: Long): ContactRow? =
+    fun getRecipientInfo(id: Long): ContactRow? =
         cr.firstOrNull(
             ContactsContract.Data.CONTENT_URI,
             "${ContactsContract.Data.CONTACT_ID} = $id AND ${ContactsContract.Data.MIMETYPE} = '${StructuredName.CONTENT_ITEM_TYPE}'",
@@ -183,14 +244,14 @@ class ContactProvider constructor(private val context: Context) {
 
 
 
-    fun getContactAddressFromRecipientId(canonicalAddressId: Long): String? {
+    fun getAddressFromRecipientId(recipientId: Long): String? {
         val uri = Uri.withAppendedPath(Telephony.MmsSms.CONTENT_URI, "canonical-addresses")
         val projection = arrayOf(
             Telephony.Mms.Addr.ADDRESS
         )
 
         val selection = "${Telephony.Mms._ID} = ?"
-        val selectionArgs = arrayOf(canonicalAddressId.toString())
+        val selectionArgs = arrayOf(recipientId.toString())
         try {
             val cursor =
                 context.contentResolver.query(uri, projection, selection, selectionArgs, null)

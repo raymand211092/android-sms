@@ -6,14 +6,14 @@ import com.beeper.sms.observers.ContactObserver
 import com.beeper.sms.provider.ContactProvider
 
 
-object ContactRepositoryLocator {
-    @Volatile private var INSTANCE: ContactRepository? = null
-    fun getInstance(context: Context): ContactRepository =
+object RecipientRepositoryLocator {
+    @Volatile private var INSTANCE: RecipientRepository? = null
+    fun getInstance(context: Context): RecipientRepository =
         INSTANCE ?: synchronized(this) {
-            INSTANCE ?: ContactRepository(BridgeDatabase.getInstance(context).contactCacheDao(),
+            INSTANCE ?: RecipientRepository(BridgeDatabase.getInstance(context).recipientCacheDao(),
                 ContactProvider(context),
                 ContactObserver(context),
-                BridgeDatabase.getInstance(context).pendingContactUpdateDao()
+                BridgeDatabase.getInstance(context).pendingRecipientUpdateDao()
             ).also {
                 INSTANCE = it
             }
