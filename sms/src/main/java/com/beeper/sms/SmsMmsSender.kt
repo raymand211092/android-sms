@@ -66,9 +66,12 @@ class SmsMmsSender(
         val mimeType = fileURI.getMimeType(context)
         val bytes = context.contentResolver.openInputStream(fileURI)?.readBytes()
             ?: ByteArray(0)
+        Log.d("SMSSendMedia", "$filename $mimeType ${bytes.size}")
+
         return if(mimeType != null && bytes.size <= MAX_FILE_SIZE && bytes.size >= 0) {
             sendMessage(text, recipients, bytes, mimeType, filename, thread, sentMessageParcelable)
         }else{
+            Log.e("SMSSendMedia", "conditions to send media weren't met")
             emptyList()
         }
     }
@@ -94,7 +97,7 @@ class SmsMmsSender(
         }
 
     companion object {
-        const val MAX_FILE_SIZE = 400_000L
+        const val MAX_FILE_SIZE = 409_600L
         private fun newSettings(subscriptionId: Int? = null) = Settings().apply {
             setSubscriptionId(subscriptionId)
             deliveryReports = true
