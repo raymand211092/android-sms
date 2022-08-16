@@ -24,16 +24,23 @@ import timber.log.Timber
 class ContactProvider constructor(private val context: Context) {
     private val cr = context.contentResolver
 
-    suspend fun fetchAllContactIds() : List<Long> {
+    suspend fun fetchAllContactIds(fetchOnlyStarred : Boolean = false) : List<Long> {
         return withContext(Dispatchers.IO) {
             val contactProjection = arrayOf(
                 Contacts._ID,
             )
             val result: MutableList<Long> = mutableListOf()
+            val defaultSelection = "${StructuredName.HAS_PHONE_NUMBER} > 0 "
+            val fetchOnlyStarredSelection = "AND ${StructuredName.STARRED} > 0"
+            val selection = if(fetchOnlyStarred){
+                defaultSelection + fetchOnlyStarredSelection
+            }else{
+                defaultSelection
+            }
             cr.query(
                 Contacts.CONTENT_URI,
                 contactProjection,
-                null,
+                selection,
                 null,
                 Contacts.DISPLAY_NAME_PRIMARY + " ASC"
             )?.use {
@@ -52,7 +59,6 @@ class ContactProvider constructor(private val context: Context) {
         return withContext(Dispatchers.IO) {
             val contactProjection = arrayOf(
                 Contacts._ID,
-                StructuredName.HAS_PHONE_NUMBER,
                 StructuredName.DISPLAY_NAME_PRIMARY,
                 StructuredName.STARRED
             )
@@ -64,11 +70,8 @@ class ContactProvider constructor(private val context: Context) {
                 Contacts.DISPLAY_NAME_PRIMARY + " ASC"
             )?.use {
                 if (it.moveToFirst()) {
-                        val hasPhoneNumber = it.getInt(StructuredName.HAS_PHONE_NUMBER)
                         val favorite = it.getInt(StructuredName.STARRED) > 0
-                        val phoneNumbers: List<String> = if (hasPhoneNumber > 0) {
-                            fetchPhoneNumbers(contactId)
-                        } else mutableListOf()
+                        val phoneNumbers: List<String> = fetchPhoneNumbers(contactId)
                         return@withContext ContactInfoCache(
                             contact_id = contactId,
                             display_name  = it.getString(StructuredName.DISPLAY_NAME_PRIMARY)
@@ -141,9 +144,12 @@ class ContactProvider constructor(private val context: Context) {
     private suspend fun fetchPhoneNumbers(contactId: Long): List<String> {
         return withContext(Dispatchers.IO) {
             val result: MutableList<String> = mutableListOf()
+            val phoneNumberProjection = arrayOf(
+                Phone.NUMBER,
+            )
             cr.query(
                 Phone.CONTENT_URI,
-                null,
+                phoneNumberProjection,
                 "${Phone.CONTACT_ID} = ?",
                 arrayOf(contactId.toString()),
                 null
@@ -177,7 +183,9 @@ class ContactProvider constructor(private val context: Context) {
         Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Pair(phone.defaultResponse, null)
         else ->
             cr
-                .firstOrNull(phone.lookupUri) {
+                .firstOrNull(phone.lookupUri, projection = arrayOf(
+                    PhoneLookup.CONTACT_ID,
+                )) {
                     val contactId = it.getLong(PhoneLookup.CONTACT_ID)
                     Pair(getRecipientInfo(contactId)?.apply {
                         phoneNumber = phone
@@ -186,6 +194,9 @@ class ContactProvider constructor(private val context: Context) {
                 ?: cr
                     .firstOrNull(
                         Phone.CONTENT_URI,
+                        projection = arrayOf(
+                            Phone.CONTACT_ID,
+                        ),
                         // hack to match short codes
                         where = "REPLACE(${Phone.NUMBER}, '-', '') == \"$phone\""
                     ) {

@@ -303,8 +303,6 @@ class SyncWindow constructor(
                     Log.d(TAG, "Bridge is idle -> successfully finishing the work")
                 }
 
-                Log.d(TAG, "SMSSyncWindow window stopping")
-                bridge.onSyncWindowStopping()
                 job.cancel()
                 Log.d(TAG, "SMSSyncWindow window finished -> stopping mautrix-imessage")
                 bridge.stop()
