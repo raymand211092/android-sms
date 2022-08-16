@@ -34,10 +34,49 @@ class ContactInfoRepository(
         }.launchIn(coroutineScope)
     }
 
+    suspend fun fetchStarredContactIds() : List<Long>  = contactProvider.fetchAllContactIds(
+        fetchOnlyStarred = true
+    )
+
+    suspend fun fetchAllContactIds() : List<Long>  = contactProvider.fetchAllContactIds()
+
+    suspend fun fetchContact(contactId: Long) : ContactInfoCache? {
+        Log.d(TAG,"ContactInfo Fetch Contact: $contactId")
+            val cachedContactInfo = contactInfoCacheDao.getContact(contactId)
+            if(cachedContactInfo != null){
+                coroutineScope.launch {
+                    val contactInfo = contactProvider.getContactInfo(contactId)
+                    if(contactInfo == null){
+                        Log.w(TAG,"ContactInfo wasn't found to update the cache")
+                        return@launch
+                    }
+                    if(contactInfo != cachedContactInfo){
+                        contactInfoCacheDao.insert(contactInfo)
+                        _contactInfoListChanged.emit(Unit)
+                    }
+                }
+                return cachedContactInfo
+            }else{
+                val contactInfo = contactProvider.getContactInfo(contactId)
+                if(contactInfo == null){
+                    Log.e(TAG,"ContactInfo wasn't found to deliver contact")
+                }else {
+                    coroutineScope.launch {
+                        contactInfoCacheDao.insert(contactInfo)
+                        _contactInfoListChanged.emit(Unit)
+                    }
+                    return contactInfo
+                }
+            }
+        return null
+    }
+
 
     suspend fun fetchAllContacts() : List<ContactInfoCache> {
         val contacts = mutableListOf<ContactInfoCache>()
         val ids = contactProvider.fetchAllContactIds()
+        Log.d(TAG,"ContactInfo All ids were loaded")
+
         ids.onEach {
             contactId ->
             val cachedContactInfo = contactInfoCacheDao.getContact(contactId)
