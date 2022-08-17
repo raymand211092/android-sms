@@ -1,9 +1,12 @@
 package com.beeper.sms.receivers
 
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Telephony
+import android.provider.Telephony.Sms
 import androidx.core.net.toUri
 import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
@@ -20,6 +23,7 @@ import com.beeper.sms.provider.InboxPreviewProviderLocator
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.SmsProvider
 import com.beeper.sms.receivers.SmsDelivered.Companion.toError
+import com.google.android.mms.util_alt.SqliteWrapper
 import com.klinker.android.send_message.SentReceiver
 import com.klinker.android.send_message.Transaction
 
@@ -35,7 +39,7 @@ abstract class SmsSent : SentReceiver() {
         val uri = intent?.getStringExtra("uri")?.toUri() ?: intent?.getStringExtra("message_uri")?.toUri()
 
         if(resultCode != Activity.RESULT_OK) {
-            Log.w(TAG, "Error sending MMS: " +
+            Log.w(TAG, "Error sending SMS: " +
                     " uri:$uri error:${resultCode.toError(intent).message}")
         }
 
@@ -61,8 +65,10 @@ abstract class SmsSent : SentReceiver() {
             val inboxPreviewProvider = InboxPreviewProviderLocator.getInstance(context)
             Log.d(TAG, "updating inbox preview cache")
             val messageStatus = if(resultCode == Activity.RESULT_OK) {
+                Log.d(TAG, "SMS message was successfully received -> updating inbox preview")
                 MessageStatus.Sent
             }else{
+                Log.d(TAG, "SMS message failed to send -> updating inbox preview")
                 MessageStatus.Failed
             }
             inboxPreviewProvider.update(
