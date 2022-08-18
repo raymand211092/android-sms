@@ -38,10 +38,6 @@ class ClearData constructor(
                 database.bridgedChatThreadDao().clear()
                 database.bridgedReadReceiptDao().clear()
                 database.pendingReadReceiptDao().clear()
-                database.inboxPreviewCacheDao().clear()
-                database.chatThreadMetadataCache().clear()
-                database.contactInfoCacheDao().clear()
-                database.recipientCacheDao().clear()
                 database.pendingRecipientUpdateDao().clear()
 
                 Result.success()
