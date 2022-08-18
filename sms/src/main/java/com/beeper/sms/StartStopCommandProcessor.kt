@@ -326,6 +326,10 @@ class StartStopCommandProcessor constructor(
                 Log.v(TAG + "syncWindowScope", "send_read_receipt $command $data")
                 bridge.markMessageAsRead(data.read_up_to, context)
             }
+            "upcoming_message" -> {
+                val data = deserialize(command,UpcomingMessage::class.java)
+                Log.v(TAG + "syncWindowScope", "upcoming_message $data")
+            }
             "error" -> {
                 Log.v(TAG + "syncWindowScope", "error: $command")
             }
