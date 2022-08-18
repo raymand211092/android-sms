@@ -66,7 +66,7 @@ class SyncWindow constructor(
                     val validCommandsToKeepItOpen = listOf(
                         "get_chat", "get_contact", "send_message", "get_recent_messages",
                         "send_media", "send_read_receipt", "bridge_this_message",
-                        "bridge_send_response", "bridge_send_response_error"
+                        "bridge_send_response", "bridge_send_response_error", "upcoming_message"
                     )
                     when(it.command){
                         // Store message as pending after sending so we wait for the result
