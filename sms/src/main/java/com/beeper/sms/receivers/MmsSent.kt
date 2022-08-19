@@ -13,11 +13,10 @@ import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.SyncWindowState
 import com.beeper.sms.commands.incoming.SendMessage
+import com.beeper.sms.commands.internal.BridgeSendError
 import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
-import com.beeper.sms.commands.outgoing.Error
-import com.beeper.sms.commands.outgoing.Message
-import com.beeper.sms.commands.outgoing.MessageStatus
+import com.beeper.sms.commands.outgoing.*
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.database.models.InboxPreviewCache
 import com.beeper.sms.extensions.printExtras
@@ -108,14 +107,23 @@ abstract class MmsSent : MmsSentReceiver() {
             return
         }
 
-        if(commandId != null && resultCode != Activity.RESULT_OK){
+        if(commandId != null && message != null && resultCode != Activity.RESULT_OK){
             Log.e(TAG, "Bridging error response to MMS not delivered:" +
                     " ${errorToString(resultCode, intent)}")
-            val error = Error("network_error", errorToString(resultCode, intent))
+
+            val errorSendMessageStatus = SendMessageStatus(
+                message.guid,
+                message.chat_guid,
+                SendMessageStatusResult.Failed.status
+            )
+            //val error = Error("network_error", errorToString(resultCode, intent))
             // Bridge should be running, otherwise it will just fail
             StartStopBridge.INSTANCE.forwardSendErrorToBridge(
                 commandId,
-                error
+                BridgeSendError(
+                    commandId,
+                    errorSendMessageStatus
+                )
             )
             return
         }
@@ -151,7 +159,11 @@ abstract class MmsSent : MmsSentReceiver() {
                     BridgeSendResponse(
                         commandId,
                         bridgedMessage,
-                        SendMessage.Response(guid, timestamp)
+                        SendMessageStatus(
+                            guid,
+                            message.chat_guid,
+                            SendMessageStatusResult.Sent.status
+                        )
                     )
                 )
             }else{

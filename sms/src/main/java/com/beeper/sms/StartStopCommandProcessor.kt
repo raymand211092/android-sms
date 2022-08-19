@@ -6,8 +6,12 @@ import android.text.format.Formatter.formatShortFileSize
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_MMS_GUIDS
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_SMS_GUIDS
 import com.beeper.sms.commands.Command
+import com.beeper.sms.commands.TimeMillis.Companion.toMillis
+import com.beeper.sms.commands.TimeSeconds
+import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
+import com.beeper.sms.commands.internal.BridgeSendError
 import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.*
@@ -195,31 +199,35 @@ class StartStopCommandProcessor constructor(
                     val data = deserialize(command,BridgeSendResponse::class.java)
                     try {
                         bridge.send(
-                            Command("response", data.response, data.commandId)
+                            Command("send_message_status", data.status, data.commandId)
                         )
                         Log.d(
-                            TAG, "DB storing bridged message:" +
+                            TAG, "Sending message status:" +
                                 " chat_guid:${data.bridgedMessage.chat_guid} " +
                                 " message_id:${data.bridgedMessage.message_id} " +
                                 " isMms:${data.bridgedMessage.is_mms}"
                         )
-                        BridgeDatabase.getInstance(context)
-                            .bridgedMessageDao().insert(data.bridgedMessage)
                     } catch (e: Exception) {
                         Log.e(TAG, e)
                     }
                 }
             }
             "bridge_send_response_error" -> {
-                debugPrintCommand(TAG + "syncWindowScope",command)
-                val error = deserialize(command,Error::class.java)
                 withContext(Dispatchers.IO){
-                    val commandId = command.id
-                    if(commandId != null) {
+                    debugPrintCommand(TAG + "syncWindowScope",command)
+                    val data = deserialize(command,BridgeSendError::class.java)
+                    try {
                         bridge.send(
-                            commandId,
-                            error
+                            Command("send_message_status", data.status, data.commandId)
                         )
+                        Log.d(
+                            TAG, "Sending message status:" +
+                                    " chat_guid:${data.status.chat_guid} " +
+                                    " message_id:${data.status.guid} " +
+                                    " status:${data.status.status}"
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, e)
                     }
                 }
             }
@@ -270,7 +278,7 @@ class StartStopCommandProcessor constructor(
                 Log.d(TAG, "${command.command} sending the message")
 
                 val data = deserialize(command,SendMessage::class.java)
-                smsMmsSender.sendMessage(
+                val uriList = smsMmsSender.sendMessage(
                     data.text,
                     data.recipientList,
                     context.getThread(data),
@@ -278,6 +286,38 @@ class StartStopCommandProcessor constructor(
                         putInt(COMMAND_ID, command.id!!)
                     },
                 )
+
+                uriList.onEach {
+                   uri ->
+                    val messageId = uri.lastPathSegment
+                    Log.d(TAG, "send_media sent message uri: $uri")
+                    if(messageId!=null) {
+                        val isMms = uri.toString().contains("mms", ignoreCase = true)
+
+                        val messageGuid = if(isMms){
+                            "mms_"
+                        }else{
+                            "sms_"
+                        } + messageId
+
+                        bridge.send(
+                                Command(
+                                    "response",
+                                    SendMessage.Response(messageGuid, System.currentTimeMillis().toSeconds()),
+                                    command.id
+                                )
+                            )
+
+                        BridgeDatabase.getInstance(context)
+                            .bridgedMessageDao().insert(
+                                BridgedMessage(
+                                data.chat_guid,
+                                messageId.toLong(),
+                                    isMms
+                            )
+                        )
+                    }
+                }
             }
             "send_media" -> {
                 debugPrintCommand(TAG + "syncWindowScope",command)
@@ -305,7 +345,7 @@ class StartStopCommandProcessor constructor(
                         )
                     )
                 } else {
-                    smsMmsSender.sendMessage(
+                    val uriList = smsMmsSender.sendMessage(
                         data.text,
                         recipients,
                         file.readBytes(),
@@ -316,6 +356,39 @@ class StartStopCommandProcessor constructor(
                             putInt(COMMAND_ID, command.id!!)
                         },
                     )
+                    uriList.onEach { uri ->
+                        val messageId = uri.lastPathSegment
+                        Log.d(TAG, "send_media sent message uri: $uri")
+                        if(messageId!=null) {
+                            val isMms = uri.toString().contains("mms", ignoreCase = true)
+
+                            val messageGuid = if(isMms){
+                                "mms_"
+                            }else{
+                                "sms_"
+                            } + messageId
+
+                            bridge.send(
+                                Command(
+                                    "response",
+                                    SendMessage.Response(
+                                        messageGuid,
+                                        System.currentTimeMillis().toSeconds()
+                                    ),
+                                    command.id
+                                )
+                            )
+
+                            BridgeDatabase.getInstance(context)
+                                .bridgedMessageDao().insert(
+                                    BridgedMessage(
+                                        data.chat_guid,
+                                        messageId.toLong(),
+                                        isMms
+                                    )
+                                )
+                        }
+                    }
                 }
             }
             "response" -> {
