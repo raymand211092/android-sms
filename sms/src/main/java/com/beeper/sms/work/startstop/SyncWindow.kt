@@ -66,7 +66,7 @@ class SyncWindow constructor(
                     val validCommandsToKeepItOpen = listOf(
                         "get_chat", "get_contact", "send_message", "get_recent_messages",
                         "send_media", "send_read_receipt", "bridge_this_message",
-                        "bridge_send_response", "bridge_send_response_error", "upcoming_message"
+                        "bridge_send_response", "upcoming_message"
                     )
                     when(it.command){
                         // Store message as pending after sending so we wait for the result
@@ -86,17 +86,15 @@ class SyncWindow constructor(
                         // session
                         "bridge_send_response", "bridge_send_response_error" -> {
                             val commandId = it.id?.toString()
-                            if(pendingMessages.contains(commandId)){
-                                Log.d(TAG, "handling ack command" +
-                                        " ${it.command} commandId: $commandId")
-                                bridge.commandProcessor.handleSyncWindowScopedCommands(it)
-                            }else{
-                                Log.e(TAG, "${it.command} ack command with null commandId " +
-                                        "=> not handled")
+                            if(commandId!=null) {
+                                Log.d(
+                                    TAG, "releasing pending ack to send command " +
+                                            " ${it.command} commandId: $commandId"
+                                )
+
+                                pendingMessages.remove(commandId)
                             }
-                            Log.d(TAG, "releasing pending ack to send command " +
-                                    " ${it.command} commandId: $commandId")
-                            pendingMessages.remove(commandId)
+                            bridge.commandProcessor.handleSyncWindowScopedCommands(it)
                         }
                         else -> {
                             // pass any other event type to be normally processed

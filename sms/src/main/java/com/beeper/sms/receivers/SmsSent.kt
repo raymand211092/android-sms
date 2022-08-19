@@ -12,10 +12,13 @@ import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.SyncWindowState
 import com.beeper.sms.commands.incoming.SendMessage
+import com.beeper.sms.commands.internal.BridgeSendError
 import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageStatus
+import com.beeper.sms.commands.outgoing.SendMessageStatus
+import com.beeper.sms.commands.outgoing.SendMessageStatusResult
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.database.models.InboxPreviewCache
 import com.beeper.sms.extensions.printExtras
@@ -80,12 +83,26 @@ abstract class SmsSent : SentReceiver() {
             Log.e(TAG, "not updating inbox preview cache, failed to load message: $uri")
         }
 
-        if(commandId != null && resultCode != Activity.RESULT_OK){
+        if(commandId != null && message != null && resultCode != Activity.RESULT_OK){
             Log.e(TAG, "Bridging error response to SMS not delivered:" +
                     " uri:$uri error:${resultCode.toError(intent)}")
-            StartStopBridge.INSTANCE.forwardSendErrorToBridge(
+
+            val errorSendMessageStatus = SendMessageStatus(
+                message.guid,
+                message.chat_guid,
+                SendMessageStatusResult.Failed.status
+            )
+
+            /*StartStopBridge.INSTANCE.forwardSendErrorToBridge(
                 commandId,
                 resultCode.toError(intent)
+            )*/
+            StartStopBridge.INSTANCE.forwardSendErrorToBridge(
+                commandId,
+                BridgeSendError(
+                    commandId,
+                    errorSendMessageStatus
+                )
             )
             return
         }
@@ -135,7 +152,11 @@ abstract class SmsSent : SentReceiver() {
                     BridgeSendResponse(
                         commandId,
                         bridgedMessage,
-                        SendMessage.Response(guid, timestamp)
+                        SendMessageStatus(
+                            guid,
+                            message.chat_guid,
+                            SendMessageStatusResult.Sent.status
+                        )
                     )
                 )
             }else{

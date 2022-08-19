@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.room.Room
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.internal.BridgeReadReceipt
+import com.beeper.sms.commands.internal.BridgeSendError
 import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.*
@@ -416,14 +417,14 @@ class StartStopBridge private constructor() {
         )
     }
 
-    internal fun forwardSendErrorToBridge(commandId: Int, error: Error)
+    internal fun forwardSendErrorToBridge(commandId: Int, bridgeSendError: BridgeSendError)
             = scope.launch(outgoing) {
         Log.w(TAG, "forwardSendErrorToBridge -> error sending message commandId#:$commandId")
 
         _commandsReceived.tryEmit(
             Command(
                 "bridge_send_response_error",
-                data = error,
+                data = bridgeSendError,
                 id = commandId
             )
         )
