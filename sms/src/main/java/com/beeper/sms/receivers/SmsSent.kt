@@ -19,8 +19,10 @@ import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageStatus
 import com.beeper.sms.commands.outgoing.SendMessageStatus
 import com.beeper.sms.commands.outgoing.SendMessageStatusResult
+import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.database.models.InboxPreviewCache
+import com.beeper.sms.database.models.PendingSendResponse
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.InboxPreviewProviderLocator
 import com.beeper.sms.provider.MessageProvider
@@ -83,6 +85,9 @@ abstract class SmsSent : SentReceiver() {
             Log.e(TAG, "not updating inbox preview cache, failed to load message: $uri")
         }
 
+        val syncWindowState = StartStopBridge.INSTANCE.syncWindowState.value
+
+
         if(commandId != null && message != null && resultCode != Activity.RESULT_OK){
             Log.e(TAG, "Bridging error response to SMS not delivered:" +
                     " uri:$uri error:${resultCode.toError(intent)}")
@@ -93,17 +98,28 @@ abstract class SmsSent : SentReceiver() {
                 SendMessageStatusResult.Failed.status
             )
 
-            /*StartStopBridge.INSTANCE.forwardSendErrorToBridge(
-                commandId,
-                resultCode.toError(intent)
-            )*/
-            StartStopBridge.INSTANCE.forwardSendErrorToBridge(
-                commandId,
-                BridgeSendError(
+            if(syncWindowState == SyncWindowState.Running) {
+                // Bridge is running, we're just sending the failed ack to it
+                StartStopBridge.INSTANCE.forwardSendErrorToBridge(
                     commandId,
-                    errorSendMessageStatus
+                    BridgeSendError(
+                        commandId,
+                        errorSendMessageStatus
+                    )
                 )
-            )
+            }else{
+                val sendResponseDao = BridgeDatabase.getInstance(context).pendingSendResponseDao()
+                //Store pending ack
+                sendResponseDao.insert(
+                    PendingSendResponse(
+                        message.guid,
+                        message.chat_guid,
+                        SendMessageStatusResult.Sent.status
+                    )
+                )
+                // Start a sync window to bridge the ack to mautrix-imessage
+                startSyncWindow()
+            }
             return
         }
 
@@ -132,8 +148,6 @@ abstract class SmsSent : SentReceiver() {
             }
         }
 
-
-        val syncWindowState = StartStopBridge.INSTANCE.syncWindowState.value
 
         if(syncWindowState == SyncWindowState.Running){
             if(commandId != null) {
@@ -183,15 +197,30 @@ abstract class SmsSent : SentReceiver() {
                 }
             }
         }else{
-            // just create a sync worker and it'll bridge the delivered message for us
-            if(resultCode == Activity.RESULT_OK) {
-                // simple approach to avoid a stopping bridge
-                Log.d(TAG, "Starting a sync window to bridge a sent SMS message $guid")
+            if(commandId != null) {
+                val sendResponseDao = BridgeDatabase.getInstance(context).pendingSendResponseDao()
+                sendResponseDao.insert(
+                    PendingSendResponse(
+                        guid,
+                        message.chat_guid,
+                        SendMessageStatusResult.Sent.status
+                    )
+                )
+                // Start a sync window to bridge the ack to mautrix-imessage
                 startSyncWindow()
-            }else{
-                Log.w(
-                    TAG, "Not starting a new sync window to bridge a user initiated" +
-                            " failed SMS message")
+            }else {
+                // just create a sync worker and it'll bridge the delivered message for us
+                // message sent by the user, no ack needed for mautrix-imessage
+                if (resultCode == Activity.RESULT_OK) {
+                    // simple approach to avoid a stopping bridge
+                    Log.d(TAG, "Starting a sync window to bridge a sent SMS message $guid")
+                    startSyncWindow()
+                } else {
+                    Log.w(
+                        TAG, "Not starting a new sync window to bridge a user initiated" +
+                                " failed SMS message"
+                    )
+                }
             }
         }
     }

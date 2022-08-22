@@ -336,6 +336,14 @@ class StartStopBridge private constructor() {
         )
     }
 
+    internal fun buildSendMessageStatusCommand(sendMessageStatus: SendMessageStatus) : Command {
+        return Command(
+            "send_message_status",
+            data = sendMessageStatus,
+            requestId.addAndGet(1)
+        )
+    }
+
     internal fun buildContactCommand(contact: Contact) : Command {
         return Command(
             "contact",

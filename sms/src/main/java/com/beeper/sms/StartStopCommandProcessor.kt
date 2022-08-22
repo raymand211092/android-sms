@@ -17,6 +17,7 @@ import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.*
 import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedMessage
+import com.beeper.sms.database.models.PendingSendResponse
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
 import com.beeper.sms.extensions.getTimeMilliseconds
@@ -753,6 +754,23 @@ class StartStopCommandProcessor constructor(
         return withTimeoutOrNull(timeoutMillis) {
             val completableDeferred = CompletableDeferred<Unit>()
             val command = bridge.buildReadReceiptCommand(readReceipt)
+            val job = commandsReceived.onSubscription {
+                bridge.send(command)
+            }.onEach {
+                if (it.id == command.id) {
+                    completableDeferred.complete(Unit)
+                }
+            }.launchIn(scope)
+            completableDeferred.await()
+            job.cancel()
+        }
+    }
+
+    suspend fun sendMessageStatusCommandAndAwaitForResponse(sendMessageStatus: SendMessageStatus,
+                                                          timeoutMillis: Long) : Unit?{
+        return withTimeoutOrNull(timeoutMillis) {
+            val completableDeferred = CompletableDeferred<Unit>()
+            val command = bridge.buildSendMessageStatusCommand(sendMessageStatus)
             val job = commandsReceived.onSubscription {
                 bridge.send(command)
             }.onEach {
