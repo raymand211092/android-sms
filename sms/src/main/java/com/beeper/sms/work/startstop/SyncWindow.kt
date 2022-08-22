@@ -13,6 +13,7 @@ import com.beeper.sms.StartStopBridge
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.Contact
 import com.beeper.sms.commands.outgoing.ReadReceipt
+import com.beeper.sms.commands.outgoing.SendMessageStatus
 import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.helpers.now
 import com.beeper.sms.provider.ContactProvider
@@ -140,6 +141,33 @@ class SyncWindow constructor(
 
                 //Sync our local SMS and MMS messages
                 val database = BridgeDatabase.getInstance(context)
+
+                // Check if we have any pending send response to ack
+                val pendingSendResponseDao = database.pendingSendResponseDao()
+                val pendingSendResponses = pendingSendResponseDao.getAll()
+                Log.d(TAG, "Checking ${pendingSendResponses.size} send responses for " +
+                        "unbridged send responses:")
+                // Bridge pending send responses
+                pendingSendResponses.onEach {
+                        pendingSendResponse ->
+
+                    val result = bridge.commandProcessor.sendMessageStatusCommandAndAwaitForResponse(
+                        SendMessageStatus(
+                            pendingSendResponse.guid,
+                            pendingSendResponse.chat_guid,
+                            pendingSendResponse.status
+                        ),
+                        5000
+                    )
+                    if(result!=null) {
+                        Log.d(TAG, "Send response for " +
+                                "${pendingSendResponse.guid} was bridged")
+                    }else{
+                        Log.e(TAG, "Timeout bridging ${pendingSendResponse.guid} send response")
+                    }
+                    pendingSendResponseDao.delete(pendingSendResponse)
+                }
+
 
                 //-> Create new chat ID if needed
                 // Replace after starting to use the endpoint

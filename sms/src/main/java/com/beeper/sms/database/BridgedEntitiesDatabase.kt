@@ -10,12 +10,13 @@ import com.beeper.sms.database.models.*
 @Database(entities = [
     BridgedChatThread::class, BridgedMessage::class, BridgedReadReceipt::class,
     PendingReadReceipt::class, InboxPreviewCache::class, ChatThreadMetadataCache::class,
-    RecipientCache::class, PendingRecipientUpdate::class, ContactInfoCache::class],
-    version = 5, autoMigrations = [
+    RecipientCache::class, PendingRecipientUpdate::class, ContactInfoCache::class, PendingSendResponse::class],
+    version = 6, autoMigrations = [
         AutoMigration (from = 1, to = 2),
         AutoMigration (from = 2, to = 3),
         AutoMigration (from = 3, to = 4),
         AutoMigration (from = 4, to = 5, spec = BridgedEntitiesDatabase.ContactCacheMigration::class),
+        AutoMigration (from = 5, to = 6),
     ],
     exportSchema = true
 )
@@ -32,6 +33,7 @@ abstract class BridgedEntitiesDatabase : RoomDatabase() {
     abstract fun recipientCacheDao(): RecipientCacheDao
     abstract fun pendingRecipientUpdateDao(): PendingRecipientUpdateDao
     abstract fun contactInfoCacheDao(): ContactInfoCacheDao
+    abstract fun pendingSendResponseDao(): PendingSendResponseDao
 
 }
 
