@@ -21,6 +21,7 @@ abstract class SmsReceived : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         com.beeper.sms.Log.d(TAG, "a new SMS message was received")
         val uri = SmsProvider(context).writeInboxMessage(intent)
+        com.beeper.sms.Log.d(TAG, "new SMS message uri: $uri")
 
         if (uri == null) {
             com.beeper.sms.Log.e(TAG, "Critical issue: ->Failed to write SMS message")

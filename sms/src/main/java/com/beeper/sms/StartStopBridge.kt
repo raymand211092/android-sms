@@ -401,10 +401,10 @@ class StartStopBridge private constructor() {
     }
 
     internal fun forwardMessageToBridge(postMeThisMessage: BridgeThisSmsOrMms)
-            = scope.launch(outgoing) {
+            = scope.launch {
         Log.d(TAG, "forwardMessageToBridge before posting SMS/MMS message")
 
-        _commandsReceived.tryEmit(
+        _commandsReceived.emit(
                 Command(
                     "bridge_this_message",
                     data = postMeThisMessage
@@ -413,10 +413,10 @@ class StartStopBridge private constructor() {
     }
 
     internal fun forwardSendResponseToBridge(bridgeSendResponse: BridgeSendResponse)
-            = scope.launch(outgoing) {
+            = scope.launch {
         Log.d(TAG, "forwardSendResponseToBridge -> message successfully sent commandId#: $bridgeSendResponse.commandId")
 
-        _commandsReceived.tryEmit(
+        _commandsReceived.emit(
             Command(
                 "bridge_send_response",
                 data = bridgeSendResponse,
@@ -426,10 +426,10 @@ class StartStopBridge private constructor() {
     }
 
     internal fun forwardSendErrorToBridge(commandId: Int, bridgeSendError: BridgeSendError)
-            = scope.launch(outgoing) {
+            = scope.launch {
         Log.w(TAG, "forwardSendErrorToBridge -> error sending message commandId#:$commandId")
 
-        _commandsReceived.tryEmit(
+        _commandsReceived.emit(
             Command(
                 "bridge_send_response_error",
                 data = bridgeSendError,
@@ -511,7 +511,8 @@ class StartStopBridge private constructor() {
         withContext(scope.coroutineContext){
             storeBackfillingState(context,false)
             stop()
-            // Keep bridge files after clearing the bridge
+            // Delete bridge files after clearing the bridge
+            deleteBridgeFiles(context)
             configPath = null
             configPathProvider = null
         }

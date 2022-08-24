@@ -61,7 +61,7 @@ class RecipientRepository(
         if(loadedRecipient != null){
             Log.d(TAG,"InboxPreview ContactRepository getContact: returning cached cacheAddress:$recipientId")
             coroutineScope.launch {
-                Log.w(TAG,"InboxPreview CacheUpdate ContactRepository checking if we have changes on the cachedAddress")
+                Log.d(TAG,"InboxPreview CacheUpdate ContactRepository checking if we have changes on the cachedAddress")
                 val address = contactProvider.getAddressFromRecipientId(recipientId)
                 if(address == null){
                     Log.w(TAG,"InboxPreview CacheUpdate ContactRepository getContact: $recipientId wasn't found in low level layer")
@@ -79,7 +79,7 @@ class RecipientRepository(
                 )
 
                 if(recipientCache != loadedRecipient){
-                    Log.w(TAG,"InboxPreview CacheUpdate updating contact in cache!!! #${recipientCache.recipient_id}")
+                    Log.d(TAG,"InboxPreview CacheUpdate updating contact in cache!!! #${recipientCache.recipient_id}")
                     coroutineScope.launch {
                         recipientCacheDao.insert(recipientCache)
                         //notify listener that we have a change on existing items

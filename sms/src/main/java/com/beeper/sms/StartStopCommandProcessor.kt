@@ -6,8 +6,6 @@ import android.text.format.Formatter.formatShortFileSize
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_MMS_GUIDS
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_SMS_GUIDS
 import com.beeper.sms.commands.Command
-import com.beeper.sms.commands.TimeMillis.Companion.toMillis
-import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
@@ -17,7 +15,6 @@ import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.*
 import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedMessage
-import com.beeper.sms.database.models.PendingSendResponse
 import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
 import com.beeper.sms.extensions.getTimeMilliseconds
@@ -190,8 +187,12 @@ class StartStopCommandProcessor constructor(
                 debugPrintCommand(TAG + "syncWindowScope",command)
                 val data = deserialize(command,BridgeThisSmsOrMms::class.java)
                 withContext(Dispatchers.IO){
-                    bridge.commandProcessor.sendMessageCommandAndAwaitForResponse(
-                        data.message, 5000)
+                    launch {
+                        // Sometimes, a new message triggers room creation
+                        bridge.commandProcessor.sendMessageCommandAndAwaitForResponse(
+                            data.message, 60000
+                        )
+                    }
                 }
             }
             "bridge_send_response" -> {
@@ -256,7 +257,7 @@ class StartStopCommandProcessor constructor(
                     )
                 )
             }
-            "get_recent_messages" -> {
+            /*"get_recent_messages" -> {
                 Log.d(TAG + "syncWindowScope", "receive: $command")
                 val data = deserialize(command,GetRecentMessages::class.java)
 
@@ -264,7 +265,7 @@ class StartStopCommandProcessor constructor(
                 val messages = messageProvider.getRecentMessages(threadId, data.limit.toInt())
 
                 bridge.send(Command("response", messages, command.id))
-            }
+            }*/
             "get_chat_avatar" -> {
                 Log.d(TAG + "syncWindowScope", "receive: $command")
                 bridge.send(Command("response", null, command.id))
@@ -682,19 +683,52 @@ class StartStopCommandProcessor constructor(
     suspend fun sendMessageCommandAndAwaitForResponse(message: Message, timeoutMillis: Long) : Unit?{
         return withTimeoutOrNull(timeoutMillis) {
             val completableDeferred = CompletableDeferred<Unit>()
-            val command = bridge.buildMessageCommand(message)
+            val messageCommand = bridge.buildMessageCommand(message)
             val job = commandsReceived.onSubscription {
-                bridge.send(command)
+                bridge.send(messageCommand)
             }.onEach {
-                if (it.command == "message_bridge_result") {
-                    val data = deserialize(
-                        it,
-                        MessageBridgeResult::class.java
-                    )
-                    //handles the result -> i.e:Stores the message in the bridged messages database
-                    handle(it)
-                    if(data.message_guid == message.guid) {
-                        completableDeferred.complete(Unit)
+                command->
+                if(command.command == "get_recent_messages"){
+                    Log.d(TAG + "syncWindowScope", "receive: $messageCommand")
+                    val data = deserialize(messageCommand,GetRecentMessages::class.java)
+                    val chatGuid = data.chat_guid
+                    if(chatGuid == message.chat_guid) {
+                        Log.d(TAG + "syncWindowScope",
+                            "get_recent_messages chat_guid matched")
+
+                            val threadId = context.getThread(data)
+                            val messages =
+                                messageProvider.getRecentMessages(threadId, 5)
+                        Log.d(TAG + "syncWindowScope",
+                            "get_recent_messages messages, chat_guid: ${message.chat_guid}" +
+                                    "   ${messages.map {
+                                        it.guid
+                                    }}")
+                            val filteredMessages = messages.filter {
+                                it.timestamp < message.timestamp
+                            }
+
+                            Log.d(TAG + "syncWindowScope",
+                                "get_recent_messages filteredMessages, chat_guid: ${message.chat_guid}" +
+                                        "   ${filteredMessages.map { 
+                                    it.guid
+                                }}")
+                            bridge.send(Command("response", filteredMessages, command.id))
+                    }
+                }else {
+                    if (command.command == "message_bridge_result") {
+                        val data = deserialize(
+                            command,
+                            MessageBridgeResult::class.java
+                        )
+                        Log.d(TAG + "syncWindowScope",
+                            "handles bridging result for this message ${message.guid} chat: ${message.chat_guid}")
+
+                        //handles the result -> i.e:Stores the message in the bridged messages database
+                        handle(command)
+                        if (data.message_guid == message.guid) {
+                            completableDeferred.complete(Unit)
+                        }
                     }
                 }
             }.launchIn(scope)
