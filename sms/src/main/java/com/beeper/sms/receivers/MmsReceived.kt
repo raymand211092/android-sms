@@ -18,8 +18,10 @@ import timber.log.Timber
 abstract class MmsReceived : MmsReceivedReceiver() {
     abstract fun mapMessageToInboxPreviewCache(message: Message): InboxPreviewCache
     override fun onMessageReceived(context: Context?, uri: Uri?) {
+        com.beeper.sms.Log.d(TAG, "a new MMS message was received")
+
         if(context != null && uri != null) {
-            com.beeper.sms.Log.d(TAG, "a new MMS message was received $uri")
+            com.beeper.sms.Log.d(TAG, "a new MMS message was received -> uri: $uri")
 
             val loadedMessage = MessageProvider(context).getMessage(uri)
             if(loadedMessage!=null){
