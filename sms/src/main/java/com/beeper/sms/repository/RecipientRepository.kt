@@ -10,6 +10,7 @@ import com.beeper.sms.provider.ContactInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.launchIn
@@ -25,7 +26,7 @@ class RecipientRepository(
     dispatcher : CoroutineDispatcher = Dispatchers.IO
 ) {
     private val coroutineScope = CoroutineScope(dispatcher)
-    private val mutContactListChanged = MutableSharedFlow<Unit>()
+    private val mutContactListChanged = MutableSharedFlow<Unit>(0, 500, BufferOverflow.DROP_OLDEST)
     val contactListChanged = mutContactListChanged.asSharedFlow()
 
     init{
@@ -59,9 +60,9 @@ class RecipientRepository(
     suspend fun getContact(recipientId: Long): RecipientCache? {
         val loadedRecipient = recipientCacheDao.getContact(recipientId)
         if(loadedRecipient != null){
-            Log.d(TAG,"InboxPreview ContactRepository getContact: returning cached cacheAddress:$recipientId")
+            Log.v(TAG,"InboxPreview ContactRepository getContact: returning cached cacheAddress:$recipientId")
             coroutineScope.launch {
-                Log.d(TAG,"InboxPreview CacheUpdate ContactRepository checking if we have changes on the cachedAddress")
+                Log.v(TAG,"InboxPreview CacheUpdate ContactRepository checking if we have changes on the cachedAddress")
                 val address = contactProvider.getAddressFromRecipientId(recipientId)
                 if(address == null){
                     Log.w(TAG,"InboxPreview CacheUpdate ContactRepository getContact: $recipientId wasn't found in low level layer")
@@ -85,7 +86,7 @@ class RecipientRepository(
                         //notify listener that we have a change on existing items
                         // Trigger repo contact list changed
                         Log.d(TAG, "Emitting contact change event")
-                        mutContactListChanged.emit(Unit)
+                        mutContactListChanged.tryEmit(Unit)
                         // Saving changes to be bridged to mautrix-imessage
                         // -> will be loaded by the bridge in the next sync window
                         pendingRecipientUpdateDao.insert(

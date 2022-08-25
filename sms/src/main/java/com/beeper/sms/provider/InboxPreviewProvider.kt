@@ -6,6 +6,7 @@ import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.database.models.InboxPreviewCache
 import com.beeper.sms.database.models.InboxPreviewCacheDao
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
@@ -22,7 +23,7 @@ class InboxPreviewProvider constructor(
 
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
-    private val mutPreviewCacheChanges = MutableSharedFlow<EntityChange<InboxPreviewCache>>()
+    private val mutPreviewCacheChanges = MutableSharedFlow<EntityChange<InboxPreviewCache>>(0, 100,BufferOverflow.DROP_OLDEST)
     val previewCacheChanges = mutPreviewCacheChanges.asSharedFlow()
 
     fun markMessagesInThreadAsRead(messageId: String) {
@@ -71,7 +72,7 @@ class InboxPreviewProvider constructor(
             )
 
             inboxPreviewCacheDao.insert(inboxPreviewWithRecipients)
-            mutPreviewCacheChanges.emit(
+            mutPreviewCacheChanges.tryEmit(
                 EntityChange.Update(
                     inboxPreviewWithRecipients
                 )
@@ -82,7 +83,7 @@ class InboxPreviewProvider constructor(
     fun delete(inboxPreviewCache: InboxPreviewCache) {
         coroutineScope.launch {
             inboxPreviewCacheDao.delete(inboxPreviewCache)
-            mutPreviewCacheChanges.emit(
+            mutPreviewCacheChanges.tryEmit(
                 EntityChange.Delete(
                     inboxPreviewCache
                 )
@@ -93,7 +94,7 @@ class InboxPreviewProvider constructor(
     fun clearAll() {
         coroutineScope.launch {
             inboxPreviewCacheDao.clear()
-            mutPreviewCacheChanges.emit(
+            mutPreviewCacheChanges.tryEmit(
                 EntityChange.Clear()
             )
         }
