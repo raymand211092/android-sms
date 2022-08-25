@@ -7,6 +7,7 @@ import com.beeper.sms.provider.ContactProvider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.launchIn
@@ -21,7 +22,7 @@ class ContactInfoRepository(
     dispatcher : CoroutineDispatcher = Dispatchers.IO
 ) {
     private val coroutineScope = CoroutineScope(dispatcher)
-    private val _contactInfoListChanged = MutableSharedFlow<Unit>()
+    private val _contactInfoListChanged = MutableSharedFlow<Unit>(0,500, BufferOverflow.DROP_OLDEST)
     val contactInfoListChanged = _contactInfoListChanged.asSharedFlow()
 
     init{
@@ -52,7 +53,7 @@ class ContactInfoRepository(
                     }
                     if(contactInfo != cachedContactInfo){
                         contactInfoCacheDao.insert(contactInfo)
-                        _contactInfoListChanged.emit(Unit)
+                        _contactInfoListChanged.tryEmit(Unit)
                     }
                 }
                 return cachedContactInfo
@@ -63,7 +64,7 @@ class ContactInfoRepository(
                 }else {
                     coroutineScope.launch {
                         contactInfoCacheDao.insert(contactInfo)
-                        _contactInfoListChanged.emit(Unit)
+                        _contactInfoListChanged.tryEmit(Unit)
                     }
                     return contactInfo
                 }
@@ -90,7 +91,7 @@ class ContactInfoRepository(
                     }
                     if(contactInfo != cachedContactInfo){
                         contactInfoCacheDao.insert(contactInfo)
-                        _contactInfoListChanged.emit(Unit)
+                        _contactInfoListChanged.tryEmit(Unit)
                     }
                 }
             }else{
@@ -100,7 +101,7 @@ class ContactInfoRepository(
                 }else {
                     coroutineScope.launch {
                         contactInfoCacheDao.insert(contactInfo)
-                        _contactInfoListChanged.emit(Unit)
+                        _contactInfoListChanged.tryEmit(Unit)
                     }
                     contacts.add(contactInfo)
                 }

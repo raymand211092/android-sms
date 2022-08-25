@@ -63,7 +63,7 @@ class StartStopBridge private constructor() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _commandsReceived = MutableSharedFlow<Command>(
             replay = 0,
-        extraBufferCapacity = 100,
+        extraBufferCapacity = 500,
         BufferOverflow.DROP_OLDEST
     )
     val commandsReceived = _commandsReceived.asSharedFlow()
