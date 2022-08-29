@@ -83,7 +83,7 @@ class MmsProvider constructor(
                 THREAD_ID,
             ).toTypedArray(),
             order = order,
-            limit = limit
+            limit = if (limit != null && limit > 0) limit else null
         ) {
             val rowId = it.getLong(_ID)
             val threadId = it.getLong(THREAD_ID)
@@ -112,7 +112,7 @@ class MmsProvider constructor(
                 SUBSCRIPTION_ID
             ).toTypedArray(),
             order = order,
-            limit = limit
+            limit = if (limit != null && limit > 0) limit else null
         ) {
             val rowId = it.getLong(_ID)
             mapper(
