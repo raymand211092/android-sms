@@ -53,6 +53,7 @@ class InboxPreviewProvider constructor(
             val lastInboxPreview = inboxPreviewCacheDao.getPreviewForChat(
                 inboxPreviewCache.chat_guid
             )
+
             Log.d(TAG, "InboxPreview cache debug: update lastInboxPreview threadID:" +
                     " ${lastInboxPreview?.thread_id}")
 
@@ -101,19 +102,69 @@ class InboxPreviewProvider constructor(
     }
 
     fun loadChatPreview(threadId: Long, mapMessageToInboxPreview: (Message)->InboxPreviewCache): InboxPreviewCache? {
+        Log.d(TAG, "InboxPreview cache debug: loadChatPreview")
+
         return runBlocking {
             loadChatPreviews(listOf(threadId), mapMessageToInboxPreview).firstOrNull()
+        }
+    }
+
+    private suspend fun refreshCacheFor(
+        threadId: Long,
+        cachedChatThread: InboxPreviewCache,
+        mapMessageToInboxPreview: (Message) -> InboxPreviewCache
+    ){
+        val chatThread = chatThreadProvider.getThread(threadId)
+        if (chatThread != null) {
+            val lastMessage = messageProvider.getLastMessage(
+                threadId
+            )
+            if (lastMessage != null) {
+                val newPreview = mapMessageToInboxPreview(
+                    lastMessage
+                )
+                Log.d(
+                    TAG, "InboxPreview cache debug: inserting new inbox" +
+                            " preview threadId:${newPreview.thread_id} lastMessageTs, " +
+                            "${lastMessage.timestamp.toMillis().toLong()} " +
+                            "cachedMessageTs: ${cachedChatThread.timestamp}"
+                )
+
+                if(lastMessage.guid != cachedChatThread.message_guid){
+                    update(newPreview)
+                }else{
+                    Log.d(
+                        TAG, "InboxPreview cache debug: not updating" +
+                                "cache for threadId:${newPreview.thread_id} -> nothing changed"
+                    )
+                }
+
+
+            } else {
+                Log.e(
+                    TAG,
+                    "InboxPreview cache debug: null lastMessage ${chatThread.recipientIds}" +
+                            "title: ${chatThread.getTitleFromMembers()} "
+                )
+            }
+        } else {
+            Log.e(TAG, "InboxPreview cache debug: null chatThread")
         }
     }
 
     private suspend fun loadChatPreviews(threadIds: List<Long>, mapMessageToInboxPreview: (Message)->InboxPreviewCache): List<InboxPreviewCache> {
         return withContext(Dispatchers.IO) {
             val previews = mutableListOf<InboxPreviewCache>()
+            Log.d(TAG, "InboxPreview cache debug: Started load chat previews for: $threadIds")
+
             threadIds.onEach { threadId ->
                 val cachedChatThread = inboxPreviewCacheDao.getPreviewForChatByThreadId(threadId)
                 if (cachedChatThread != null) {
                     Log.d(TAG, "InboxPreview cache debug: returning cached threadId:$threadId")
                     previews.add(cachedChatThread)
+                    launch {
+                        refreshCacheFor(threadId, cachedChatThread, mapMessageToInboxPreview)
+                    }
                 } else {
                     Log.d(
                         TAG,
@@ -146,11 +197,15 @@ class InboxPreviewProvider constructor(
                     }
                 }
             }
+
+            Log.d(TAG, "InboxPreview cache debug: Finished load chat previews")
             return@withContext previews
         }
     }
 
     suspend fun getChatsAfter(timestamp: Long, mapMessageToInboxPreview: (Message)->InboxPreviewCache): List<InboxPreviewCache> {
+        Log.d(TAG, "InboxPreview cache debug: getChatsAfter")
+
         return withContext(Dispatchers.IO) {
             val ids = chatThreadProvider.getChatIdsAfter(TimeMillis(timestamp.toBigDecimal()))
             loadChatPreviews(ids,mapMessageToInboxPreview)
@@ -158,13 +213,14 @@ class InboxPreviewProvider constructor(
     }
 
     suspend fun getChatsBefore(timestamp: Long, limit: Int, mapMessageToInboxPreview: (Message)->InboxPreviewCache): List<InboxPreviewCache> {
+        Log.d(TAG, "InboxPreview cache debug: getChatsBefore")
+
         return withContext(Dispatchers.IO) {
             val ids =
                 chatThreadProvider.getChatIdsBefore(TimeMillis(timestamp.toBigDecimal()), limit)
             loadChatPreviews(ids,mapMessageToInboxPreview)
         }
     }
-
 
     suspend fun fetchThreads(limit: Int, mapMessageToInboxPreview: (Message)->InboxPreviewCache): List<InboxPreviewCache> {
         return withContext(Dispatchers.IO) {
