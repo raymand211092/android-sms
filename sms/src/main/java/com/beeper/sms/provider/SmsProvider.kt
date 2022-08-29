@@ -71,8 +71,8 @@ class SmsProvider constructor(context: Context) {
     private fun <T> getSms(
         uri: Uri = CONTENT_URI,
         where: String? = null,
-        limit: Int = 0,
-        order: String? = if (limit > 0) "$DATE DESC LIMIT $limit" else null,
+        limit: Int? = null,
+        order: String? = if (limit != null && limit > 0) "$DATE DESC LIMIT $limit" else null,
         mapper: (Cursor, Long, Uri) -> T?
     ): List<T> =
         cr.map(
@@ -91,7 +91,7 @@ class SmsProvider constructor(context: Context) {
                 SUBSCRIPTION_ID
             ).toTypedArray(),
             order = order,
-            limit = limit
+            limit = if (limit != null && limit > 0) limit else null
         ) {
             val rowId = it.getLong(_ID)
             mapper(
