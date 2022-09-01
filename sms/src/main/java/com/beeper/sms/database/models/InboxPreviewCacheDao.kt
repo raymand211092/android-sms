@@ -25,6 +25,9 @@ interface InboxPreviewCacheDao {
     @Query("SELECT * FROM inboxpreviewcache WHERE thread_id = :threadId")
     fun getPreviewForChatByThreadId(threadId: Long): InboxPreviewCache?
 
+    @Query("SELECT * FROM inboxpreviewcache WHERE chat_guid = :chatGuid")
+    fun getPreviewForChatByChatGuid(chatGuid: String): InboxPreviewCache?
+
     @Query("UPDATE inboxpreviewcache SET is_read=1 WHERE chat_guid = :chat_guid")
     fun markPreviewAsRead(chat_guid: String)
 

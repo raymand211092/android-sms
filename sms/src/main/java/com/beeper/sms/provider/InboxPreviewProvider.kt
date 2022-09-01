@@ -101,9 +101,17 @@ class InboxPreviewProvider constructor(
         }
     }
 
+    fun loadChatPreviewForInbox(chatGuid: String): InboxPreviewCache? {
+        Log.d(TAG, "InboxPreview cache debug: loadChatPreviewForInbox")
+        return runBlocking {
+            withContext(Dispatchers.IO) {
+                inboxPreviewCacheDao.getPreviewForChatByChatGuid(chatGuid)
+            }
+        }
+    }
+
     fun loadChatPreview(threadId: Long, mapMessageToInboxPreview: (Message)->InboxPreviewCache): InboxPreviewCache? {
         Log.d(TAG, "InboxPreview cache debug: loadChatPreview")
-
         return runBlocking {
             loadChatPreviews(listOf(threadId), mapMessageToInboxPreview).firstOrNull()
         }
