@@ -162,9 +162,10 @@ class InboxPreviewProvider constructor(
                 if (cachedChatThread != null) {
                     Log.d(TAG, "InboxPreview cache debug: returning cached threadId:$threadId")
                     previews.add(cachedChatThread)
-                    launch {
+                    // TODO: review cache refreshing
+                    /*launch {
                         refreshCacheFor(threadId, cachedChatThread, mapMessageToInboxPreview)
-                    }
+                    }*/
                 } else {
                     Log.d(
                         TAG,
