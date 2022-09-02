@@ -10,16 +10,19 @@ import com.beeper.sms.database.models.*
 @Database(entities = [
     BridgedChatThread::class, BridgedMessage::class, BridgedReadReceipt::class,
     PendingReadReceipt::class, InboxPreviewCache::class, ChatThreadMetadataCache::class,
-    RecipientCache::class, PendingRecipientUpdate::class, ContactInfoCache::class, PendingSendResponse::class],
-    version = 6, autoMigrations = [
+    RecipientCache::class, PendingRecipientUpdate::class, ContactInfoCache::class,
+    PendingSendResponse::class, SmsThreadMatrixRoomRelation::class],
+    version = 7, autoMigrations = [
         AutoMigration (from = 1, to = 2),
         AutoMigration (from = 2, to = 3),
         AutoMigration (from = 3, to = 4),
         AutoMigration (from = 4, to = 5, spec = BridgedEntitiesDatabase.ContactCacheMigration::class),
         AutoMigration (from = 5, to = 6),
+        AutoMigration (from = 6, to = 7),
     ],
     exportSchema = true
 )
+
 abstract class BridgedEntitiesDatabase : RoomDatabase() {
     @DeleteTable.Entries(DeleteTable(tableName = "ContactCache"),
         DeleteTable(tableName = "PendingContactUpdate"))
@@ -34,6 +37,7 @@ abstract class BridgedEntitiesDatabase : RoomDatabase() {
     abstract fun pendingRecipientUpdateDao(): PendingRecipientUpdateDao
     abstract fun contactInfoCacheDao(): ContactInfoCacheDao
     abstract fun pendingSendResponseDao(): PendingSendResponseDao
+    abstract fun nativeThreadMatrixRoomRelationDao(): SmsThreadMatrixRoomRelationDao
 
 }
 

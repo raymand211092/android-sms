@@ -46,7 +46,7 @@ class RecipientRepository(
         return contactProvider.fetchContacts(limit)
     }
 
-    fun getContacts(phones: List<String>) = contactProvider.getRecipients(phones)
+    fun getContacts(phones: List<String>) = contactProvider.getRecipientsFromPhoneNumbers(phones)
 
 
     fun getContactBySenderGuid(sender_guid: String): ContactRow {
