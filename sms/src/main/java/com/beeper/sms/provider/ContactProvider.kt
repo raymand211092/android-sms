@@ -13,6 +13,7 @@ import android.provider.ContactsContract.Contacts
 import android.provider.ContactsContract.PhoneLookup
 import android.provider.Telephony
 import android.util.Base64
+import androidx.core.net.toUri
 import com.beeper.sms.Log
 import com.beeper.sms.database.models.ContactInfoCache
 import com.beeper.sms.extensions.*
@@ -176,6 +177,7 @@ class ContactProvider constructor(private val context: Context) {
     }
 
     fun getRecipients(phones: List<String>) = phones.map { getRecipientInfo(it) }
+    fun getRecipientsFromPhoneNumbers(phones: List<String>) = phones.map { getRecipientInfo(it) }
 
     @SuppressLint("InlinedApi")
     fun getRecipientInfo(phone: String): Pair<ContactRow, Long?> = when {
@@ -277,8 +279,21 @@ class ContactProvider constructor(private val context: Context) {
         return null
     }
 
+
+    fun getRecipientIds(thread: Long): List<String> =
+        cr.firstOrNull(URI_THREADS, "${Telephony.Mms._ID} = $thread") {
+            it.getString(Telephony.ThreadsColumns.RECIPIENT_IDS)?.split(" ")
+        } ?: listOf()
+
+    fun getPhoneNumberFromRecipientId(recipientId: String): String? =
+        cr.firstOrNull(URI_ADDRESSES, "${Telephony.CanonicalAddressesColumns._ID} = $recipientId") {
+            it.getString(Telephony.CanonicalAddressesColumns.ADDRESS)
+        }
+
     companion object {
         private const val TAG = "ContactProvider"
+        val URI_THREADS = "${Telephony.MmsSms.CONTENT_CONVERSATIONS_URI}?simple=true".toUri()
+        private val URI_ADDRESSES = "${Telephony.MmsSms.CONTENT_URI}/canonical-addresses".toUri()
 
         private val String.defaultResponse: ContactRow
             get() = ContactRow(nickname = this, phoneNumber = this)

@@ -53,6 +53,7 @@ data class Config(
         var send_error_notices: Boolean? = null,
         var message_status_events: Boolean? = null,
         var max_handle_seconds: Int? = null,
+        var device_id: String? = null,
     )
 
     data class Encryption(

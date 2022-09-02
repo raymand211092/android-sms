@@ -356,6 +356,68 @@ class ChatThreadProvider constructor(
         }
     }
 
+    fun getThreadBlocking(threadId: Long, includeEmpty: Boolean = false): ChatThread? {
+            val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
+            val projection = arrayOf(
+                Telephony.Threads._ID,
+                Telephony.Threads.SNIPPET,
+                Telephony.Threads.DATE,
+                Telephony.Threads.READ,
+                Telephony.Threads.RECIPIENT_IDS
+            )
+
+            var selection = if (!includeEmpty) {
+                "${Telephony.Threads.MESSAGE_COUNT} > ?"
+            } else {
+                "${Telephony.Threads.MESSAGE_COUNT} >= ?"
+            }
+            selection += " AND ${Telephony.Threads._ID} = ?"
+            val selectionArgs: Array<String> = arrayOf("0", threadId.toString())
+
+
+            val sortOrder = "${Telephony.Threads.DATE} DESC"
+            val cursor =
+                context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
+            cursor?.use {
+                val contactProvider = ContactProvider(context)
+                while (it.moveToNext()) {
+                    val id = it.getLong(Telephony.Threads._ID)
+                    val hasUnread = it.getInt(Telephony.Threads.READ) == 0
+
+                    val snippet = it.getString(Telephony.Threads.SNIPPET)
+                    var date = cursor.getLong(Telephony.Threads.DATE)
+                    if (date.toString().length > 10) {
+                        date /= 1000
+                    }
+                    val ids = cursor.getString(Telephony.Threads.RECIPIENT_IDS)
+
+                    val recipientIdList = ids?.split(" ")?.map { recipientId ->
+                        recipientId.toLong()
+                    }?.toList()
+
+                    val recipientPhoneNumbers = recipientIdList?.let { recipientIds ->
+                        getThreadPhoneNumbers(recipientIds)
+                    }
+
+                    val contacts = recipientPhoneNumbers?.let { numbers ->
+                        numbers.map { number ->
+                            number to contactProvider.getRecipientInfo(number).first
+                        }
+                    }?.toMap() ?: return null
+
+                    return ChatThread(
+                        id.toString(),
+                        ids,
+                        snippet ?: "",
+                        contacts,
+                        TimeMillis(BigDecimal.valueOf(date)),
+                        hasUnread
+                    )
+                }
+            }
+        return null
+    }
+
     fun getThreadSummary(threadId: Long): ChatThreadSummary? {
         val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
 

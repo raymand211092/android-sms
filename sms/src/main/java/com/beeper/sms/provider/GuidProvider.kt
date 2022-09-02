@@ -50,7 +50,7 @@ class GuidProvider constructor(
 
             // Return formatted emails
             EMAIL.find(address, 0)?.let { return it.value }
-            
+
             // Didn't detect a number
             val addressWithoutDashes = address.filterNot {
                 it=='-'

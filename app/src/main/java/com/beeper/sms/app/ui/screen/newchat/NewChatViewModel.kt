@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.beeper.sms.app.ui.model.UIContact
 import com.beeper.sms.provider.ContactProvider
-import com.beeper.sms.provider.GuidProvider.Companion.normalizeAddress
 import com.beeper.sms.provider.ChatThreadProvider
+import com.beeper.sms.provider.GuidProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -267,7 +267,7 @@ class NewChatViewModel(
 
     fun getThreadId(recipients: Set<String>): Long {
         return threadProvider.getOrCreateThreadId(recipients.map{
-            normalizeAddress(it)
+            GuidProvider.normalizeAddress(it)
         }.toSet())
     }
 

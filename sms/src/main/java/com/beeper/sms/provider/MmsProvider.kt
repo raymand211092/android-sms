@@ -207,7 +207,7 @@ class MmsProvider constructor(
                 _ID,
                 THREAD_ID,
                 DATE,
-                ).toTypedArray(),
+            ).toTypedArray(),
             "$THREAD_ID = $threadId " +
                     "AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT AND $READ = 1",
             null,

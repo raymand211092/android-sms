@@ -9,7 +9,6 @@ import com.beeper.sms.extensions.getText
 import com.beeper.sms.extensions.getThread
 import com.beeper.sms.extensions.recipients
 import com.beeper.sms.provider.ContactProvider
-import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 
 class ComposeSmsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,7 +24,7 @@ class ComposeSmsActivity : AppCompatActivity() {
         val recipients = intent.recipients ?: return
         val text = intent.getText(Intent.EXTRA_TEXT)
         if (text == null) {
-            val room =
+            /*val room =
                 ContactProvider(this)
                     .getRecipients(recipients)
                     .map { contact -> contact.first.nickname }
@@ -33,9 +32,9 @@ class ComposeSmsActivity : AppCompatActivity() {
             Bridge.INSTANCE.send(
                 Command(
                     "chat",
-                    Chat(recipients.chatGuid, room, recipients)
+                    Chat("", room, recipients)
                 )
-            )
+            )*/
         } else {
             SmsMmsSender(this).sendMessage(
                 text,

@@ -112,7 +112,7 @@ class SimpleBackfill constructor(
                 val mmsMessagesToStore = mutableListOf<BridgedMessage>()
 
                 threadIds.onEach {
-                    threadId ->
+                        threadId ->
                     val chatGuid = guidProvider.getChatGuid(threadId)
                     if(chatGuid != null){
                         Log.d(TAG, "Checking last messages for the following threadId: " +

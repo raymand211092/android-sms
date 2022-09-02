@@ -2,10 +2,6 @@ package com.beeper.sms.database.models
 
 import androidx.room.Entity
 import androidx.room.Index
-import com.beeper.sms.BuildConfig
-import com.beeper.sms.commands.TimeMillis
-import com.beeper.sms.provider.ContactRow
-import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 
 @Entity(primaryKeys = ["chat_guid"], indices = [
     Index(value = ["thread_id"], unique = true),

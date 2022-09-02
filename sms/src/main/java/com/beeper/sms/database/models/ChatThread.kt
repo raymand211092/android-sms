@@ -3,7 +3,6 @@ package com.beeper.sms.database.models
 import com.beeper.sms.BuildConfig
 import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.provider.ContactRow
-import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 
 data class ChatThread(
     var threadId: String,
