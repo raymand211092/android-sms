@@ -86,7 +86,8 @@ class StartStopCommandProcessor constructor(
         when (command.command) {
             "get_chat" -> {
                 Log.d(TAG + "portalSyncScope", "receive: $command")
-                val recipients = deserialize(command, GetChat::class.java)
+                val getChatCommand = deserialize(command, GetChat::class.java)
+                val recipients = getChatCommand
                     .recipientList
                 val room =
                     contactProvider
@@ -95,8 +96,15 @@ class StartStopCommandProcessor constructor(
                             it.first.nickname
                         }
                         .joinToString()
+                val threadId = context.getThread(getChatCommand)
+
                 bridge.send(
-                    Command("response", GetChat.Response(room, recipients), command.id)
+                    Command("response", GetChat.Response(
+                            room,
+                            recipients,
+                            threadId.toString()
+                        ), command.id
+                    )
                 )
             }
             "get_chats" -> {
@@ -251,15 +259,24 @@ class StartStopCommandProcessor constructor(
             }
             "get_chat" -> {
                 Log.d(TAG + "syncWindowScope", "receive: $command")
-                val recipients = deserialize(command,GetChat::class.java)
+                val getChatCommand = deserialize(command, GetChat::class.java)
+                val recipients = getChatCommand
                     .recipientList
                 val room =
                     contactProvider
                         .getRecipients(recipients)
-                        .map { it.first.nickname }
+                        .map {
+                            it.first.nickname
+                        }
                         .joinToString()
+                val threadId = context.getThread(getChatCommand)
+
                 bridge.send(
-                    Command("response", GetChat.Response(room, recipients), command.id)
+                    Command("response", GetChat.Response(
+                        room,
+                        recipients,
+                        threadId.toString()
+                    ), command.id)
                 )
             }
             "get_contact" -> {
@@ -460,15 +477,23 @@ class StartStopCommandProcessor constructor(
             }
             "get_chat" -> {
                 Log.d(TAG, "receive: $command")
-                val recipients = deserialize(command,GetChat::class.java)
+                val getChatCommand = deserialize(command, GetChat::class.java)
+                val recipients = getChatCommand
                     .recipientList
                 val room =
                     contactProvider
                         .getRecipients(recipients)
-                        .map { it.first.nickname }
+                        .map {
+                            it.first.nickname
+                        }
                         .joinToString()
+                val threadId = context.getThread(getChatCommand)
                 bridge.send(
-                    Command("response", GetChat.Response(room, recipients), command.id)
+                    Command("response", GetChat.Response(
+                        room,
+                        recipients,
+                        threadId.toString()
+                    ), command.id)
                 )
             }
             "get_contact" -> {
