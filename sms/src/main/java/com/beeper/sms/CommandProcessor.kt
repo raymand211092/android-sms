@@ -53,17 +53,24 @@ class CommandProcessor constructor(
                 bridge.send(Command("response", null, command.id))
             }
             "get_chat" -> {
-                val recipients =
-                    command
-                        .deserialize(GetChat::class.java)
-                        .recipientList
+                val getChatCommand = command.deserialize(GetChat::class.java)
+                val recipients = getChatCommand
+                    .recipientList
                 val room =
                     contactProvider
                         .getRecipients(recipients)
-                        .map { it.first.nickname }
+                        .map {
+                            it.first.nickname
+                        }
                         .joinToString()
+                val threadId = context.getThread(getChatCommand)
+
                 bridge.send(
-                    Command("response", GetChat.Response(room, recipients), command.id)
+                    Command("response", GetChat.Response(
+                        room,
+                        recipients,
+                        threadId.toString()
+                    ), command.id)
                 )
             }
             "get_contact" -> {

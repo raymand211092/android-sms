@@ -101,11 +101,11 @@ class InboxPreviewProvider constructor(
         }
     }
 
-    fun loadChatPreviewForInbox(chatGuid: String): InboxPreviewCache? {
+    fun loadChatPreviewForInbox(threadId: Long): InboxPreviewCache? {
         Log.d(TAG, "InboxPreview cache debug: loadChatPreviewForInbox")
         return runBlocking {
             withContext(Dispatchers.IO) {
-                inboxPreviewCacheDao.getPreviewForChatByChatGuid(chatGuid)
+                inboxPreviewCacheDao.getPreviewForChatByThreadId(threadId)
             }
         }
     }
