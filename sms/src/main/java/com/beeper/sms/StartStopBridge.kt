@@ -512,7 +512,7 @@ class StartStopBridge private constructor() {
             storeBackfillingState(context,false)
             stop()
             // Delete bridge files after clearing the bridge
-            deleteBridgeFiles(context)
+            //deleteBridgeFiles(context)
             configPath = null
             configPathProvider = null
         }

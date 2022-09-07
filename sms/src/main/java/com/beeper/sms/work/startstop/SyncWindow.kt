@@ -63,14 +63,18 @@ class SyncWindow constructor(
                 // *maxIdlePeriodSeconds* or if the task takes more than *syncTimeoutMinutes*
                 var lastCommandReceivedMillis = now()
                 Log.d(TAG, "lastCommandReceivedTime: $lastCommandReceivedMillis")
+                val validCommandsToKeepItOpen = listOf(
+                    "get_chat", "get_contact", "send_message", "get_recent_messages",
+                    "send_media", "send_read_receipt", "bridge_this_message",
+                    "bridge_send_response", "bridge_send_response_error",
+                    "upcoming_message", "message_bridge_result",
+                    "chat_bridge_result",
+                )
                 val job = bridge.commandsReceived.onEach {
-                    val validCommandsToKeepItOpen = listOf(
-                        "get_chat", "get_contact", "send_message", "get_recent_messages",
-                        "send_media", "send_read_receipt", "bridge_this_message",
-                        "bridge_send_response", "bridge_send_response_error",
-                        "upcoming_message", "message_bridge_result",
-                        "chat_bridge_result"
-                    )
+                    if (validCommandsToKeepItOpen.contains(it.command)) {
+                        lastCommandReceivedMillis = now()
+                        Log.d(TAG, "lastCommandReceivedTime updated: $lastCommandReceivedMillis")
+                    }
                     when(it.command){
                         // Store message as pending after sending so we wait for the result
                         "send_message", "send_media" -> {
@@ -104,10 +108,7 @@ class SyncWindow constructor(
                             bridge.commandProcessor.handleSyncWindowScopedCommands(it)
                         }
                     }
-                    if (validCommandsToKeepItOpen.contains(it.command)) {
-                        lastCommandReceivedMillis = now()
-                        Log.d(TAG, "lastCommandReceivedTime updated: $lastCommandReceivedMillis")
-                    }
+
                 }.launchIn(this)
 
                 val started = bridge.start(
