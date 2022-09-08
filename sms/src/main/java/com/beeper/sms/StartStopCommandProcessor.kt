@@ -6,6 +6,7 @@ import android.text.format.Formatter.formatShortFileSize
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_MMS_GUIDS
 import com.beeper.sms.Upgrader.Companion.PREF_USE_OLD_SMS_GUIDS
 import com.beeper.sms.commands.Command
+import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.incoming.*
 import com.beeper.sms.commands.incoming.GetContact.Response.Companion.asResponse
@@ -46,6 +47,8 @@ class StartStopCommandProcessor constructor(
     private val coroutineContext: CoroutineContext
 ) {
     val scope = CoroutineScope(coroutineContext)
+    private val firstTimestampForChatGuid = mutableMapOf<String, TimeSeconds>()
+
 
     private val oldMmsBackfillSeconds =
         context
@@ -163,9 +166,6 @@ class StartStopCommandProcessor constructor(
                 }
                 bridge.send(Command("response", messages, command.id))
             }
-            "message_bridge_result" -> {
-                Log.v(TAG, "message_bridge_result: $command")
-            }
             "chat_bridge_result" -> {
                 Log.d(TAG, "chat_bridge_result: $command")
                 val data = deserialize(command,ChatBridgeResult::class.java)
@@ -209,7 +209,7 @@ class StartStopCommandProcessor constructor(
         when (command.command) {
             "bridge_this_message" -> {
                 debugPrintCommand(TAG + "syncWindowScope",command)
-                val data = deserialize(command,BridgeThisSmsOrMms::class.java)
+                val data = deserialize(command, BridgeThisSmsOrMms::class.java)
                 withContext(Dispatchers.IO){
                     launch {
                         // Sometimes, a new message triggers room creation
@@ -290,15 +290,6 @@ class StartStopCommandProcessor constructor(
                     )
                 )
             }
-            "get_recent_messages" -> {
-                Log.d(TAG + "syncWindowScope", "receive: $command")
-                val data = deserialize(command,GetRecentMessages::class.java)
-
-                val threadId = context.getThread(data)
-                val messages = messageProvider.getRecentMessages(threadId, 5)
-
-                bridge.send(Command("response", messages, command.id))
-            }
             "get_chat_avatar" -> {
                 Log.d(TAG + "syncWindowScope", "receive: $command")
                 bridge.send(Command("response", null, command.id))
@@ -352,6 +343,35 @@ class StartStopCommandProcessor constructor(
                                 )
                             )
                     }
+                }
+            }
+            "get_recent_messages" -> {
+                Log.d(TAG, "receive: $command")
+
+                val data = deserialize(command,GetRecentMessages::class.java)
+                val threadId = context.getThread(data)
+                val limitTimestamp = firstTimestampForChatGuid[data.chat_guid]
+                if(limitTimestamp == null){
+                    val messages = messageProvider.getRecentMessages(threadId, data.limit.toInt())
+                    bridge.send(Command("response", messages, command.id))
+                }else{
+                    val messages =
+                        messageProvider.getRecentMessages(threadId, 5)
+                    Log.d(TAG + "syncWindowScope",
+                        "get_recent_messages messages, chat_guid: ${data.chat_guid}" +
+                                "   ${messages.map {
+                                    it.guid
+                                }}")
+                    val filteredMessages = messages.filter {
+                        it.timestamp < limitTimestamp
+                    }
+
+                    Log.d(TAG + "syncWindowScope",
+                        "get_recent_messages filteredMessages, chat_guid: ${data.chat_guid}" +
+                                "   ${filteredMessages.map {
+                                    it.guid
+                                }}")
+                    bridge.send(Command("response", filteredMessages, command.id))
                 }
             }
             "send_media" -> {
@@ -464,195 +484,6 @@ class StartStopCommandProcessor constructor(
         }
     }
 
-    suspend fun handle(command: Command) {
-        when (command.command) {
-            "pre_startup_sync" -> {
-                Log.d(TAG, "receive: $command")
-                pushKey?.let { bridge.send(Command("push_key", it)) }
-                bridge.send(Command("response",
-                    // Skipping startup sync
-                    StartupSyncHookResponse(true),
-                    command.id)
-                )
-            }
-            "get_chat" -> {
-                Log.d(TAG, "receive: $command")
-                val getChatCommand = deserialize(command, GetChat::class.java)
-                val recipients = getChatCommand
-                    .recipientList
-                val room =
-                    contactProvider
-                        .getRecipients(recipients)
-                        .map {
-                            it.first.nickname
-                        }
-                        .joinToString()
-                val threadId = context.getThread(getChatCommand)
-                bridge.send(
-                    Command("response", GetChat.Response(
-                        room,
-                        recipients,
-                        threadId.toString()
-                    ), command.id)
-                )
-            }
-            "get_contact" -> {
-                Log.d(TAG, "receive: $command")
-                val data = deserialize(command,GetContact::class.java)
-                bridge.send(
-                    Command(
-                        "response",
-                        contactProvider.getRecipientInfo(data.user_guid).first.asResponse,
-                        command.id
-                    )
-                )
-            }
-            "send_message" -> {
-                debugPrintCommand(TAG ,command)
-                if (!context.hasPermissions) {
-                    noPermissionError(command.id!!)
-                    return
-                }
-                val data = deserialize(command,SendMessage::class.java)
-                smsMmsSender.sendMessage(
-                    data.text,
-                    data.recipientList,
-                    context.getThread(data),
-                    Bundle().apply {
-                        putInt(COMMAND_ID, command.id!!)
-                    },
-                )
-            }
-            "send_media" -> {
-                debugPrintCommand(TAG ,command)
-                if (!context.hasPermissions) {
-                    noPermissionError(command.id!!)
-                    return
-                }
-                val data = deserialize(command,SendMedia::class.java)
-                val recipients = data.recipientList
-                val file = File(data.path_on_disk)
-                val size = file.length()
-                if (size > SmsMmsSender.MAX_FILE_SIZE) {
-                    bridge.send(
-                        command.id!!,
-                        Error(
-                            "size_limit_exceeded",
-                            context.getString(
-                                R.string.attachment_too_large,
-                                formatShortFileSize(context, size),
-                                formatShortFileSize(context, SmsMmsSender.MAX_FILE_SIZE),
-                            )
-                        )
-                    )
-                } else {
-                    smsMmsSender.sendMessage(
-                        data.text,
-                        recipients,
-                        file.readBytes(),
-                        data.mime_type,
-                        data.file_name,
-                        context.getThread(data),
-                        Bundle().apply {
-                            putInt(COMMAND_ID, command.id!!)
-                        },
-                    )
-                }
-            }
-            "get_chats" -> {
-                Log.d(TAG, "receive: $command")
-                val data = deserialize(command,GetChats::class.java)
-                val recentMessages = messageProvider.getActiveChats(data.min_timestamp)
-                bridge.send(
-                    Command(
-                        "response",
-                        recentMessages.map { it.chat_guid }.toSet(),
-                        command.id
-                    )
-                )
-            }
-            "get_messages_after" -> {
-                Log.d(TAG, "receive: $command")
-                val data = deserialize(command,GetMessagesAfter::class.java)
-                val messages =
-                    messageProvider
-                        .getMessagesAfter(context.getThread(data), data.timestamp)
-                        .filter {
-                            // hack to not backfill rooms with invalid chat_guid
-                            it.chat_guid == data.chat_guid
-                        }
-                if (data.timestamp < oldMmsBackfillSeconds) {
-                    messages
-                        .filter { it.timestamp < oldMmsBackfillSeconds }
-                        .forEach { it.guid = it.guid.removePrefix(MMS_PREFIX) }
-                }
-                if (data.timestamp < oldSmsBackfillSeconds) {
-                    messages
-                        .filter { it.timestamp < oldSmsBackfillSeconds }
-                        .forEach { it.guid = it.guid.removePrefix(SMS_PREFIX) }
-                }
-                bridge.send(Command("response", messages, command.id))
-            }
-            "get_recent_messages" -> {
-                Log.d(TAG, "receive: $command")
-                val data = deserialize(command,GetRecentMessages::class.java)
-                val messages =
-                    messageProvider.getRecentMessages(context.getThread(data), data.limit.toInt())
-                bridge.send(Command("response", messages, command.id))
-            }
-            "get_chat_avatar" -> {
-                Log.d(TAG, "receive: $command")
-                bridge.send(Command("response", null, command.id))
-            }
-            "response" -> {
-                Log.d(TAG, "response #${command.id}: ${command.dataTree}")
-            }
-            "send_read_receipt" -> {
-                val data = deserialize(command,SendReadReceipt::class.java)
-                Log.v(TAG , "send_read_receipt $command $data")
-                bridge.markMessageAsRead(data.read_up_to, context)
-            }
-            "error" -> {
-                Log.v(TAG, "error: $command")
-            }
-            "message_bridge_result" -> {
-                Log.v(TAG, "message_bridge_result: $command")
-                val data = deserialize(
-                    command,
-                    MessageBridgeResult::class.java
-                )
-                val (rowId,isMms) = if(data.message_guid.startsWith("sms_")){
-                    val rowId = data.message_guid.removePrefix("sms_").toLong()
-                    val isMms = false
-                    Pair(rowId,isMms)
-                }else{
-                    val rowId = data.message_guid.removePrefix("mms_").toLong()
-                    val isMms = true
-                    Pair(rowId,isMms)
-                }
-
-                //Doesn't have an ID, so doesn't need to be responded to
-                withContext(Dispatchers.IO) {
-                    val bridgedMessage = BridgedMessage(
-                        data.chat_guid,
-                        rowId,
-                        isMms
-                    )
-                    Log.v(TAG, "DB storing bridged message:" +
-                            " chat_guid:${bridgedMessage.chat_guid} " +
-                            " message_id:${bridgedMessage.message_id} " +
-                            " isMms:${bridgedMessage.is_mms}"
-                    )
-                    BridgeDatabase.getInstance(context).bridgedMessageDao().insert(bridgedMessage)
-                }
-            }
-            else -> {
-                Log.e(TAG, "unhandled command: $command")
-            }
-        }
-    }
-
-
     suspend fun awaitForPreStartupSync(skipSync: Boolean, timeoutMillis: Long) : Boolean{
         Log.d(TAG,"SkipSync = $skipSync")
         return withTimeoutOrNull(timeoutMillis) {
@@ -713,80 +544,57 @@ class StartStopCommandProcessor constructor(
         }
     }
 
-
-    /*suspend fun sendChatCommandAndAwaitForResponse(chat: Chat, timeoutMillis: Long) : Unit?{
-        return withTimeoutOrNull(timeoutMillis) {
-            val completableDeferred = CompletableDeferred<Unit>()
-            val command = bridge.buildChatCommand(chat)
-            val job = commandsReceived.onSubscription {
-                bridge.send(command)
-            }.onEach {
-                if (it.command == "get_recent_messages") {
-                    val data = deserialize(
-                        it,
-                        GetRecentMessages::class.java
-                    )
-                    //handles the result -> i.e:Stores the message in the bridged messages database
-                    handle(it)
-                    if(data.chat_guid == chat.chat_guid) {
-                        completableDeferred.complete(Unit)
-                    }
-                }
-            }.launchIn(scope)
-            completableDeferred.await()
-            job.cancel()
-        }
-    }*/
-
     suspend fun sendMessageCommandAndAwaitForResponse(message: Message, timeoutMillis: Long) : Unit?{
         return withTimeoutOrNull(timeoutMillis) {
             val completableDeferred = CompletableDeferred<Unit>()
             val messageCommand = bridge.buildMessageCommand(message)
+
+            // Adds the limit timestamp for a chat_guid if it is not bridged yet
+            // If we don't do this messages on a new chat will not generate notifications
+            if(firstTimestampForChatGuid[message.chat_guid] == null){
+                firstTimestampForChatGuid[message.chat_guid] = message.timestamp
+            }
             val job = commandsReceived.onSubscription {
                 bridge.send(messageCommand)
             }.onEach {
-                    command->
-                if(command.command == "get_recent_messages"){
-                    Log.d(TAG + "syncWindowScope", "receive: $messageCommand")
-                    val data = deserialize(messageCommand,GetRecentMessages::class.java)
-                    val chatGuid = data.chat_guid
-                    if(chatGuid == message.chat_guid) {
-                        Log.d(TAG + "syncWindowScope",
-                            "get_recent_messages chat_guid matched")
+                command->
+                if (command.command == "message_bridge_result") {
+                    val data = deserialize(
+                        command,
+                        MessageBridgeResult::class.java
+                    )
+                    Log.d(TAG + "syncWindowScope",
+                        "handles bridging result for this message ${message.guid} chat: ${message.chat_guid}")
 
-                        val threadId = context.getThread(data)
-                        val messages =
-                            messageProvider.getRecentMessages(threadId, 5)
-                        Log.d(TAG + "syncWindowScope",
-                            "get_recent_messages messages, chat_guid: ${message.chat_guid}" +
-                                    "   ${messages.map {
-                                        it.guid
-                                    }}")
-                        val filteredMessages = messages.filter {
-                            it.timestamp < message.timestamp
-                        }
-
-                        Log.d(TAG + "syncWindowScope",
-                            "get_recent_messages filteredMessages, chat_guid: ${message.chat_guid}" +
-                                    "   ${filteredMessages.map {
-                                        it.guid
-                                    }}")
-                        bridge.send(Command("response", filteredMessages, command.id))
+                    //handles the result -> i.e:Stores the message in the bridged messages database
+                    Log.v(TAG, "message_bridge_result: $command")
+                    val (rowId,isMms) = if(data.message_guid.startsWith("sms_")){
+                        val rowId = data.message_guid.removePrefix("sms_").toLong()
+                        val isMms = false
+                        Pair(rowId,isMms)
+                    }else{
+                        val rowId = data.message_guid.removePrefix("mms_").toLong()
+                        val isMms = true
+                        Pair(rowId,isMms)
                     }
-                }else {
-                    if (command.command == "message_bridge_result") {
-                        val data = deserialize(
-                            command,
-                            MessageBridgeResult::class.java
-                        )
-                        Log.d(TAG + "syncWindowScope",
-                            "handles bridging result for this message ${message.guid} chat: ${message.chat_guid}")
 
-                        //handles the result -> i.e:Stores the message in the bridged messages database
-                        handle(command)
-                        if (data.message_guid == message.guid) {
-                            completableDeferred.complete(Unit)
-                        }
+                    //Doesn't have an ID, so doesn't need to be responded to
+                    withContext(Dispatchers.IO) {
+                        val bridgedMessage = BridgedMessage(
+                            data.chat_guid,
+                            rowId,
+                            isMms
+                        )
+                        Log.v(TAG, "DB storing bridged message:" +
+                                " chat_guid:${bridgedMessage.chat_guid} " +
+                                " message_id:${bridgedMessage.message_id} " +
+                                " isMms:${bridgedMessage.is_mms}"
+                        )
+                        BridgeDatabase.getInstance(context).bridgedMessageDao().insert(bridgedMessage)
+                    }
+
+                    if (data.message_guid == message.guid) {
+                        completableDeferred.complete(Unit)
                     }
                 }
             }.launchIn(scope)
@@ -907,7 +715,7 @@ class StartStopCommandProcessor constructor(
         messageProvider.markConversationAsRead(threadId)
     }
 
-    private fun debugPrintCommand(tag: String, command: Command){
+    fun debugPrintCommand(tag: String, command: Command){
         if (BuildConfig.DEBUG) {
             Log.d(tag, "receive: $command")
         }
@@ -937,7 +745,7 @@ class StartStopCommandProcessor constructor(
     }
 
     companion object {
-        private const val TAG = "StartStopCommandProcessor"
+        const val TAG = "StartStopCommandProcessor"
         private val gson = newGson()
     }
 }
