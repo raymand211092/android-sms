@@ -43,7 +43,7 @@ class SyncWindow constructor(
 
         //Shouldn't run for more than 10min, shouldn't be idle for more than 30 seconds
         val syncTimeout = 10.toDuration(DurationUnit.MINUTES).inWholeMilliseconds
-        val maxIdlePeriod = 30.toDuration(DurationUnit.SECONDS).inWholeMilliseconds
+        val maxIdlePeriod = 45.toDuration(DurationUnit.SECONDS).inWholeMilliseconds
 
         try {
             val pendingMessages = mutableListOf<String>()
@@ -213,7 +213,7 @@ class SyncWindow constructor(
                     smsMessages.onEach {
                         bridge.commandProcessor.sendMessageCommandAndAwaitForResponse(
                             it,
-                            15000
+                            30000
                         )
                     }
                 }
@@ -231,7 +231,7 @@ class SyncWindow constructor(
                     mmsMessages.onEach {
                         bridge.commandProcessor.sendMessageCommandAndAwaitForResponse(
                             it,
-                            15000
+                            30000
                         )
                     }
                 }
