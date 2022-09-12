@@ -211,10 +211,10 @@ class SyncWindow constructor(
 
                 if (smsMessages.isNotEmpty()) {
                     smsMessages.onEach {
-                        bridge.commandProcessor.sendMessageCommandAndAwaitForResponse(
-                            it,
-                            30000
+                        bridge.commandProcessor.sendMessageCommand(
+                            it
                         )
+                        lastCommandReceivedMillis = now()
                     }
                 }
 
@@ -229,10 +229,8 @@ class SyncWindow constructor(
 
                 if (mmsMessages.isNotEmpty()) {
                     mmsMessages.onEach {
-                        bridge.commandProcessor.sendMessageCommandAndAwaitForResponse(
-                            it,
-                            30000
-                        )
+                        bridge.commandProcessor.sendMessageCommand(it)
+                        lastCommandReceivedMillis = now()
                     }
                 }
 
@@ -261,6 +259,7 @@ class SyncWindow constructor(
                         Log.e(TAG, "Timeout bridging ${readReceipt.read_up_to} read receipt")
                     }
                     readReceiptDao.delete(pendingReadReceipt)
+                    lastCommandReceivedMillis = now()
                 }
 
                 // Check if we have any pending contacts to be bridged
@@ -304,6 +303,7 @@ class SyncWindow constructor(
                         }
                     }
                     pendingContactUpdateDao.delete(pendingRecipientUpdate)
+                    lastCommandReceivedMillis = now()
                 }
 
                 lastCommandReceivedMillis = now()
