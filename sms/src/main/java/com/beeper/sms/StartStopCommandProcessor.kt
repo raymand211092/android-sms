@@ -210,14 +210,7 @@ class StartStopCommandProcessor constructor(
             "bridge_this_message" -> {
                 debugPrintCommand(TAG + "syncWindowScope",command)
                 val data = deserialize(command, BridgeThisSmsOrMms::class.java)
-                withContext(Dispatchers.IO){
-                    launch {
-                        // Sometimes, a new message triggers room creation
-                        bridge.commandProcessor.sendMessageCommandAndAwaitForResponse(
-                            data.message, 60000
-                        )
-                    }
-                }
+                bridge.commandProcessor.sendMessageCommand(data.message)
             }
             "bridge_send_response" -> {
                 withContext(Dispatchers.IO){
@@ -255,6 +248,41 @@ class StartStopCommandProcessor constructor(
                     } catch (e: Exception) {
                         Log.e(TAG, e)
                     }
+                }
+            }
+            "message_bridge_result" -> {
+                val data = deserialize(
+                    command,
+                    MessageBridgeResult::class.java
+                )
+                Log.d(TAG + "syncWindowScope",
+                    "handles bridging result for this message ${data.message_guid} chat: ${data.chat_guid}")
+
+                //handles the result -> i.e:Stores the message in the bridged messages database
+                Log.v(TAG, "message_bridge_result: $command")
+                val (rowId,isMms) = if(data.message_guid.startsWith("sms_")){
+                    val rowId = data.message_guid.removePrefix("sms_").toLong()
+                    val isMms = false
+                    Pair(rowId,isMms)
+                }else{
+                    val rowId = data.message_guid.removePrefix("mms_").toLong()
+                    val isMms = true
+                    Pair(rowId,isMms)
+                }
+
+                //Doesn't have an ID, so doesn't need to be responded to
+                withContext(Dispatchers.IO) {
+                    val bridgedMessage = BridgedMessage(
+                        data.chat_guid,
+                        rowId,
+                        isMms
+                    )
+                    Log.v(TAG, "DB storing bridged message:" +
+                            " chat_guid:${bridgedMessage.chat_guid} " +
+                            " message_id:${bridgedMessage.message_id} " +
+                            " isMms:${bridgedMessage.is_mms}"
+                    )
+                    BridgeDatabase.getInstance(context).bridgedMessageDao().insert(bridgedMessage)
                 }
             }
             "get_chat" -> {
@@ -544,63 +572,15 @@ class StartStopCommandProcessor constructor(
         }
     }
 
-    suspend fun sendMessageCommandAndAwaitForResponse(message: Message, timeoutMillis: Long) : Unit?{
-        return withTimeoutOrNull(timeoutMillis) {
-            val completableDeferred = CompletableDeferred<Unit>()
-            val messageCommand = bridge.buildMessageCommand(message)
-
-            // Adds the limit timestamp for a chat_guid if it is not bridged yet
-            // If we don't do this messages on a new chat will not generate notifications
-            if(firstTimestampForChatGuid[message.chat_guid] == null){
-                firstTimestampForChatGuid[message.chat_guid] = message.timestamp
-            }
-            val job = commandsReceived.onSubscription {
-                bridge.send(messageCommand)
-            }.onEach {
-                command->
-                if (command.command == "message_bridge_result") {
-                    val data = deserialize(
-                        command,
-                        MessageBridgeResult::class.java
-                    )
-                    Log.d(TAG + "syncWindowScope",
-                        "handles bridging result for this message ${message.guid} chat: ${message.chat_guid}")
-
-                    //handles the result -> i.e:Stores the message in the bridged messages database
-                    Log.v(TAG, "message_bridge_result: $command")
-                    val (rowId,isMms) = if(data.message_guid.startsWith("sms_")){
-                        val rowId = data.message_guid.removePrefix("sms_").toLong()
-                        val isMms = false
-                        Pair(rowId,isMms)
-                    }else{
-                        val rowId = data.message_guid.removePrefix("mms_").toLong()
-                        val isMms = true
-                        Pair(rowId,isMms)
-                    }
-
-                    //Doesn't have an ID, so doesn't need to be responded to
-                    withContext(Dispatchers.IO) {
-                        val bridgedMessage = BridgedMessage(
-                            data.chat_guid,
-                            rowId,
-                            isMms
-                        )
-                        Log.v(TAG, "DB storing bridged message:" +
-                                " chat_guid:${bridgedMessage.chat_guid} " +
-                                " message_id:${bridgedMessage.message_id} " +
-                                " isMms:${bridgedMessage.is_mms}"
-                        )
-                        BridgeDatabase.getInstance(context).bridgedMessageDao().insert(bridgedMessage)
-                    }
-
-                    if (data.message_guid == message.guid) {
-                        completableDeferred.complete(Unit)
-                    }
-                }
-            }.launchIn(scope)
-            completableDeferred.await()
-            job.cancel()
+    fun sendMessageCommand(message: Message) {
+        val messageCommand = bridge.buildMessageCommand(message)
+        // Adds the limit timestamp for a chat_guid if it is not bridged yet
+        // If we don't do this messages on a new chat will not generate notifications
+        if(firstTimestampForChatGuid[message.chat_guid] == null){
+            firstTimestampForChatGuid[message.chat_guid] = message.timestamp
         }
+
+        bridge.send(messageCommand)
     }
 
     fun fulfillGetContactRequests() : Job{
