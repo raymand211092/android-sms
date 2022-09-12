@@ -384,7 +384,7 @@ class StartStopCommandProcessor constructor(
                     bridge.send(Command("response", messages, command.id))
                 }else{
                     val messages =
-                        messageProvider.getRecentMessages(threadId, 5)
+                        messageProvider.getRecentMessages(threadId, data.limit.toInt())
                     Log.d(TAG + "syncWindowScope",
                         "get_recent_messages messages, chat_guid: ${data.chat_guid}" +
                                 "   ${messages.map {
