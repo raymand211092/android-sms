@@ -27,8 +27,7 @@ class WorkManager constructor(val context: Context) {
     fun startSMSBridgeSyncWindow(inputData: Data = Data.EMPTY) {
         val isBackfillComplete = StartStopBridge.INSTANCE.getBackfillingState(context)
         if(isBackfillComplete) {
-            Log.d(TAG,"startSMSBridgeSyncWindow -> backfill is complete," +
-                    " starting sync window.")
+            Log.d(TAG,"startSMSBridgeSyncWindow -> enqueue sync window (Keep if running).")
             buildSyncWindowWorkRequest(inputData).apply {
                 workManager.enqueueUniqueWork(
                     WORK_SMS_BRIDGE_SYNC_WINDOW,
