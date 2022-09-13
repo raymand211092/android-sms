@@ -128,10 +128,11 @@ class StartStopCommandProcessor constructor(
                 else
                     Log.d(TAG + "portalSyncScope", "receive: ${command.command} Id:${command.id}")
                 val data = deserialize(command,GetContact::class.java)
+                val userGuid = GuidProvider.removeEscapingFromGuid(data.user_guid)
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getRecipientInfo(data.user_guid).first.asResponse,
+                        contactProvider.getRecipientInfo(userGuid).first.asResponse,
                         command.id
                     )
                 )
@@ -310,10 +311,12 @@ class StartStopCommandProcessor constructor(
             "get_contact" -> {
                 Log.d(TAG + "syncWindowScope", "receive: $command")
                 val data = deserialize(command,GetContact::class.java)
+                val userGuid = GuidProvider.removeEscapingFromGuid(data.user_guid)
+
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getRecipientInfo(data.user_guid).first.asResponse,
+                        contactProvider.getRecipientInfo(userGuid).first.asResponse,
                         command.id
                     )
                 )
@@ -588,10 +591,12 @@ class StartStopCommandProcessor constructor(
                 command ->
             if(command.command == "get_contact") {
                 val data = deserialize(command, GetContact::class.java)
+                val userGuid = GuidProvider.removeEscapingFromGuid(data.user_guid)
+
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getRecipientInfo(data.user_guid).first.asResponse,
+                        contactProvider.getRecipientInfo(userGuid).first.asResponse,
                         command.id
                     )
                 )
