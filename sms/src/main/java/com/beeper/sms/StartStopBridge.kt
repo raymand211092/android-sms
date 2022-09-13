@@ -8,7 +8,6 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.room.Room
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.internal.BridgeReadReceipt
 import com.beeper.sms.commands.internal.BridgeSendError
@@ -16,7 +15,6 @@ import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.*
 import com.beeper.sms.database.BridgeDatabase
-import com.beeper.sms.database.BridgedEntitiesDatabase
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.database.models.PendingReadReceipt
 import com.beeper.sms.extensions.cacheDirPath
@@ -25,8 +23,6 @@ import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.extensions.mmsDir
 import com.beeper.sms.helpers.newGson
 import com.beeper.sms.provider.InboxPreviewProviderLocator
-import com.beeper.sms.provider.MessageProvider
-import com.beeper.sms.receivers.MmsSent
 import com.beeper.sms.work.WorkManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
@@ -35,7 +31,6 @@ import java.io.File
 import java.io.InputStream
 import java.io.InterruptedIOException
 import java.util.concurrent.Executors.newSingleThreadExecutor
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 sealed class SyncWindowState{
@@ -507,12 +502,14 @@ class StartStopBridge private constructor() {
         getMMSCacheDir(context).delete()
     }
 
-    internal suspend fun clearBridgeData(context:Context){
+    internal suspend fun clearBridgeData(context:Context, deleteBridgeDB: Boolean = false){
         withContext(scope.coroutineContext){
             storeBackfillingState(context,false)
             stop()
             // Delete bridge files after clearing the bridge
-            //deleteBridgeFiles(context)
+            if(deleteBridgeDB){
+                deleteBridgeFiles(context)
+            }
             configPath = null
             configPathProvider = null
         }
