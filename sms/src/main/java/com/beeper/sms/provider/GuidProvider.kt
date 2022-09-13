@@ -52,15 +52,25 @@ class GuidProvider constructor(
             EMAIL.find(address, 0)?.let { return it.value }
 
             // Didn't detect a number
-            val addressWithoutDashes = address.filterNot {
+            val addressWithEscapedSpaces = address.replace(" ", "%20")
+            val addressWithoutDashes = addressWithEscapedSpaces.filterNot {
                 it=='-'
             }
 
             return if(addressWithoutDashes.isDigitsOnly()){
                 addressWithoutDashes
             }else{
-                address.replace("\"", "%22").replace("\'", "%27")
+                addressWithEscapedSpaces
+                    .replace("\"", "%22")
+                    .replace("\'", "%27")
             }
+        }
+
+        fun removeEscapingFromGuid(escapedAddress : String) : String {
+            return escapedAddress
+                .replace("%20", " ")
+                .replace("%22","\"")
+                .replace("%27", "\'")
         }
 
         val String.chatGuid: String
