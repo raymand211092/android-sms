@@ -58,7 +58,10 @@ class GuidProviderTest {
     fun stripDashesIfNumber() = assertEquals("991976040", GuidProvider.normalizeAddress("9919-760-40"))
 
     @Test
-    fun encodeWhitespace() = assertEquals("wz data", GuidProvider.normalizeAddress("wz data"))
+    fun encodeWhitespace() = assertEquals("wz%20data", GuidProvider.normalizeAddress("wz data"))
+
+    @Test
+    fun decodeWhitespace() = assertEquals("wz data", GuidProvider.removeEscapingFromGuid("wz%20data"))
 
     @Test
     fun preserveDashesIfNotANumber() = assertEquals("wz-data", GuidProvider.normalizeAddress("wz-data"))
