@@ -15,12 +15,18 @@ import java.lang.IllegalStateException
 
 class ClearData constructor(
     private val context: Context,
-    workerParams: WorkerParameters,
+    private val workerParams: WorkerParameters,
 ): CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
         try {
-            Log.d(TAG, "ClearData doWork()")
+            val deleteBridgeDB =
+                workerParams.inputData.getBoolean(
+                    DELETE_BRIDGE_DB_PARAM_KEY,
+                    false
+                )
+            Log.d(TAG, "ClearData doWork() shouldDeleteBridgeDB: $deleteBridgeDB")
+
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                 try {
                     setForeground(getForegroundInfo())
@@ -32,7 +38,7 @@ class ClearData constructor(
             Log.d(TAG, "Clearing SMS bridge data...")
             return withContext(Dispatchers.Default) {
                 val bridge = StartStopBridge.INSTANCE
-                bridge.clearBridgeData(context)
+                bridge.clearBridgeData(context, deleteBridgeDB)
                 val database = BridgeDatabase.getInstance(context)
                 database.bridgedMessageDao().clear()
                 database.bridgedChatThreadDao().clear()
@@ -58,5 +64,6 @@ class ClearData constructor(
 
     companion object {
         private const val TAG = "ClearData"
+        private const val DELETE_BRIDGE_DB_PARAM_KEY = "delete_bridge_db"
     }
 }
