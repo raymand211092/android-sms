@@ -16,6 +16,7 @@ import com.beeper.sms.extensions.getTimeMilliseconds
 import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.helpers.newGson
 import com.beeper.sms.provider.ContactProvider
+import com.beeper.sms.provider.GuidProvider
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.MmsProvider.Companion.MMS_PREFIX
 import com.beeper.sms.provider.SmsProvider.Companion.SMS_PREFIX
@@ -75,10 +76,12 @@ class CommandProcessor constructor(
             }
             "get_contact" -> {
                 val data = command.deserialize(GetContact::class.java)
+                val userGuid = GuidProvider.removeEscapingFromGuid(data.user_guid)
+
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getRecipientInfo(data.user_guid).first.asResponse,
+                        contactProvider.getRecipientInfo(userGuid).first.asResponse,
                         command.id
                     )
                 )
