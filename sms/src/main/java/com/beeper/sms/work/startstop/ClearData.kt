@@ -64,6 +64,6 @@ class ClearData constructor(
 
     companion object {
         private const val TAG = "ClearData"
-        private const val DELETE_BRIDGE_DB_PARAM_KEY = "delete_bridge_db"
+        const val DELETE_BRIDGE_DB_PARAM_KEY = "delete_bridge_db"
     }
 }
