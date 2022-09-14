@@ -229,8 +229,8 @@ class StartStopBridge private constructor() {
         WorkManager(context).enableSMSBridge()
     }
 
-    fun disableSMSBridge(context: Context) {
-        WorkManager(context).disableSMSBridge()
+    fun disableSMSBridge(context: Context, deleteBridgeDB: Boolean = false) {
+        WorkManager(context).disableSMSBridge(deleteBridgeDB)
     }
 
 
