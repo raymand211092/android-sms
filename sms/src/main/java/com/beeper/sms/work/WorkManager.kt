@@ -55,13 +55,21 @@ class WorkManager constructor(val context: Context) {
         }
     }
 
-    fun disableSMSBridge() {
+    fun disableSMSBridge(deleteBridgeDB: Boolean) {
         workManager.cancelUniqueWork(WORK_SMS_BRIDGE_RETRY_SYNC_WINDOW_WHEN_ONLINE)
         workManager.cancelUniqueWork(WORK_SMS_BRIDGE_SYNC_WINDOW)
         workManager.cancelUniqueWork(WORK_ENABLE_SMS_BRIDGE)
-        buildDisableSMSBridgeWorkRequest()
+        buildDisableSMSBridgeWorkRequest(deleteBridgeDB)
             .apply { workManager.enqueueUniqueWork(WORK_DISABLE_SMS_BRIDGE,
                 ExistingWorkPolicy.REPLACE,this) }
+    }
+
+    fun cancelUniqueWorks() {
+        workManager.cancelUniqueWork(WORK_SMS_BRIDGE_RETRY_SYNC_WINDOW_WHEN_ONLINE)
+        workManager.cancelUniqueWork(WORK_SMS_BRIDGE_SYNC_WINDOW)
+        workManager.cancelUniqueWork(WORK_ENABLE_SMS_BRIDGE)
+        workManager.cancelUniqueWork(WORK_DISABLE_SMS_BRIDGE)
+        workManager.cancelUniqueWork(WORK_LONG_RUNNING_SYNC_DB)
     }
 
     private fun getWorkState(uniqueWorkName : String) : List<WorkInfo.State> {
@@ -106,9 +114,11 @@ class WorkManager constructor(val context: Context) {
             .build()
     }
 
-    private fun buildDisableSMSBridgeWorkRequest() : OneTimeWorkRequest {
+    private fun buildDisableSMSBridgeWorkRequest(deleteBridgeDB: Boolean = false) : OneTimeWorkRequest {
         return OneTimeWorkRequest
             .Builder(ClearData::class.java)
+            .setInputData(Data.Builder().putBoolean(
+                ClearData.DELETE_BRIDGE_DB_PARAM_KEY,deleteBridgeDB).build())
             .setBackoffCriteria(
                 RETRY_POLICY,
                 RETRY_INTERVAL_MS,
