@@ -126,6 +126,7 @@ class SmsProvider constructor(context: Context) {
     private fun messageInfoMapper(it: Cursor, rowId: Long, uri: Uri): MessageInfo? {
         val address = it.getString(ADDRESS)
         val isRead = it.getInt(READ) == 1
+        val threadId = it.getLong(THREAD_ID)
 
         if (address == null) {
             Log.e(TAG, "Missing address: ${it.dumpCurrentRow()}")
@@ -139,7 +140,8 @@ class SmsProvider constructor(context: Context) {
             uri,
             creator,
             creator == packageName,
-            isRead
+            isRead,
+            threadId.toString()
         )
     }
 
@@ -162,7 +164,7 @@ class SmsProvider constructor(context: Context) {
             subject = it.getString(SUBJECT)?.takeUnless { sub -> sub == "NoSubject" } ?: "",
             text = it.getString(BODY) ?: "",
             chat_guid = messageInfo.chat_guid,
-            thread_id = it.getLong(THREAD_ID),
+            thread_id = it.getLong(THREAD_ID).toString(),
             sender_guid = if (isFromMe) null else messageInfo.chat_guid,
             is_from_me = isFromMe,
             is_mms = false,

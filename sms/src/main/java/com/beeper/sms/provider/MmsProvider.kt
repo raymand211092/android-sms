@@ -139,7 +139,8 @@ class MmsProvider constructor(
             uri,
             creator,
             creator == packageName,
-            isRead
+            isRead,
+            thread.toString()
         )
     }
 
@@ -166,7 +167,7 @@ class MmsProvider constructor(
             subject = it.getString(SUBJECT)?.takeUnless { sub -> sub == "NoSubject" } ?: "",
             text = attachments.mapNotNull { a -> a.text }.joinToString(""),
             chat_guid = messageInfo.chat_guid,
-            thread_id = it.getLong(THREAD_ID),
+            thread_id = it.getLong(THREAD_ID).toString(),
             sender_guid = sender,
             is_from_me = isFromMe,
             attachments = attachments.mapNotNull { a -> a.attachment },

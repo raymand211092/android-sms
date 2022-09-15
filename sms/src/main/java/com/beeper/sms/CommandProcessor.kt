@@ -64,13 +64,14 @@ class CommandProcessor constructor(
                             it.first.nickname
                         }
                         .joinToString()
-                val threadId = context.getThread(getChatCommand)
+
+                val threadId = getChatCommand.thread_id
 
                 bridge.send(
                     Command("response", GetChat.Response(
                         room,
                         recipients,
-                        threadId.toString()
+                        threadId
                     ), command.id)
                 )
             }
@@ -139,10 +140,16 @@ class CommandProcessor constructor(
             "get_chats" -> {
                 val data = command.deserialize(GetChats::class.java)
                 val recentMessages = messageProvider.getActiveChats(data.min_timestamp)
+                val recentChats = recentMessages.distinctBy { it.thread_id }.map {
+                    ContactIdentifier(
+                        it.chat_guid,
+                        it.thread_id
+                    )
+                }.toSet()
                 bridge.send(
                     Command(
                         "response",
-                        recentMessages.map { it.chat_guid }.toSet(),
+                        recentChats,
                         command.id
                     )
                 )

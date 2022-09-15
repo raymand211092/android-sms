@@ -10,5 +10,7 @@ data class MessageInfo(
     var uri: Uri,
     var creator: String?,
     var sent_from_matrix: Boolean,
-    var is_read: Boolean
+    var is_read: Boolean,
+    var thread_id: String
+
 )
