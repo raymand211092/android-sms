@@ -99,13 +99,14 @@ class StartStopCommandProcessor constructor(
                             it.first.nickname
                         }
                         .joinToString()
-                val threadId = context.getThread(getChatCommand)
+
+                val threadId = getChatCommand.thread_id
 
                 bridge.send(
                     Command("response", GetChat.Response(
                             room,
                             recipients,
-                            threadId.toString()
+                            threadId
                         ), command.id
                     )
                 )
@@ -114,10 +115,17 @@ class StartStopCommandProcessor constructor(
                 Log.d(TAG, "receive: $command")
                 val data = deserialize(command,GetChats::class.java)
                 val recentMessages = messageProvider.getActiveChats(data.min_timestamp)
+
+                val recentChats = recentMessages.distinctBy { it.thread_id }.map {
+                    ContactIdentifier(
+                        it.chat_guid,
+                        it.thread_id
+                    )
+                }.toSet()
                 bridge.send(
                     Command(
                         "response",
-                        recentMessages.map { it.chat_guid }.toSet(),
+                        recentChats,
                         command.id
                     )
                 )
@@ -298,13 +306,14 @@ class StartStopCommandProcessor constructor(
                             it.first.nickname
                         }
                         .joinToString()
-                val threadId = context.getThread(getChatCommand)
+
+                val threadId = getChatCommand.thread_id
 
                 bridge.send(
                     Command("response", GetChat.Response(
                         room,
                         recipients,
-                        threadId.toString()
+                        threadId
                     ), command.id)
                 )
             }
