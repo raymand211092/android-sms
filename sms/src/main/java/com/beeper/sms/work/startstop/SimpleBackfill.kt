@@ -17,6 +17,7 @@ import com.beeper.sms.helpers.now
 import com.beeper.sms.provider.ChatThreadProvider
 import com.beeper.sms.provider.GuidProvider
 import com.beeper.sms.provider.MessageProvider
+import com.beeper.sms.receivers.BackfillSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
@@ -166,6 +167,9 @@ class SimpleBackfill constructor(
                 )
                 bridge.storeBackfillingState(context, true)
                 bridge.stop()
+                //Broadcast backfill success
+                val intent = Intent(BackfillSuccess.ACTION)
+                BroadcastUtils.sendExplicitBroadcast(context,intent,BackfillSuccess.ACTION)
                 return@withContext Result.success()
             }catch(e : Exception){
                 Log.e(
