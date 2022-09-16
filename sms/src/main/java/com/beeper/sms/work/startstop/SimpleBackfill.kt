@@ -10,6 +10,7 @@ import com.beeper.sms.R
 import com.beeper.sms.receivers.BackfillFailed
 import com.klinker.android.send_message.BroadcastUtils
 import androidx.core.app.NotificationManagerCompat
+import androidx.work.WorkManager
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedMessage
@@ -170,6 +171,8 @@ class SimpleBackfill constructor(
                 //Broadcast backfill success
                 val intent = Intent(BackfillSuccess.ACTION)
                 BroadcastUtils.sendExplicitBroadcast(context,intent,BackfillSuccess.ACTION)
+                //Schedules a subsequent sync window
+                com.beeper.sms.work.WorkManager(context).startSMSBridgeSyncWindow(inputData)
                 return@withContext Result.success()
             }catch(e : Exception){
                 Log.e(

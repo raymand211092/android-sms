@@ -20,8 +20,8 @@ class WorkManager constructor(val context: Context) {
        workManager.beginUniqueWork(
             WORK_ENABLE_SMS_BRIDGE,
             ExistingWorkPolicy.REPLACE,
-           request
-        ).then(buildSyncWindowWorkRequest()).enqueue()
+            request
+        ).enqueue()
     }
 
     fun startSMSBridgeSyncWindow(inputData: Data = Data.EMPTY) {
