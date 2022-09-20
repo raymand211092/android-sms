@@ -32,10 +32,18 @@ class SimpleBackfill constructor(
     workerParams: WorkerParameters,
 ): CoroutineWorker(context, workerParams) {
 
+    private suspend fun onBackfillFailed() : Result{
+        Log.e(TAG, "Couldn't start the bridge -> not retrying anymore. $runAttemptCount")
+        // We are notifying the app, so it can handle backfill failed statements
+        val intent = Intent(BackfillFailed.ACTION)
+        BroadcastUtils.sendExplicitBroadcast(context,intent,BackfillFailed.ACTION)
+        return Result.failure()
+    }
+
     override suspend fun doWork(): Result {
         Log.d(TAG, "SimpleBackfill doWork() attempt: $runAttemptCount")
         val bridge = StartStopBridge.INSTANCE
-
+        var bridgeSyncFinished = false
         return withContext(Dispatchers.Default) {
             try {
 
@@ -53,11 +61,7 @@ class SimpleBackfill constructor(
                 if (!started) {
                     bridge.stop()
                     if(runAttemptCount > MAX_ATTEMPTS - 1) {
-                        Log.e(TAG, "Couldn't start the bridge -> not retrying anymore. $runAttemptCount")
-                        // We are notifying the app, so it can handle backfill failed statements
-                        val intent = Intent(BackfillFailed.ACTION)
-                        BroadcastUtils.sendExplicitBroadcast(context,intent,BackfillFailed.ACTION)
-                        return@withContext Result.failure()
+                        return@withContext onBackfillFailed()
                     }else{
                         Log.e(TAG, "Couldn't start the bridge -> retrying backfill (attempt: $runAttemptCount)")
                         return@withContext Result.retry()
@@ -75,6 +79,10 @@ class SimpleBackfill constructor(
                         "get_chat", "get_chats", "get_contact", "get_recent_messages",
                         "get_messages_after", "get_chat_avatar", "message_bridge_result",
                     )
+                    if(it.command == "post_startup_sync"){
+                        Log.d(TAG, "post_startup_sync received!")
+                        bridgeSyncFinished = true
+                    }
                     bridge.commandProcessor.handlePortalSyncScopedCommands(it)
                     if (validCommandsToKeepItOpen.contains(it.command)) {
                         lastCommandReceivedMillis = now()
@@ -82,13 +90,11 @@ class SimpleBackfill constructor(
                     }
                 }.launchIn(this)
 
-                //Shouldn't run for more than 30min, shouldn't be idle for more than 30 seconds
+                //Shouldn't run for more than 30min, should wait for post_startup_sync
                 val syncTimeout = BACKFILL_COMPLETION_TIMEOUT_MILLIS
-                val maxIdlePeriod = MAX_IDLE_PERIOD_MILLIS
-
                 val result = withTimeoutOrNull(syncTimeout) {
-                    while (now() - lastCommandReceivedMillis < maxIdlePeriod) {
-                        delay(maxIdlePeriod)
+                    while (!bridgeSyncFinished) {
+                        delay(IDLE_CHECK_MILLIS)
                         Log.d(
                             TAG, "lastCommandReceivedMillis - System.currentTimeMillis():" +
                                     " ${now() - lastCommandReceivedMillis}"
@@ -100,7 +106,8 @@ class SimpleBackfill constructor(
 
                 if (!result) {
                     //timeout waiting for portal
-                    Log.e(TAG, "Timeout waiting for portal sync!!")
+                    Log.e(TAG, "Timeout waiting for portal sync! Backfill failed")
+                    return@withContext onBackfillFailed()
                 } else {
                     Log.d(TAG, "Bridge is idle -> finished portal sync")
                 }
@@ -213,7 +220,8 @@ class SimpleBackfill constructor(
         private const val ERROR_BACKFILLING_NOTIFICATION_ID = 0
         private const val BACKFILL_STARTUP_TIMEOUT_MILLIS = 10L * 60L * 1000L
         private const val BACKFILL_COMPLETION_TIMEOUT_MILLIS = 30L * 60L * 1000L
-        private const val MAX_IDLE_PERIOD_MILLIS = 30L * 1000L
+        private const val IDLE_CHECK_MILLIS = 30L * 1000L
+
         private const val MAX_ATTEMPTS = 2
     }
 }
