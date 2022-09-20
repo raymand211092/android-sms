@@ -387,8 +387,7 @@ class StartStopCommandProcessor constructor(
             }
             "get_recent_messages" -> {
                 Log.d(TAG, "receive: $command")
-
-                val data = deserialize(command,GetRecentMessages::class.java)
+                /*val data = deserialize(command,GetRecentMessages::class.java)
                 val threadId = context.getThread(data)
                 val limitTimestamp = firstTimestampForChatGuid[data.chat_guid]
                 if(limitTimestamp == null){
@@ -411,8 +410,11 @@ class StartStopCommandProcessor constructor(
                                 "   ${filteredMessages.map {
                                     it.guid
                                 }}")
-                    bridge.send(Command("response", filteredMessages, command.id))
-                }
+                    bridge.send(Command("response", listOf<Message>(), command.id))
+                }*/
+                // Not answering recent messages on a SyncWindow ->
+                Log.d(TAG, "Not answering recent messages on a SyncWindow: BRI-5105")
+                bridge.send(Command("response", listOf<Message>(), command.id))
             }
             "send_media" -> {
                 debugPrintCommand(TAG + "syncWindowScope",command)
