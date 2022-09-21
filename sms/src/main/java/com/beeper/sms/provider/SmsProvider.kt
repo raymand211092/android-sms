@@ -23,6 +23,7 @@ import com.beeper.sms.extensions.*
 import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 class SmsProvider constructor(context: Context) {
     private val packageName = context.applicationInfo.packageName
@@ -127,15 +128,20 @@ class SmsProvider constructor(context: Context) {
         val address = it.getString(ADDRESS)
         val isRead = it.getInt(READ) == 1
         val threadId = it.getLong(THREAD_ID)
+        val date = it.getLong(DATE)
+        val timestamp = date.toMillis().toSeconds()
 
         if (address == null) {
             Log.e(TAG, "Missing address: ${it.dumpCurrentRow()}")
             return null
         }
         val creator = it.getString(CREATOR)
+
+        Timber.d("SMSUI- messageInfoMapper thread_id: $threadId timestamp: $timestamp")
+
         return MessageInfo(
             "$SMS_PREFIX$rowId",
-            it.getLong(DATE).toMillis().toSeconds(),
+            timestamp,
             address.chatGuid,
             uri,
             creator,
