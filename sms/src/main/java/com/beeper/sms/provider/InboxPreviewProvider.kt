@@ -163,12 +163,12 @@ class InboxPreviewProvider constructor(
     private suspend fun loadChatPreviews(threadIds: List<Long>, mapMessageToInboxPreview: (Message)->InboxPreviewCache): List<InboxPreviewCache> {
         return withContext(Dispatchers.IO) {
             val previews = mutableListOf<InboxPreviewCache>()
-            Log.d(TAG, "InboxPreview cache debug: Started load chat previews for: $threadIds")
+            Log.d(TAG, "SMSUI- InboxPreview cache debug: Started load chat previews for: $threadIds")
 
             threadIds.onEach { threadId ->
                 val cachedChatThread = inboxPreviewCacheDao.getPreviewForChatByThreadId(threadId)
                 if (cachedChatThread != null) {
-                    Log.d(TAG, "InboxPreview cache debug: returning cached threadId:$threadId")
+                    Log.d(TAG, "SMSUI- InboxPreview cache debug: returning cached threadId:$threadId")
                     previews.add(cachedChatThread)
                     launch {
                         refreshCacheFor(threadId, cachedChatThread, mapMessageToInboxPreview)
@@ -176,7 +176,7 @@ class InboxPreviewProvider constructor(
                 } else {
                     Log.d(
                         TAG,
-                        "InboxPreview cache debug: didn't find threadId:$threadId in cache -> loading in Android's DB"
+                        "SMSUI- InboxPreview cache debug: didn't find threadId:$threadId in cache -> loading in Android's DB"
                     )
                     val chatThread = chatThreadProvider.getThread(threadId)
                     if (chatThread != null) {
@@ -188,7 +188,7 @@ class InboxPreviewProvider constructor(
                                 lastMessage
                             )
                             Log.d(
-                                TAG, "InboxPreview cache debug: inserting new inbox" +
+                                TAG, "SMSUI- InboxPreview cache debug: inserting new inbox" +
                                         " preview threadId:${newPreview.thread_id}"
                             )
                             update(newPreview)
@@ -196,17 +196,17 @@ class InboxPreviewProvider constructor(
                         } else {
                             Log.e(
                                 TAG,
-                                "InboxPreview cache debug: null lastMessage ${chatThread.recipientIds}" +
+                                "SMSUI- InboxPreview cache debug: null lastMessage ${chatThread.recipientIds}" +
                                         "title: ${chatThread.getTitleFromMembers()} "
                             )
                         }
                     } else {
-                        Log.e(TAG, "InboxPreview cache debug: null chatThread")
+                        Log.e(TAG, "SMSUI- InboxPreview cache debug: null chatThread")
                     }
                 }
             }
 
-            Log.d(TAG, "InboxPreview cache debug: Finished load chat previews")
+            Log.d(TAG, "SMSUI- InboxPreview cache debug: Finished load chat previews")
             return@withContext previews
         }
     }
@@ -226,6 +226,9 @@ class InboxPreviewProvider constructor(
         return withContext(Dispatchers.IO) {
             val ids =
                 chatThreadProvider.getChatIdsBefore(TimeMillis(timestamp.toBigDecimal()), limit)
+            Log.d(TAG, "SMSUI- InboxPreviewProvider getChatIdsBefore timestamp: $timestamp" +
+                    " limit: $limit ids.size: ${ids.size}")
+
             loadChatPreviews(ids,mapMessageToInboxPreview)
         }
     }
@@ -233,6 +236,7 @@ class InboxPreviewProvider constructor(
     suspend fun fetchThreads(limit: Int, mapMessageToInboxPreview: (Message)->InboxPreviewCache): List<InboxPreviewCache> {
         return withContext(Dispatchers.IO) {
             val ids = chatThreadProvider.fetchIds(limit)
+            Log.d(TAG, "SMSUI- InboxPreviewProvider fetchThreads limit: $limit ids.size: ${ids.size}")
             loadChatPreviews(ids,mapMessageToInboxPreview)
         }
     }
