@@ -193,7 +193,7 @@ class MmsProvider constructor(
         return getDistinctMms(
             where = "$THREAD_ID = $threadId",
             mapper = this::messageMapper,
-            order = "$_ID DESC",
+            order = "$DATE DESC",
             limit = 1,
         ).firstOrNull()
     }
@@ -203,7 +203,7 @@ class MmsProvider constructor(
             where = "$THREAD_ID = $threadId " +
                     "AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT AND $READ = 1",
             mapper = this::messageMapper,
-            order = "$_ID DESC",
+            order = "$DATE DESC",
         ).firstOrNull()
     }
 
@@ -218,7 +218,7 @@ class MmsProvider constructor(
             "$THREAD_ID = $threadId " +
                     "AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT AND $READ = 1",
             null,
-            "$_ID DESC"
+            "$DATE DESC"
         )
         query?.use{
             while(it.moveToNext()){
