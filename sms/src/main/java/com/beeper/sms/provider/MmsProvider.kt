@@ -20,6 +20,7 @@ import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import com.google.android.mms.pdu_alt.PduHeaders
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 class MmsProvider constructor(
     context: Context,
@@ -125,6 +126,8 @@ class MmsProvider constructor(
     private fun messageInfoMapper(it: Cursor, rowId: Long, uri: Uri): MessageInfo? {
         val thread = it.getLong(THREAD_ID)
         val isRead = it.getInt(READ) == 1
+        val date = it.getLong(DATE)
+        val timestamp = date.toSeconds()
 
         val chatGuid = guidProvider.getChatGuid(thread)
         if (chatGuid.isNullOrBlank()) {
@@ -132,9 +135,12 @@ class MmsProvider constructor(
             return null
         }
         val creator = it.getString(CREATOR)
+
+        Timber.d("SMSUI- messageInfoMapper thread_id: $thread timestamp: $timestamp")
+
         return MessageInfo(
             "$MMS_PREFIX$rowId",
-            it.getLong(DATE).toSeconds(),
+            timestamp,
             chatGuid,
             uri,
             creator,
