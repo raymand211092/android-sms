@@ -89,10 +89,14 @@ class ChatThreadProvider constructor(
 
     suspend fun getChatIdsBefore(timestamp: TimeMillis, limit: Int): List<Long> {
         return withContext(Dispatchers.IO) {
+            Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider getChatIdsBefore" +
+                    " timestamp: $timestamp limit: $limit")
+
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
             val projection = arrayOf(
                 Telephony.Threads._ID,
-            )
+                Telephony.Threads.DATE,
+                )
             val selection =
                 "${Telephony.Threads.DATE} < ? AND ${Telephony.Threads.MESSAGE_COUNT} > ?"
             val selectionArgs: Array<String> = arrayOf(timestamp.toLong().toString(), "0")
@@ -102,12 +106,18 @@ class ChatThreadProvider constructor(
             val ids = mutableListOf<Long>()
             cursor?.use {
                 fun canFetchNextThreadDetail() = if (limit > 0) {
+                    Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider" +
+                            " ids_size: ${ids.size} " +
+                            " limit: $limit canFetchNextThreadDetail: ${ids.size < limit}")
                     ids.size < limit
                 } else {
                     true
                 }
                 while (it.moveToNext() && canFetchNextThreadDetail()) {
                     val id = it.getLong(Telephony.Threads._ID)
+                    val threadTimestamp = it.getLong(Telephony.Threads.DATE)
+                    Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider" +
+                            " adding thread_id: $id timestamp: $threadTimestamp")
                     ids.add(id)
                 }
             }
@@ -117,10 +127,13 @@ class ChatThreadProvider constructor(
 
     suspend fun fetchIds(limit: Int): List<Long> {
         return withContext(Dispatchers.IO) {
+            Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider fetchIds limit: $limit")
+
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
             val projection = arrayOf(
                 Telephony.Threads._ID,
-            )
+                Telephony.Threads.DATE,
+                )
             val selection =
                 "${Telephony.Threads.MESSAGE_COUNT} > ?"
             val selectionArgs: Array<String> = arrayOf("0")
@@ -130,12 +143,18 @@ class ChatThreadProvider constructor(
             val ids = mutableListOf<Long>()
             cursor?.use {
                 fun canFetchNextThreadDetail() = if (limit > 0) {
+                    Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider" +
+                            " ids_size: ${ids.size} " +
+                            " limit: $limit canFetchNextThreadDetail: ${ids.size < limit}")
                     ids.size < limit
                 } else {
                     true
                 }
                 while (it.moveToNext() && canFetchNextThreadDetail()) {
                     val id = it.getLong(Telephony.Threads._ID)
+                    val threadTimestamp = it.getLong(Telephony.Threads.DATE)
+                    Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider" +
+                            " adding thread_id: $id timestamp: $threadTimestamp")
                     ids.add(id)
                 }
             }
