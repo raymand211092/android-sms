@@ -185,18 +185,18 @@ class SmsProvider constructor(context: Context) {
 
     fun getLastReadMessage(threadId: Long) : Message? {
         return getDistinctSms(
-            where = "${Telephony.Sms.THREAD_ID} = $threadId " +
-                    "AND ${Telephony.Sms.TYPE} <= $MESSAGE_TYPE_SENT AND $READ = 1 ",
+            where = "$THREAD_ID = $threadId " +
+                    "AND $TYPE <= $MESSAGE_TYPE_SENT AND $READ = 1 ",
             mapper = this::messageMapper,
-            order = "$_ID DESC",
+            order = "$DATE DESC",
         ).firstOrNull()
     }
 
     fun getLastMessage(threadId: Long) : Message? {
         return getDistinctSms(
-            where = "${Telephony.Sms.THREAD_ID} = $threadId",
+            where = "$THREAD_ID = $threadId",
             mapper = this::messageMapper,
-            order = "$_ID DESC",
+            order = "$DATE DESC",
             limit = 1
         ).firstOrNull()
     }
@@ -211,7 +211,7 @@ class SmsProvider constructor(context: Context) {
             "$THREAD_ID = $threadId " +
                     "AND $TYPE <= $MESSAGE_TYPE_SENT AND $READ = 1 ",
             null,
-            "$_ID DESC"
+            "$DATE DESC"
         )
         query?.use{
             while(it.moveToNext()){
