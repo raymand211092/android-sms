@@ -87,37 +87,51 @@ class ChatThreadProvider constructor(
         }
     }
 
-    suspend fun getChatIdsBefore(timestamp: TimeMillis, limit: Int): List<Long> {
+    suspend fun getChatIdsBefore(offset: Int, limit: Int): List<Long> {
         return withContext(Dispatchers.IO) {
-            Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider getChatIdsBefore" +
-                    " timestamp: $timestamp limit: $limit")
+            Log.d(TAG, "SMSUI- ChatThreadProvider getChatIdsBefore" +
+                    " offset: $offset limit: $limit")
 
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
             val projection = arrayOf(
                 Telephony.Threads._ID,
-                Telephony.Threads.DATE,
                 )
             val selection =
-                "${Telephony.Threads.DATE} < ? AND ${Telephony.Threads.MESSAGE_COUNT} > ?"
-            val selectionArgs: Array<String> = arrayOf(timestamp.toLong().toString(), "0")
-            val sortOrder = "${Telephony.Threads.DATE} DESC LIMIT $limit"
+                "${Telephony.Threads.MESSAGE_COUNT} > ?"
+            val selectionArgs: Array<String> = arrayOf("0")
+            val sortOrder = "${Telephony.Threads.DATE} DESC"
             val cursor =
                 context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
             val ids = mutableListOf<Long>()
             cursor?.use {
                 fun canFetchNextThreadDetail() = if (limit > 0) {
-                    Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider" +
+                    Log.d(TAG, "SMSUI- ChatThreadProvider" +
                             " ids_size: ${ids.size} " +
                             " limit: $limit canFetchNextThreadDetail: ${ids.size < limit}")
                     ids.size < limit
                 } else {
                     true
                 }
+
+
+                if(offset > 0) {
+                    Log.d(
+                        TAG, "SMSUI- ChatThreadProvider" +
+                                " cursor count: ${it.count} moveTo: $offset"
+                    )
+                    val movedToPosition = it.moveToPosition(offset)
+                    if (!movedToPosition) {
+                        Log.d(
+                            TAG, "SMSUI- ChatThreadProvider" +
+                                    " getChatIdsBefore: offset is out of bounds "
+                        )
+                        return@withContext ids
+                    }
+                }
                 while (it.moveToNext() && canFetchNextThreadDetail()) {
                     val id = it.getLong(Telephony.Threads._ID)
-                    val threadTimestamp = it.getLong(Telephony.Threads.DATE)
                     Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider" +
-                            " adding thread_id: $id timestamp: $threadTimestamp")
+                            " adding thread_id: $id cursor position: ${it.position}")
                     ids.add(id)
                 }
             }
@@ -150,6 +164,7 @@ class ChatThreadProvider constructor(
                 } else {
                     true
                 }
+
                 while (it.moveToNext() && canFetchNextThreadDetail()) {
                     val id = it.getLong(Telephony.Threads._ID)
                     val threadTimestamp = it.getLong(Telephony.Threads.DATE)
