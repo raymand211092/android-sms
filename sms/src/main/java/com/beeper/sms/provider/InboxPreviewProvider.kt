@@ -220,13 +220,13 @@ class InboxPreviewProvider constructor(
         }
     }
 
-    suspend fun getChatsBefore(timestamp: Long, limit: Int, mapMessageToInboxPreview: (Message)->InboxPreviewCache): List<InboxPreviewCache> {
+    suspend fun getChatsBefore(offset: Int, limit: Int, mapMessageToInboxPreview: (Message)->InboxPreviewCache): List<InboxPreviewCache> {
         Log.d(TAG, "InboxPreview cache debug: getChatsBefore")
 
         return withContext(Dispatchers.IO) {
             val ids =
-                chatThreadProvider.getChatIdsBefore(TimeMillis(timestamp.toBigDecimal()), limit)
-            Log.d(TAG, "SMSUI- InboxPreviewProvider getChatIdsBefore timestamp: $timestamp" +
+                chatThreadProvider.getChatIdsBefore(offset = offset, limit = limit)
+            Log.d(TAG, "SMSUI- InboxPreviewProvider getChatIdsBefore offset: $offset" +
                     " limit: $limit ids.size: ${ids.size}")
 
             loadChatPreviews(ids,mapMessageToInboxPreview)
