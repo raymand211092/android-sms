@@ -68,15 +68,19 @@ class StartStopCommandProcessor constructor(
     }
 
 
-    private fun answerPreStartupSync(command: Command, skipSync: Boolean){
+    private fun answerPreStartupSync(command: Command){
         if (command.command == "pre_startup_sync") {
             Log.d(TAG, "answerPreStartupSync: $command")
             pushKey?.let { bridge.send(Command("push_key", it)) }
+
+            val isBackfilled = bridge.getBackfillingState(context)
+            Log.d(TAG,"answerPreStartupSync SkipSync = $isBackfilled")
+
             bridge.send(
                 Command(
                     "response",
                     // Skipping startup sync
-                    StartupSyncHookResponse(skipSync),
+                    StartupSyncHookResponse(skip_sync = isBackfilled),
                     command.id
                 )
             )
@@ -526,8 +530,7 @@ class StartStopCommandProcessor constructor(
         }
     }
 
-    suspend fun awaitForPreStartupSync(skipSync: Boolean, timeoutMillis: Long) : Boolean{
-        Log.d(TAG,"SkipSync = $skipSync")
+    suspend fun awaitForPreStartupSync(timeoutMillis: Long) : Boolean{
         return withTimeoutOrNull(timeoutMillis) {
             val completableDeferred = CompletableDeferred<Boolean>()
             val job =
@@ -536,7 +539,7 @@ class StartStopCommandProcessor constructor(
                         command ->
                     if (command.command == "pre_startup_sync") {
                         Log.d(TAG, "Pre startup sync msg received")
-                        answerPreStartupSync(command, skipSync)
+                        answerPreStartupSync(command)
                         completableDeferred.complete(true)
                     }
                 }.launchIn(scope)
