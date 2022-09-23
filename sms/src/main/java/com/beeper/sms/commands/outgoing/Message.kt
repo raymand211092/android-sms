@@ -32,7 +32,7 @@ data class Message(
     @Transient var uri: Uri? = null,
     @Transient var subId: Int? = null,
     @Transient var messageStatus: MessageStatus? = null,
-    @Transient var is_read: Boolean? = null,
+    var is_read: Boolean? = null,
     @Transient var sender_recipient_id: String? = null,
 
     ) {
