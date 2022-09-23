@@ -54,7 +54,8 @@ class SimpleBackfill constructor(
                 }
 
                 val started = bridge.start(
-                    context, skipSync = false, timeoutMillis =
+                    context,
+                    timeoutMillis =
                     BACKFILL_STARTUP_TIMEOUT_MILLIS
                 )
 

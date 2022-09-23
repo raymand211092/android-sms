@@ -113,7 +113,7 @@ class SyncWindow constructor(
 
                 val started = bridge.start(
                     context, timeoutMillis =
-                    StartStopBridge.DEFAULT_STARTUP_TIMEOUT_MILLIS
+                    StartStopBridge.DEFAULT_STARTUP_TIMEOUT_MILLIS,
                 )
 
                 // Handle bridge initialization and internet connectivity issues

@@ -112,7 +112,6 @@ class StartStopBridge private constructor() {
     }
 
     suspend fun start(context: Context?,
-                      skipSync: Boolean = true,
                       timeoutMillis : Long
     ): Boolean{
         return withContext(scope.coroutineContext) {
@@ -138,7 +137,7 @@ class StartStopBridge private constructor() {
                     return@withContext false
                 }
 
-                val startResult = startProcess(context, skipSync, timeoutMillis)
+                val startResult = startProcess(context, timeoutMillis)
                 if(!startResult){
                     Log.e(TAG, "Timeout waiting for prestartup hook")
                     return@withContext false
@@ -162,7 +161,7 @@ class StartStopBridge private constructor() {
        killProcess()
     }
 
-    suspend fun startProcess(context: Context, skipSync: Boolean, timeoutMillis : Long) : Boolean {
+    suspend fun startProcess(context: Context, timeoutMillis : Long) : Boolean {
             val config = getConfig()
             val cache = getCacheDir(context)
 
@@ -211,7 +210,7 @@ class StartStopBridge private constructor() {
                         }
                     }
                 }
-                val startupResult = commandProcessor.awaitForPreStartupSync(skipSync,timeoutMillis)
+                val startupResult = commandProcessor.awaitForPreStartupSync(timeoutMillis)
                 if(!startupResult){
                     Log.e(TAG, "Timeout starting the bridge")
                 }else{
