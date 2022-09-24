@@ -117,6 +117,16 @@ class InboxPreviewProvider constructor(
         }
     }
 
+    suspend fun onChatChange(
+        threadId: Long,
+        mapMessageToInboxPreview: (Message) -> InboxPreviewCache
+    ){
+        val cachedChatThread = inboxPreviewCacheDao.getPreviewForChatByThreadId(threadId)
+        if(cachedChatThread!=null) {
+            refreshCacheFor(threadId, cachedChatThread, mapMessageToInboxPreview)
+        }
+    }
+
     private suspend fun refreshCacheFor(
         threadId: Long,
         cachedChatThread: InboxPreviewCache,
