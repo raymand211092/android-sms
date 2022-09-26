@@ -25,7 +25,7 @@ class SmsMmsSender(
         thread: Long = 0,
         sentMessageParcelable: Parcelable? = null,
         subject: String? = null,
-    ): List<Uri> {
+    ): List<Uri?> {
         val subscriptionId = getSubscriptionId(thread)
         val transaction = newTransaction(subscriptionId)
         val message = Message(text, recipients.toTypedArray()).apply {
@@ -45,7 +45,7 @@ class SmsMmsSender(
         filename: String,
         thread: Long = 0,
         sentMessageParcelable: Parcelable,
-    ): List<Uri> {
+    ): List<Uri?> {
         val subscriptionId = getSubscriptionId(thread)
         val transaction = newTransaction(subscriptionId)
         val message = Message(text, recipients.toTypedArray()).apply {
@@ -61,7 +61,7 @@ class SmsMmsSender(
         fileURI: Uri,
         thread: Long = 0,
         sentMessageParcelable: Parcelable,
-    ) : List<Uri> {
+    ) : List<Uri?> {
         val filename = fileURI.lastPathSegment ?: "File"
         val mimeType = fileURI.getMimeType(context)
         val bytes = context.contentResolver.openInputStream(fileURI)?.readBytes()
