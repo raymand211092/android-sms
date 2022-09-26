@@ -357,7 +357,7 @@ class StartStopCommandProcessor constructor(
                     },
                 )
 
-                uriList.onEach {
+                uriList.filterNotNull().onEach {
                         uri ->
                     val messageId = uri.lastPathSegment
                     Log.d(TAG, "send_media sent message uri: $uri")
@@ -457,7 +457,7 @@ class StartStopCommandProcessor constructor(
                             putInt(COMMAND_ID, command.id!!)
                         },
                     )
-                    uriList.onEach { uri ->
+                    uriList.filterNotNull().onEach { uri ->
                         val messageId = uri.lastPathSegment
                         Log.d(TAG, "send_media sent message uri: $uri")
                         if(messageId!=null) {
