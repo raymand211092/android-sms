@@ -52,12 +52,12 @@ class MmsProvider constructor(
             this::messageMapper
         )
 
-    fun getMessagesAfterWithLimit(thread: Long, timestamp: TimeSeconds, limit: Int = 30) =
-        getMms(where = "$THREAD_ID = $thread AND $DATE > ${timestamp.toLong()} ",
+    fun getMessagesAfterWithLimitIncludingTimestamp(thread: Long, timestamp: TimeSeconds, limit: Int = 30) =
+        getMms(where = "$THREAD_ID = $thread AND $DATE >= ${timestamp.toLong()} ",
             limit = limit, mapper = this::messageMapper)
 
-    fun getMessagesBeforeWithLimit(thread: Long, timestamp: TimeSeconds, limit: Int = 30) =
-        getMms(where = "$THREAD_ID = $thread AND $DATE < ${timestamp.toLong()} ",
+    fun getMessagesBeforeWithLimitIncludingTimestamp(thread: Long, timestamp: TimeSeconds, limit: Int = 30) =
+        getMms(where = "$THREAD_ID = $thread AND $DATE <= ${timestamp.toLong()} ",
             limit = limit, mapper = this::messageMapper)
 
     fun getMessage(uri: Uri) = getMms(uri, mapper = this::messageMapper).firstOrNull()

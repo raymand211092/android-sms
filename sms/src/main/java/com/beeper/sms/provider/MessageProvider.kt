@@ -72,12 +72,12 @@ class MessageProvider constructor(
 
     fun getConversationMessagesAfter(thread: Long, timestampSeconds: TimeSeconds, limit: Int): List<Message> =
         smsProvider.getMessagesAfterWithLimit(thread, timestampSeconds.toMillis(), limit)
-            .plus(mmsProvider.getMessagesAfterWithLimit(thread, timestampSeconds, limit))
+            .plus(mmsProvider.getMessagesAfterWithLimitIncludingTimestamp(thread, timestampSeconds, limit))
             .sortedBy { it.timestamp }
 
     fun getConversationMessagesBefore(thread: Long, timestampSeconds: TimeSeconds,  limit: Int): List<Message> =
         smsProvider.getMessagesBeforeWithLimit(thread, timestampSeconds.toMillis(), limit)
-            .plus(mmsProvider.getMessagesBeforeWithLimit(thread, timestampSeconds, limit))
+            .plus(mmsProvider.getMessagesBeforeWithLimitIncludingTimestamp(thread, timestampSeconds, limit))
             .sortedBy { it.timestamp }
 
     fun getLastReadMessage(chat_guid: String) : Message? {
