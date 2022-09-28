@@ -28,6 +28,8 @@ import com.beeper.sms.receivers.SmsDelivered.Companion.toError
 import com.google.android.mms.util_alt.SqliteWrapper
 import com.klinker.android.send_message.MmsSentReceiver
 import com.klinker.android.send_message.Transaction
+import mapMMSErrorToHumanReadableMessage
+import mapSMSErrorToHumanReadableMessage
 
 abstract class MmsSent : MmsSentReceiver() {
     abstract fun mapMessageToInboxPreviewCache(message: Message): InboxPreviewCache
@@ -117,10 +119,13 @@ abstract class MmsSent : MmsSentReceiver() {
             Log.e(TAG, "Bridging error response to MMS not delivered:" +
                     " ${errorToString(resultCode, intent)}")
 
+            val errorMessage = mapMMSErrorToHumanReadableMessage(resultCode)
+
             val errorSendMessageStatus = SendMessageStatus(
                 message.guid,
                 message.chat_guid,
-                SendMessageStatusResult.Failed.status
+                SendMessageStatusResult.Failed.status,
+                errorMessage
             )
 
             if(syncWindowState == SyncWindowState.Running) {
@@ -139,7 +144,8 @@ abstract class MmsSent : MmsSentReceiver() {
                     PendingSendResponse(
                         message.guid,
                         message.chat_guid,
-                        SendMessageStatusResult.Sent.status
+                        SendMessageStatusResult.Failed.status,
+                        errorMessage
                     )
                 )
                 // Start a sync window to bridge the ack to mautrix-imessage
@@ -181,7 +187,8 @@ abstract class MmsSent : MmsSentReceiver() {
                         SendMessageStatus(
                             guid,
                             message.chat_guid,
-                            SendMessageStatusResult.Sent.status
+                            SendMessageStatusResult.Sent.status,
+                            null
                         )
                     )
                 )
@@ -217,7 +224,8 @@ abstract class MmsSent : MmsSentReceiver() {
                     PendingSendResponse(
                         guid,
                         message.chat_guid,
-                        SendMessageStatusResult.Sent.status
+                        SendMessageStatusResult.Sent.status,
+                        null
                     )
                 )
                 // Start a sync window to bridge the ack to mautrix-imessage

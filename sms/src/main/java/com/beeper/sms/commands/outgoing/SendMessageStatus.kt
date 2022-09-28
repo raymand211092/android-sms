@@ -14,4 +14,5 @@ data class SendMessageStatus(
     var guid: String,
     var chat_guid: String,
     var status: String,
+    var message: String?
 )
