@@ -158,7 +158,8 @@ class SyncWindow constructor(
                         SendMessageStatus(
                             pendingSendResponse.guid,
                             pendingSendResponse.chat_guid,
-                            pendingSendResponse.status
+                            pendingSendResponse.status,
+                            pendingSendResponse.message
                         ),
                         5000
                     )

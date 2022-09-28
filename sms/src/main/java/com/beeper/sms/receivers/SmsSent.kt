@@ -31,6 +31,7 @@ import com.beeper.sms.receivers.SmsDelivered.Companion.toError
 import com.google.android.mms.util_alt.SqliteWrapper
 import com.klinker.android.send_message.SentReceiver
 import com.klinker.android.send_message.Transaction
+import mapSMSErrorToHumanReadableMessage
 
 abstract class SmsSent : SentReceiver() {
 
@@ -92,10 +93,13 @@ abstract class SmsSent : SentReceiver() {
             Log.e(TAG, "Bridging error response to SMS not delivered:" +
                     " uri:$uri error:${resultCode.toError(intent)}")
 
+            val errorMessage = mapSMSErrorToHumanReadableMessage(resultCode)
+
             val errorSendMessageStatus = SendMessageStatus(
                 message.guid,
                 message.chat_guid,
-                SendMessageStatusResult.Failed.status
+                SendMessageStatusResult.Failed.status,
+                errorMessage
             )
 
             if(syncWindowState == SyncWindowState.Running) {
@@ -114,7 +118,8 @@ abstract class SmsSent : SentReceiver() {
                     PendingSendResponse(
                         message.guid,
                         message.chat_guid,
-                        SendMessageStatusResult.Sent.status
+                        SendMessageStatusResult.Failed.status,
+                        errorMessage
                     )
                 )
                 // Start a sync window to bridge the ack to mautrix-imessage
@@ -169,7 +174,8 @@ abstract class SmsSent : SentReceiver() {
                         SendMessageStatus(
                             guid,
                             message.chat_guid,
-                            SendMessageStatusResult.Sent.status
+                            SendMessageStatusResult.Sent.status,
+                            null
                         )
                     )
                 )
@@ -203,7 +209,8 @@ abstract class SmsSent : SentReceiver() {
                     PendingSendResponse(
                         guid,
                         message.chat_guid,
-                        SendMessageStatusResult.Sent.status
+                        SendMessageStatusResult.Sent.status,
+                        null
                     )
                 )
                 // Start a sync window to bridge the ack to mautrix-imessage

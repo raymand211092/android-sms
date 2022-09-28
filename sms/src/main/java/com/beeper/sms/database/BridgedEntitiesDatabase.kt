@@ -12,13 +12,14 @@ import com.beeper.sms.database.models.*
     PendingReadReceipt::class, InboxPreviewCache::class, ChatThreadMetadataCache::class,
     RecipientCache::class, PendingRecipientUpdate::class, ContactInfoCache::class,
     PendingSendResponse::class, SmsThreadMatrixRoomRelation::class],
-    version = 7, autoMigrations = [
+    version = 8, autoMigrations = [
         AutoMigration (from = 1, to = 2),
         AutoMigration (from = 2, to = 3),
         AutoMigration (from = 3, to = 4),
         AutoMigration (from = 4, to = 5, spec = BridgedEntitiesDatabase.ContactCacheMigration::class),
         AutoMigration (from = 5, to = 6),
         AutoMigration (from = 6, to = 7),
+        AutoMigration (from = 7, to = 8),
     ],
     exportSchema = true
 )
