@@ -4,7 +4,9 @@ import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
@@ -532,26 +534,41 @@ class StartStopBridge private constructor() {
 
     fun buildNotification(context:Context,
                           notificationChannelId: String,
-                          contentText: String): Notification {
-        return NotificationCompat.Builder(context, notificationChannelId)
+                          contentText: String,
+                          contentIntent: PendingIntent? = null): Notification {
+        val notificationBuilder =  NotificationCompat.Builder(context, notificationChannelId)
             .setSound(null)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setContentTitle(context.getString(R.string.notification_title))
             .setContentText(contentText)
-            .setSmallIcon(channelIcon).build()
+            .setSmallIcon(channelIcon)
+
+        if(contentIntent != null){
+            notificationBuilder.setContentIntent(contentIntent)
+        }
+
+        return notificationBuilder.build()
     }
 
-    fun buildErrorNotification(context: Context, title: String, contentText: String) : Notification{
+    fun buildErrorNotification(context: Context, title: String, contentText: String,
+                               contentIntent: PendingIntent? = null) : Notification{
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel(context, DEFAULT_CHANNEL_ID)
         }
-        return NotificationCompat.Builder(context, DEFAULT_CHANNEL_ID)
+
+
+        val notificationBuilder = NotificationCompat.Builder(context, DEFAULT_CHANNEL_ID)
             .setSound(null)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentTitle(title)
             .setContentText(contentText)
-            .setSmallIcon(channelIcon).build()
+            .setSmallIcon(channelIcon)
+
+        if(contentIntent != null){
+            notificationBuilder.setContentIntent(contentIntent)
+        }
+        return notificationBuilder.build()
     }
 
     companion object {
