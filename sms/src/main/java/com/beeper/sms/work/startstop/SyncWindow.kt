@@ -227,14 +227,12 @@ class SyncWindow constructor(
                             }
                         }"
                 )
-
                 if (mmsMessages.isNotEmpty()) {
                     mmsMessages.onEach {
                         bridge.commandProcessor.sendMessageCommand(it)
                         lastCommandReceivedMillis = now()
                     }
                 }
-
 
                 // Check if we have any pending read receipt to be bridged
                 val readReceiptDao = database.pendingReadReceiptDao()
@@ -276,17 +274,16 @@ class SyncWindow constructor(
                     val userGuid = pendingRecipientUpdate.phone
                     if(userGuid!=null) {
                         val contactProvider = ContactProvider(context)
-
-                        val contactUri = ContentUris.withAppendedId(
-                            ContactsContract.Contacts.CONTENT_URI, pendingRecipientUpdate.recipient_id
-                        )
+                        val contactRow = contactProvider.getRecipientInfoWithInlinedAvatar(
+                            userGuid
+                        ).first
                         val address = GuidProvider.normalizeAddress(userGuid)
                         val contact = Contact(
                             "SMS;-;$address",
-                            pendingRecipientUpdate.first_name,
-                            pendingRecipientUpdate.last_name,
-                            pendingRecipientUpdate.nickname,
-                            contactProvider.getAvatar(contactUri),
+                            contactRow.first_name,
+                            contactRow.last_name,
+                            contactRow.nickname,
+                            contactRow.avatar,
                             listOfNotNull(address),
                         )
                         val result =
