@@ -144,7 +144,7 @@ class StartStopCommandProcessor constructor(
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getRecipientInfo(userGuid).first.asResponse,
+                        contactProvider.getRecipientInfoWithInlinedAvatar(userGuid).first.asResponse,
                         command.id
                     )
                 )
@@ -329,7 +329,7 @@ class StartStopCommandProcessor constructor(
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getRecipientInfo(userGuid).first.asResponse,
+                        contactProvider.getRecipientInfoWithInlinedAvatar(userGuid).first.asResponse,
                         command.id
                     )
                 )
@@ -610,7 +610,7 @@ class StartStopCommandProcessor constructor(
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getRecipientInfo(userGuid).first.asResponse,
+                        contactProvider.getRecipientInfoWithInlinedAvatar(userGuid).first.asResponse,
                         command.id
                     )
                 )

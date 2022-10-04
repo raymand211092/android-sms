@@ -28,6 +28,7 @@ import timber.log.Timber
 class SmsProvider constructor(context: Context) {
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
+    private val guidProvider: GuidProvider = GuidProvider(context)
 
     fun getActiveChats(timestamp: TimeMillis): List<MessageInfo> =
         getSms("$DATE > ${timestamp.toLong()} AND $TYPE <= $MESSAGE_TYPE_SENT",
@@ -125,16 +126,17 @@ class SmsProvider constructor(context: Context) {
         }
 
     private fun messageInfoMapper(it: Cursor, rowId: Long, uri: Uri): MessageInfo? {
-        val address = it.getString(ADDRESS)
         val isRead = it.getInt(READ) == 1
         val threadId = it.getLong(THREAD_ID)
         val date = it.getLong(DATE)
         val timestamp = date.toMillis().toSeconds()
 
-        if (address == null) {
-            Log.e(TAG, "Missing address: ${it.dumpCurrentRow()}")
+        val chatGuid = guidProvider.getChatGuid(threadId)
+        if (chatGuid.isNullOrBlank()) {
+            Log.e(TAG, "Error generating guid for $threadId")
             return null
         }
+
         val creator = it.getString(CREATOR)
 
         Timber.d("SMSUI- messageInfoMapper thread_id: $threadId timestamp: $timestamp")
@@ -142,7 +144,7 @@ class SmsProvider constructor(context: Context) {
         return MessageInfo(
             "$SMS_PREFIX$rowId",
             timestamp,
-            address.chatGuid,
+            chatGuid,
             uri,
             creator,
             creator == packageName,

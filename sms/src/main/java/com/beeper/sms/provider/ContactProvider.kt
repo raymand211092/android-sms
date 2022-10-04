@@ -179,6 +179,39 @@ class ContactProvider constructor(private val context: Context) {
     fun getRecipients(phones: List<String>) = phones.map { getRecipientInfo(it) }
     fun getRecipientsFromPhoneNumbers(phones: List<String>) = phones.map { getRecipientInfo(it) }
 
+
+    @SuppressLint("InlinedApi")
+    fun getRecipientInfoWithInlinedAvatar(phone: String): Pair<ContactRow, Long?> = when {
+        !context.hasPermission(Manifest.permission.READ_CONTACTS) -> Pair(phone.defaultResponse, null)
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Pair(phone.defaultResponse, null)
+        else ->
+            cr
+                .firstOrNull(phone.lookupUri, projection = arrayOf(
+                    PhoneLookup.CONTACT_ID,
+                )) {
+                    val contactId = it.getLong(PhoneLookup.CONTACT_ID)
+                    Pair(getRecipientInfoWithInlinedAvatar(contactId)?.apply {
+                        phoneNumber = phone
+                    } ?: phone.defaultResponse, contactId)
+                }
+                ?: cr
+                    .firstOrNull(
+                        Phone.CONTENT_URI,
+                        projection = arrayOf(
+                            Phone.CONTACT_ID,
+                        ),
+                        // hack to match short codes
+                        where = "REPLACE(${Phone.NUMBER}, '-', '') == \"$phone\""
+                    ) {
+                        val contactId = it.getLong(Phone.CONTACT_ID)
+                        Pair(
+                            getRecipientInfoWithInlinedAvatar(contactId)?.apply {
+                                phoneNumber = phone
+                            } ?: phone.defaultResponse, contactId)
+                    }
+                ?: Pair(phone.defaultResponse, null)
+    }
+
     @SuppressLint("InlinedApi")
     fun getRecipientInfo(phone: String): Pair<ContactRow, Long?> = when {
         !context.hasPermission(Manifest.permission.READ_CONTACTS) -> Pair(phone.defaultResponse, null)
@@ -249,6 +282,47 @@ class ContactProvider constructor(private val context: Context) {
 
                  */
                 avatar = null,
+                avatarUri = avatarUri,
+                nickname = displayName
+                    ?: alternativeDisplayName
+            )
+        }
+
+    fun getRecipientInfoWithInlinedAvatar(id: Long): ContactRow? =
+        cr.firstOrNull(
+            ContactsContract.Data.CONTENT_URI,
+            "${ContactsContract.Data.CONTACT_ID} = $id AND ${ContactsContract.Data.MIMETYPE} = '${StructuredName.CONTENT_ITEM_TYPE}'",
+            projection = arrayOf(
+                Contacts._ID,
+                StructuredName.GIVEN_NAME,
+                StructuredName.MIDDLE_NAME,
+                StructuredName.FAMILY_NAME,
+                StructuredName.DISPLAY_NAME
+            )
+        ) { contact ->
+            val contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, id)
+            val givenName = contact.getString(StructuredName.GIVEN_NAME)
+            val middleName = contact.getString(StructuredName.MIDDLE_NAME)
+            val familyName = contact.getString(StructuredName.FAMILY_NAME)
+            val avatarUri = Uri.withAppendedPath(contactUri, Contacts.Photo.CONTENT_DIRECTORY)
+
+            val displayName = contact.getString(StructuredName.DISPLAY_NAME)
+            val alternativeDisplayName = if(givenName != null
+                && givenName.isNotBlank()
+                && familyName != null
+                && familyName.isNotBlank()
+            ){
+                "$givenName $familyName".trim()
+            }else{
+                givenName
+            }
+
+            ContactRow(
+                first_name = givenName,
+                middle_name = middleName,
+                last_name = familyName,
+                avatar = Contacts.openContactPhotoInputStream(cr, contactUri, true)
+                    ?.let { Base64.encodeToString(it.readBytes(), Base64.DEFAULT) },
                 avatarUri = avatarUri,
                 nickname = displayName
                     ?: alternativeDisplayName
