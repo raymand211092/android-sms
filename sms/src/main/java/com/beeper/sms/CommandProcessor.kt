@@ -82,7 +82,7 @@ class CommandProcessor constructor(
                 bridge.send(
                     Command(
                         "response",
-                        contactProvider.getRecipientInfo(userGuid).first.asResponse,
+                        contactProvider.getRecipientInfoWithInlinedAvatar(userGuid).first.asResponse,
                         command.id
                     )
                 )
