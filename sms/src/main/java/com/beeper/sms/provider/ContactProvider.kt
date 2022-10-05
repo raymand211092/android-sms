@@ -159,12 +159,12 @@ class ContactProvider constructor(private val context: Context) {
                     do {
                         try {
                             val numberColumnIndex = it.getColumnIndex(Phone.NUMBER)
-                            Log.d(TAG,"NumberColumnIndex: $numberColumnIndex, " +
+                            Log.v(TAG,"NumberColumnIndex: $numberColumnIndex, " +
                                     "contactId: $contactId")
                             val number = it.getString(numberColumnIndex)
-                            Log.d(TAG,"is number null: ${number == null}," +
+                            Log.v(TAG,"is number null: ${number == null}," +
                                     " is number blank: ${number.isNullOrBlank()}")
-                            Log.d(TAG,"Fetched a phone number for contactId: $contactId")
+                            Log.v(TAG,"Fetched a phone number for contactId: $contactId")
                             result.add(number)
                         } catch(e : NullPointerException){
                             Log.e(TAG,"Couldn't fetch phone number for contactId: $contactId")
@@ -314,7 +314,6 @@ class ContactProvider constructor(private val context: Context) {
             }
             val avatarLength = Contacts.openContactPhotoInputStream(cr,
                 contactUri, true)?.available()
-            Timber.d("getRecipientInfo id:$id avatarLength:$avatarLength")
 
             ContactRow(
                 first_name = givenName,
