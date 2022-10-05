@@ -141,7 +141,7 @@ class InboxPreviewProvider constructor(
                 val newPreview = mapMessageToInboxPreview(
                     lastMessage
                 )
-                Log.d(
+                Log.v(
                     TAG, "InboxPreview cache debug: inserting new inbox" +
                             " preview threadId:${newPreview.thread_id} lastMessageTs, " +
                             "${lastMessage.timestamp.toMillis().toLong()} " +
@@ -149,9 +149,13 @@ class InboxPreviewProvider constructor(
                 )
 
                 if(lastMessage.guid != cachedChatThread.message_guid){
+                    Log.d(
+                        TAG, "InboxPreview cache debug: updating" +
+                                "cache for threadId:${newPreview.thread_id}"
+                    )
                     update(newPreview)
                 }else{
-                    Log.d(
+                    Log.v(
                         TAG, "InboxPreview cache debug: not updating" +
                                 "cache for threadId:${newPreview.thread_id} -> nothing changed"
                     )
@@ -178,7 +182,7 @@ class InboxPreviewProvider constructor(
             threadIds.onEach { threadId ->
                 val cachedChatThread = inboxPreviewCacheDao.getPreviewForChatByThreadId(threadId)
                 if (cachedChatThread != null) {
-                    Log.d(TAG, "SMSUI- InboxPreview cache debug: returning cached threadId:$threadId")
+                    Log.v(TAG, "SMSUI- InboxPreview cache debug: returning cached threadId:$threadId")
                     previews.add(cachedChatThread)
                     launch {
                         refreshCacheFor(threadId, cachedChatThread, mapMessageToInboxPreview)
