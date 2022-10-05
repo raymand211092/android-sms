@@ -48,6 +48,7 @@ class StartStopCommandProcessor constructor(
 ) {
     val scope = CoroutineScope(coroutineContext)
     private val firstTimestampForChatGuid = mutableMapOf<String, TimeSeconds>()
+    private val chatThreadProvider = ChatThreadProvider(context)
 
 
     private val oldMmsBackfillSeconds =
@@ -104,8 +105,11 @@ class StartStopCommandProcessor constructor(
                         }
                         .joinToString()
 
-                val threadId = getChatCommand.thread_id
-
+                val threadId = if(getChatCommand.thread_id.isBlank()){
+                    chatThreadProvider.getOrCreateThreadId(recipients.toSet()).toString()
+                }else{
+                    getChatCommand.thread_id
+                }
                 bridge.send(
                     Command("response", GetChat.Response(
                             room,
@@ -311,7 +315,12 @@ class StartStopCommandProcessor constructor(
                         }
                         .joinToString()
 
-                val threadId = getChatCommand.thread_id
+
+                val threadId = if(getChatCommand.thread_id.isBlank()){
+                    chatThreadProvider.getOrCreateThreadId(recipients.toSet()).toString()
+                }else{
+                    getChatCommand.thread_id
+                }
 
                 bridge.send(
                     Command("response", GetChat.Response(

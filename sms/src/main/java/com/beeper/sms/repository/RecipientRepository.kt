@@ -1,12 +1,19 @@
 package com.beeper.sms.repository
 
+import android.content.ContentUris
+import android.provider.ContactsContract
+import android.util.Base64
 import com.beeper.sms.Log
+import com.beeper.sms.StartStopBridge
 import com.beeper.sms.commands.incoming.GroupMessaging.Companion.removeSMSGuidPrefix
+import com.beeper.sms.commands.outgoing.Contact
 import com.beeper.sms.database.models.*
 import com.beeper.sms.observers.ContactObserver
 import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.ContactRow
 import com.beeper.sms.provider.ContactInfo
+import com.beeper.sms.provider.GuidProvider
+import com.beeper.sms.work.startstop.SyncWindow
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +75,7 @@ class RecipientRepository(
                     Log.w(TAG,"InboxPreview CacheUpdate ContactRepository getContact: $recipientId wasn't found in low level layer")
                     return@launch
                 }
-                val (contactRow, contactId) = contactProvider.getRecipientInfo(address)
+                val (contactRow, contactId) = contactProvider.getRecipientInfoWithInlinedAvatar(address)
                 val recipientCache = RecipientCache(
                     recipientId,
                     contactId,
@@ -77,6 +84,7 @@ class RecipientRepository(
                     contactRow.middle_name,
                     contactRow.last_name,
                     contactRow.nickname,
+                    contactRow.avatarLength
                 )
 
                 if(recipientCache != loadedRecipient){
@@ -87,19 +95,71 @@ class RecipientRepository(
                         // Trigger repo contact list changed
                         Log.d(TAG, "Emitting contact change event")
                         mutContactListChanged.tryEmit(Unit)
-                        // Saving changes to be bridged to mautrix-imessage
-                        // -> will be loaded by the bridge in the next sync window
-                        pendingRecipientUpdateDao.insert(
-                            PendingRecipientUpdate(
-                                recipientCache.recipient_id,
-                                contactId,
-                                recipientCache.phone,
-                                recipientCache.first_name,
-                                recipientCache.middle_name,
-                                recipientCache.last_name,
-                                recipientCache.nickname,
+
+                        if(StartStopBridge.INSTANCE.running){
+                            val userGuid = recipientCache.phone
+
+                            if(userGuid!=null) {
+                                val recipientAddress = GuidProvider.normalizeAddress(userGuid)
+                                val recipientContactId = recipientCache.contact_id
+                                val avatar = if(recipientContactId != null) {
+                                    contactProvider.getAvatarFromContactId(recipientContactId)
+                                }else{
+                                    null
+                                }
+
+                                val contact = Contact(
+                                    "SMS;-;$recipientAddress",
+                                    recipientCache.first_name,
+                                    recipientCache.last_name,
+                                    recipientCache.nickname,
+                                    avatar,
+                                    listOfNotNull(address),
+                                )
+                                val result =
+                                    StartStopBridge.INSTANCE.commandProcessor.sendContactUpdateCommandAndAwaitForResponse(
+                                        contact,
+                                        5000
+                                    )
+                                if (result != null) {
+                                    Log.d(
+                                        TAG, "Contact for " +
+                                                "${contact.user_guid} was bridged"
+                                    )
+                                } else {
+                                    Log.e(TAG, "Timeout bridging ${contact.user_guid} contact")
+                                    // Saving changes to be bridged to mautrix-imessage
+                                    // -> will be loaded by the bridge in the next sync window
+                                    pendingRecipientUpdateDao.insert(
+                                        PendingRecipientUpdate(
+                                            recipientCache.recipient_id,
+                                            contactId,
+                                            recipientCache.phone,
+                                            recipientCache.first_name,
+                                            recipientCache.middle_name,
+                                            recipientCache.last_name,
+                                            recipientCache.nickname,
+                                        )
+                                    )
+                                }
+                            }
+                        }else{
+                            Log.d(
+                                TAG, "Bridge not running: " +
+                                        "contact will be bridged on next sync window"
                             )
-                        )
+                            pendingRecipientUpdateDao.insert(
+                                PendingRecipientUpdate(
+                                    recipientCache.recipient_id,
+                                    contactId,
+                                    recipientCache.phone,
+                                    recipientCache.first_name,
+                                    recipientCache.middle_name,
+                                    recipientCache.last_name,
+                                    recipientCache.nickname,
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -113,7 +173,7 @@ class RecipientRepository(
                 Log.e(TAG,"InboxPreview ContactRepository getContact: $recipientId wasn't found in low level layer")
                 return null
             }
-            val (contactRow, contactId) = contactProvider.getRecipientInfo(address)
+            val (contactRow, contactId) = contactProvider.getRecipientInfoWithInlinedAvatar(address)
             
             val contactCache = RecipientCache(
                 recipientId,
@@ -123,6 +183,7 @@ class RecipientRepository(
                 contactRow.middle_name,
                 contactRow.last_name,
                 contactRow.nickname,
+                contactRow.avatarLength
             )
             Log.d(TAG,"InboxPreview ContactRepository getContact: $recipientId being inserted in the cache")
 
@@ -139,6 +200,7 @@ class RecipientRepository(
                 contactRow.middle_name,
                 contactRow.last_name,
                 contactRow.nickname,
+                contactRow.avatarLength
             )
         }
     }

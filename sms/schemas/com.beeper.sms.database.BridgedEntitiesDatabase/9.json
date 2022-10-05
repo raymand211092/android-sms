@@ -1,0 +1,564 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 9,
+    "identityHash": "5c1acc724201e375202cda63bb9151a6",
+    "entities": [
+      {
+        "tableName": "BridgedChatThread",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chat_guid` INTEGER NOT NULL, PRIMARY KEY(`chat_guid`))",
+        "fields": [
+          {
+            "fieldPath": "chat_guid",
+            "columnName": "chat_guid",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "chat_guid"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "BridgedMessage",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chat_guid` TEXT NOT NULL, `message_id` INTEGER NOT NULL, `is_mms` INTEGER NOT NULL, PRIMARY KEY(`chat_guid`, `message_id`, `is_mms`))",
+        "fields": [
+          {
+            "fieldPath": "chat_guid",
+            "columnName": "chat_guid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "message_id",
+            "columnName": "message_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "is_mms",
+            "columnName": "is_mms",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "chat_guid",
+            "message_id",
+            "is_mms"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "BridgedReadReceipt",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chat_guid` TEXT NOT NULL, `read_up_to` TEXT NOT NULL, `read_up_to_timestamp` INTEGER NOT NULL, PRIMARY KEY(`chat_guid`))",
+        "fields": [
+          {
+            "fieldPath": "chat_guid",
+            "columnName": "chat_guid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "read_up_to",
+            "columnName": "read_up_to",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "read_up_to_timestamp",
+            "columnName": "read_up_to_timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "chat_guid"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "PendingReadReceipt",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chat_guid` TEXT NOT NULL, `read_up_to` TEXT NOT NULL, `read_at` INTEGER NOT NULL, PRIMARY KEY(`chat_guid`))",
+        "fields": [
+          {
+            "fieldPath": "chat_guid",
+            "columnName": "chat_guid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "read_up_to",
+            "columnName": "read_up_to",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "read_at",
+            "columnName": "read_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "chat_guid"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "InboxPreviewCache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`thread_id` INTEGER NOT NULL, `chat_guid` TEXT NOT NULL, `message_guid` TEXT NOT NULL, `recipient_ids` TEXT, `preview` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `send_status` TEXT NOT NULL, `is_read` INTEGER NOT NULL, PRIMARY KEY(`thread_id`))",
+        "fields": [
+          {
+            "fieldPath": "thread_id",
+            "columnName": "thread_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chat_guid",
+            "columnName": "chat_guid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "message_guid",
+            "columnName": "message_guid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recipient_ids",
+            "columnName": "recipient_ids",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "preview",
+            "columnName": "preview",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "send_status",
+            "columnName": "send_status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "is_read",
+            "columnName": "is_read",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "thread_id"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [
+          {
+            "name": "index_InboxPreviewCache_chat_guid",
+            "unique": true,
+            "columnNames": [
+              "chat_guid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_InboxPreviewCache_chat_guid` ON `${TABLE_NAME}` (`chat_guid`)"
+          },
+          {
+            "name": "index_InboxPreviewCache_message_guid",
+            "unique": true,
+            "columnNames": [
+              "message_guid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_InboxPreviewCache_message_guid` ON `${TABLE_NAME}` (`message_guid`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "ChatThreadMetadataCache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chat_guid` TEXT NOT NULL, `thread_id` TEXT NOT NULL, `mx_id` TEXT NOT NULL, `title` TEXT NOT NULL, `recipient_ids` TEXT NOT NULL, PRIMARY KEY(`chat_guid`))",
+        "fields": [
+          {
+            "fieldPath": "chat_guid",
+            "columnName": "chat_guid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "thread_id",
+            "columnName": "thread_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mx_id",
+            "columnName": "mx_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recipient_ids",
+            "columnName": "recipient_ids",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "chat_guid"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [
+          {
+            "name": "index_ChatThreadMetadataCache_thread_id",
+            "unique": true,
+            "columnNames": [
+              "thread_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_ChatThreadMetadataCache_thread_id` ON `${TABLE_NAME}` (`thread_id`)"
+          },
+          {
+            "name": "index_ChatThreadMetadataCache_mx_id",
+            "unique": true,
+            "columnNames": [
+              "mx_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_ChatThreadMetadataCache_mx_id` ON `${TABLE_NAME}` (`mx_id`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "RecipientCache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`recipient_id` INTEGER NOT NULL, `contact_id` INTEGER, `phone` TEXT, `first_name` TEXT, `middle_name` TEXT, `last_name` TEXT, `nickname` TEXT, `avatarLength` INTEGER, PRIMARY KEY(`recipient_id`))",
+        "fields": [
+          {
+            "fieldPath": "recipient_id",
+            "columnName": "recipient_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contact_id",
+            "columnName": "contact_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "phone",
+            "columnName": "phone",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "first_name",
+            "columnName": "first_name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "middle_name",
+            "columnName": "middle_name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "last_name",
+            "columnName": "last_name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "nickname",
+            "columnName": "nickname",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "avatarLength",
+            "columnName": "avatarLength",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "recipient_id"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [
+          {
+            "name": "index_RecipientCache_contact_id",
+            "unique": false,
+            "columnNames": [
+              "contact_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_RecipientCache_contact_id` ON `${TABLE_NAME}` (`contact_id`)"
+          },
+          {
+            "name": "index_RecipientCache_phone",
+            "unique": false,
+            "columnNames": [
+              "phone"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_RecipientCache_phone` ON `${TABLE_NAME}` (`phone`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "PendingRecipientUpdate",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`recipient_id` INTEGER NOT NULL, `contact_id` INTEGER, `phone` TEXT, `first_name` TEXT, `middle_name` TEXT, `last_name` TEXT, `nickname` TEXT, PRIMARY KEY(`recipient_id`))",
+        "fields": [
+          {
+            "fieldPath": "recipient_id",
+            "columnName": "recipient_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contact_id",
+            "columnName": "contact_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "phone",
+            "columnName": "phone",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "first_name",
+            "columnName": "first_name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "middle_name",
+            "columnName": "middle_name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "last_name",
+            "columnName": "last_name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "nickname",
+            "columnName": "nickname",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "recipient_id"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "ContactInfoCache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`contact_id` INTEGER NOT NULL, `display_name` TEXT, `starred` INTEGER NOT NULL, `phone_numbers` TEXT, PRIMARY KEY(`contact_id`))",
+        "fields": [
+          {
+            "fieldPath": "contact_id",
+            "columnName": "contact_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "display_name",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "starred",
+            "columnName": "starred",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phone_numbers",
+            "columnName": "phone_numbers",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "contact_id"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "PendingSendResponse",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`guid` TEXT NOT NULL, `chat_guid` TEXT NOT NULL, `status` TEXT NOT NULL, `message` TEXT, PRIMARY KEY(`guid`))",
+        "fields": [
+          {
+            "fieldPath": "guid",
+            "columnName": "guid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chat_guid",
+            "columnName": "chat_guid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "message",
+            "columnName": "message",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "guid"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "SmsThreadMatrixRoomRelation",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`room_id` TEXT NOT NULL, `thread_id` INTEGER NOT NULL, `chat_guid` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, PRIMARY KEY(`room_id`))",
+        "fields": [
+          {
+            "fieldPath": "room_id",
+            "columnName": "room_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "thread_id",
+            "columnName": "thread_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chat_guid",
+            "columnName": "chat_guid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "room_id"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [
+          {
+            "name": "index_SmsThreadMatrixRoomRelation_room_id",
+            "unique": false,
+            "columnNames": [
+              "room_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SmsThreadMatrixRoomRelation_room_id` ON `${TABLE_NAME}` (`room_id`)"
+          },
+          {
+            "name": "index_SmsThreadMatrixRoomRelation_thread_id",
+            "unique": false,
+            "columnNames": [
+              "thread_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SmsThreadMatrixRoomRelation_thread_id` ON `${TABLE_NAME}` (`thread_id`)"
+          },
+          {
+            "name": "index_SmsThreadMatrixRoomRelation_chat_guid",
+            "unique": false,
+            "columnNames": [
+              "chat_guid"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SmsThreadMatrixRoomRelation_chat_guid` ON `${TABLE_NAME}` (`chat_guid`)"
+          },
+          {
+            "name": "index_SmsThreadMatrixRoomRelation_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_SmsThreadMatrixRoomRelation_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5c1acc724201e375202cda63bb9151a6')"
+    ]
+  }
+}

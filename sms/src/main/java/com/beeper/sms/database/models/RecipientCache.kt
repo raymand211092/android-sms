@@ -15,7 +15,8 @@ data class RecipientCache(
         var middle_name: String?,
         var last_name: String?,
         var nickname: String?,
-    ){
+        var avatarLength: Int?,
+        ){
     fun getDisplayName() : String{
         return nickname ?:
         last_name ?:

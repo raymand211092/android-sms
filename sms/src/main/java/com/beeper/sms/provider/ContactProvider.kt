@@ -253,7 +253,7 @@ class ContactProvider constructor(private val context: Context) {
                 StructuredName.GIVEN_NAME,
                 StructuredName.MIDDLE_NAME,
                 StructuredName.FAMILY_NAME,
-                StructuredName.DISPLAY_NAME
+                StructuredName.DISPLAY_NAME,
             )
         ) { contact ->
             val contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, id)
@@ -277,14 +277,10 @@ class ContactProvider constructor(private val context: Context) {
                 first_name = givenName,
                 middle_name = middleName,
                 last_name = familyName,
-                /*avatar = Contacts.openContactPhotoInputStream(cr, contactUri, true)
-                    ?.let { Base64.encodeToString(it.readBytes(), Base64.DEFAULT) }
-
-                 */
                 avatar = null,
                 avatarUri = avatarUri,
                 nickname = displayName
-                    ?: alternativeDisplayName
+                    ?: alternativeDisplayName,
             )
         }
 
@@ -316,6 +312,9 @@ class ContactProvider constructor(private val context: Context) {
             }else{
                 givenName
             }
+            val avatarLength = Contacts.openContactPhotoInputStream(cr,
+                contactUri, true)?.available()
+            Timber.d("getRecipientInfo id:$id avatarLength:$avatarLength")
 
             ContactRow(
                 first_name = givenName,
@@ -325,11 +324,16 @@ class ContactProvider constructor(private val context: Context) {
                     ?.let { Base64.encodeToString(it.readBytes(), Base64.DEFAULT) },
                 avatarUri = avatarUri,
                 nickname = displayName
-                    ?: alternativeDisplayName
+                    ?: alternativeDisplayName,
+                avatarLength = avatarLength
             )
         }
 
-
+    fun getAvatarFromContactId(contactId: Long) : String?{
+        val contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, contactId)
+        return Contacts.openContactPhotoInputStream(cr, contactUri, true)
+            ?.let { Base64.encodeToString(it.readBytes(), Base64.DEFAULT) }
+    }
 
     fun getAddressFromRecipientId(recipientId: Long): String? {
         val uri = Uri.withAppendedPath(Telephony.MmsSms.CONTENT_URI, "canonical-addresses")

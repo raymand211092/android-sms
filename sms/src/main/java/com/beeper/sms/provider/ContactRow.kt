@@ -11,4 +11,5 @@ data class ContactRow(
     var phoneType: String? = null,
     var avatar: String? = null,
     var avatarUri: Uri? = null,
+    var avatarLength: Int? = null,
 )
