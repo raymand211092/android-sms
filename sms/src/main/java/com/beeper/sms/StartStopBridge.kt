@@ -446,6 +446,11 @@ class StartStopBridge private constructor() {
             readReceiptToBeBridged.readReceipt, 5000)
     }
 
+    suspend fun forwardContactToBridge(contact: Contact) {
+        Log.d(TAG, "Forwarding contact to bridge: ContactId: ${contact.user_guid}")
+        commandProcessor.sendContactUpdateCommandAndAwaitForResponse(contact, 5000)
+    }
+
     suspend fun addPendingReadReceipt(context: Context, readReceiptToBeBridged: BridgeReadReceipt) {
         withContext(Dispatchers.IO) {
             val databaseInstance = BridgeDatabase.getInstance(context)
