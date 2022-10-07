@@ -136,7 +136,7 @@ class MmsProvider constructor(
         }
         val creator = it.getString(CREATOR)
 
-        Timber.d("SMSUI- messageInfoMapper thread_id: $thread timestamp: $timestamp")
+        Timber.d("messageInfoMapper thread_id: $thread timestamp: $timestamp")
 
         return MessageInfo(
             "$MMS_PREFIX$rowId",

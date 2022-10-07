@@ -77,7 +77,6 @@ class ChatThreadProvider constructor(
                 context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
             val ids = mutableListOf<Long>()
             cursor?.use {
-                val contactProvider = ContactProvider(context)
                 while (it.moveToNext()) {
                     val id = it.getLong(Telephony.Threads._ID)
                     ids.add(id)
@@ -89,7 +88,7 @@ class ChatThreadProvider constructor(
 
     suspend fun getChatIdsBefore(offset: Int, limit: Int): List<Long> {
         return withContext(Dispatchers.IO) {
-            Log.d(TAG, "SMSUI- ChatThreadProvider getChatIdsBefore" +
+            Log.d(TAG, "getChatIdsBefore" +
                     " offset: $offset limit: $limit")
 
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
@@ -105,8 +104,7 @@ class ChatThreadProvider constructor(
             val ids = mutableListOf<Long>()
             cursor?.use {
                 fun canFetchNextThreadDetail() = if (limit > 0) {
-                    Log.d(TAG, "SMSUI- ChatThreadProvider" +
-                            " ids_size: ${ids.size} " +
+                    Log.d(TAG, "ids_size: ${ids.size} " +
                             " limit: $limit canFetchNextThreadDetail: ${ids.size < limit}")
                     ids.size < limit
                 } else {
@@ -116,22 +114,19 @@ class ChatThreadProvider constructor(
 
                 if(offset > 0) {
                     Log.d(
-                        TAG, "SMSUI- ChatThreadProvider" +
-                                " cursor count: ${it.count} moveTo: $offset"
+                        TAG, "cursor count: ${it.count} moveTo: $offset"
                     )
                     val movedToPosition = it.moveToPosition(offset)
                     if (!movedToPosition) {
                         Log.d(
-                            TAG, "SMSUI- ChatThreadProvider" +
-                                    " getChatIdsBefore: offset is out of bounds "
+                            TAG, "getChatIdsBefore: offset is out of bounds "
                         )
                         return@withContext ids
                     }
                 }
                 while (it.moveToNext() && canFetchNextThreadDetail()) {
                     val id = it.getLong(Telephony.Threads._ID)
-                    Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider" +
-                            " adding thread_id: $id cursor position: ${it.position}")
+                    Log.d(InboxPreviewProvider.TAG, "adding thread_id: $id cursor position: ${it.position}")
                     ids.add(id)
                 }
             }
@@ -141,7 +136,7 @@ class ChatThreadProvider constructor(
 
     suspend fun fetchIds(limit: Int): List<Long> {
         return withContext(Dispatchers.IO) {
-            Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider fetchIds limit: $limit")
+            Log.d(InboxPreviewProvider.TAG, "fetchIds limit: $limit")
 
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
             val projection = arrayOf(
@@ -157,7 +152,7 @@ class ChatThreadProvider constructor(
             val ids = mutableListOf<Long>()
             cursor?.use {
                 fun canFetchNextThreadDetail() = if (limit > 0) {
-                    Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider" +
+                    Log.d(InboxPreviewProvider.TAG, "ChatThreadProvider" +
                             " ids_size: ${ids.size} " +
                             " limit: $limit canFetchNextThreadDetail: ${ids.size < limit}")
                     ids.size < limit
@@ -168,7 +163,7 @@ class ChatThreadProvider constructor(
                 while (it.moveToNext() && canFetchNextThreadDetail()) {
                     val id = it.getLong(Telephony.Threads._ID)
                     val threadTimestamp = it.getLong(Telephony.Threads.DATE)
-                    Log.d(InboxPreviewProvider.TAG, "SMSUI- ChatThreadProvider" +
+                    Log.d(InboxPreviewProvider.TAG, "ChatThreadProvider" +
                             " adding thread_id: $id timestamp: $threadTimestamp")
                     ids.add(id)
                 }
@@ -517,7 +512,7 @@ class ChatThreadProvider constructor(
 
     private suspend fun getThreads(threadId: Long? = null, limit: Int = 0): List<ChatThread> {
         return withContext(Dispatchers.IO) {
-            Timber.d("SMSInbox getThreads: limit: $limit")
+            Timber.d("getThreads: limit: $limit")
 
             val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
 
@@ -655,6 +650,10 @@ class ChatThreadProvider constructor(
             Timber.e("Error getting phone number")
         }
         return null
+    }
+
+    companion object {
+        val TAG = "ChatThreadProvider"
     }
 
 }

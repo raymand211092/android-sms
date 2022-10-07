@@ -41,19 +41,19 @@ class MessageProvider constructor(
         val lastMessages = mutableListOf<Message>()
 
         smsProvider.getLastMessage(thread)?.let {
-            Timber.d("SMSUI- getLastMessage SMS thread_id: $thread timestamp: ${it.timestamp}")
+            Timber.d("getLastMessage SMS thread_id: $thread timestamp: ${it.timestamp}")
             lastMessages.add(it)
         }
 
         mmsProvider.getLastMessage(thread)?.let {
-            Timber.d("SMSUI- getLastMessage MMS thread_id: $thread timestamp: ${it.timestamp}")
+            Timber.d("getLastMessage MMS thread_id: $thread timestamp: ${it.timestamp}")
             lastMessages.add(it)
         }
 
         val lastMessage = lastMessages.maxByOrNull {
             it.timestamp
         }
-        Timber.d("SMSUI- getLastMessage LAST_MESSAGE thread_id: $thread timestamp: ${lastMessage?.timestamp}")
+        Timber.d("getLastMessage LAST_MESSAGE thread_id: $thread timestamp: ${lastMessage?.timestamp}")
 
         return lastMessage
     }
