@@ -32,7 +32,7 @@ class PartProvider constructor(private val context: Context) {
                 "text/plain" -> {
                     try {
                         val data = it.getString("_data")
-                    Part(text = data?.let { getMmsText(partId) } ?: it.getString(TEXT))
+                        Part(text = data?.let { getMmsText(partId) } ?: it.getString(TEXT))
                     }catch (e: FileNotFoundException){
                         Timber.e("Column _data not found! Message:$message PartId:$partId")
                         null
@@ -43,12 +43,14 @@ class PartProvider constructor(private val context: Context) {
                     null
                 }
                 else -> {
+
                     val existingFileNameSuffix = message.toString() + "part" + partId.toString()
                     val existingFileName = if (fileExtension != null) {
                         existingFileNameSuffix + ".${fileExtension}"
                     } else {
                         existingFileNameSuffix
                     }
+                    try {
                     val existingFile = File(folder, existingFileName)
 
                     val file = if(!existingFile.exists()){
@@ -66,9 +68,6 @@ class PartProvider constructor(private val context: Context) {
                     val mediaThumbnailSize: Pair<Int, Int>? =
                         extractMediaDimensions(mimetype, file)
 
-                    try {
-
-
                         Part(
                             attachment = Attachment(
                                 mime_type = mimetype,
@@ -79,7 +78,7 @@ class PartProvider constructor(private val context: Context) {
                             )
                         )
                     }catch (e: FileNotFoundException){
-                        Timber.e("Couldn't write $URI_PART/$partId to file: ${file.absolutePath} ")
+                        Timber.e("Couldn't write $URI_PART/$partId to file: $existingFileName. ${e.message}")
                         null
                     }
                 }
