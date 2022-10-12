@@ -7,6 +7,7 @@ import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.provider.Telephony
 import android.provider.Telephony.Threads
 import androidx.core.content.ContextCompat
+import com.beeper.sms.Log
 import com.beeper.sms.commands.incoming.GroupMessaging
 import java.io.File
 
@@ -37,7 +38,12 @@ fun Context.getThread(recipients: List<String>) = try {
 }
 
 val Context.isDefaultSmsApp: Boolean
-    get() = packageName == Telephony.Sms.getDefaultSmsPackage(this)
+    get()  {
+        val defaultSmsPackageName = Telephony.Sms.getDefaultSmsPackage(this)
+        Log.d("isDefaultSmsApp","PackageName: $packageName," +
+                " DefaultSMSPackageName: $defaultSmsPackageName")
+        return packageName == defaultSmsPackageName
+    }
 
 
 val Context.hasPermissions: Boolean
@@ -45,3 +51,4 @@ val Context.hasPermissions: Boolean
 
 val SMS_PERMISSIONS = listOf(READ_SMS, SEND_SMS, READ_CONTACTS)
 val DUAL_SIM_PERMISSION = listOf(READ_PHONE_STATE)
+
