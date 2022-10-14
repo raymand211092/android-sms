@@ -8,4 +8,5 @@ data class ContactInfo(
     val starred: Boolean = false,
     val avatarUri: Uri? = null,
     val phoneNumbers: List<String> = listOf(),
+    val phoneTypes: List<String> = listOf()
 )

@@ -72,13 +72,16 @@ class ContactProvider constructor(private val context: Context) {
             )?.use {
                 if (it.moveToFirst()) {
                         val favorite = it.getInt(StructuredName.STARRED) > 0
-                        val phoneNumbers: List<String> = fetchPhoneNumbers(contactId)
+                        val phoneDetails = fetchPhoneDetails(contactId)
+                        val phoneTypes = phoneDetails.first
+                        val phoneNumbers = phoneDetails.second
                         return@withContext ContactInfoCache(
                             contact_id = contactId,
                             display_name  = it.getString(StructuredName.DISPLAY_NAME_PRIMARY)
                                 ?: phoneNumbers.firstOrNull() ?: contactId.toString(),
                             starred = favorite,
                             phone_numbers = phoneNumbers.joinToString(";"),
+                            phone_types = phoneTypes.joinToString(";")
                         )
                 }
             }
@@ -112,19 +115,20 @@ class ContactProvider constructor(private val context: Context) {
                         val contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, contactId)
                         val hasPhoneNumber = it.getInt(StructuredName.HAS_PHONE_NUMBER)
                         val favorite = it.getInt(StructuredName.STARRED) > 0
-                        val phoneNumbers: List<String> = if (hasPhoneNumber > 0) {
-                            fetchPhoneNumbers(contactId)
-                        } else mutableListOf()
+                        val phoneDetails = if (hasPhoneNumber > 0) {
+                            fetchPhoneDetails(contactId)
+                        } else Pair(listOf(), listOf())
                         result.add(ContactInfo(
                             contactId = contactId,
                             name = it.getString(StructuredName.DISPLAY_NAME_PRIMARY)
-                                ?: phoneNumbers.firstOrNull() ?: contactId.toString(),
+                                ?: phoneDetails.second.firstOrNull() ?: contactId.toString(),
                             starred = favorite,
                             avatarUri = Uri.withAppendedPath(
                                 contactUri,
                                 Contacts.Photo.CONTENT_DIRECTORY
                             ),
-                            phoneNumbers = phoneNumbers,
+                            phoneNumbers = phoneDetails.second,
+                            phoneTypes = phoneDetails.first
                         ))
                     } while (it.moveToNext())
                 }
@@ -142,15 +146,17 @@ class ContactProvider constructor(private val context: Context) {
 
 
     @SuppressLint("Range")
-    private suspend fun fetchPhoneNumbers(contactId: Long): List<String> {
+    private suspend fun fetchPhoneDetails(contactId: Long): Pair<List<String>, List<String>> {
         return withContext(Dispatchers.IO) {
-            val result: MutableList<String> = mutableListOf()
-            val phoneNumberProjection = arrayOf(
+            val phoneNumbers: MutableList<String> = mutableListOf()
+            val types: MutableList<String> = mutableListOf()
+            val phoneDetailsProjection = arrayOf(
                 Phone.NUMBER,
+                Phone.TYPE
             )
             cr.query(
                 Phone.CONTENT_URI,
-                phoneNumberProjection,
+                phoneDetailsProjection,
                 "${Phone.CONTACT_ID} = ?",
                 arrayOf(contactId.toString()),
                 null
@@ -162,17 +168,22 @@ class ContactProvider constructor(private val context: Context) {
                             Log.v(TAG,"NumberColumnIndex: $numberColumnIndex, " +
                                     "contactId: $contactId")
                             val number = it.getString(numberColumnIndex)
+                            val typeColumnIndex = it.getColumnIndex(Phone.TYPE)
+                            val type = it.getInt(typeColumnIndex)
+                            val typeLabel = Phone.getTypeLabel(context.resources, type, "")
+
                             Log.v(TAG,"is number null: ${number == null}," +
                                     " is number blank: ${number.isNullOrBlank()}")
                             Log.v(TAG,"Fetched a phone number for contactId: $contactId")
-                            result.add(number)
+                            phoneNumbers.add(number)
+                            types.add(typeLabel.toString())
                         } catch(e : NullPointerException){
                             Log.e(TAG,"Couldn't fetch phone number for contactId: $contactId")
                         }
                     } while (it.moveToNext())
                 }
             }
-            result
+            Pair(types, phoneNumbers)
         }
     }
 
