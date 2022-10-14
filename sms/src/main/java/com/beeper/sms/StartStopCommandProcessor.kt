@@ -273,7 +273,11 @@ class StartStopCommandProcessor constructor(
                     MessageBridgeResult::class.java
                 )
                 Log.d(TAG + "syncWindowScope",
-                    "handles bridging result for this message ${data.message_guid} chat: ${data.chat_guid}")
+                    "handles bridging result for this message ${data.message_guid} " +
+                            "chat: ${data.chat_guid} " +
+                            " event_id: ${data.event_id}" +
+                            " success: ${data.success}"
+                )
 
                 //handles the result -> i.e:Stores the message in the bridged messages database
                 Log.v(TAG, "message_bridge_result: $command")
