@@ -169,7 +169,8 @@ abstract class MmsSent : MmsSentReceiver() {
         val bridgedMessage = BridgedMessage(
             guid,
             rowId,
-            isMms
+            isMms,
+            null
         )
 
         if(syncWindowState == SyncWindowState.Running){

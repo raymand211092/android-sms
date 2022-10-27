@@ -42,7 +42,6 @@ class InboxPreviewProvider constructor(
         }else{
             Log.d(TAG, "markMessagesInThreadAsRead read message " +
                     "is not the same as the preview $previewForMessageId $messageId")
-
         }
     }
 

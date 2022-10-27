@@ -9,6 +9,8 @@ import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.incoming.GroupMessaging.Companion.removeSMSGuidPrefix
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageInfo
+import com.beeper.sms.database.BridgeDatabase
+import com.beeper.sms.database.models.BridgedMessageDao
 import timber.log.Timber
 
 class MessageProvider constructor(
@@ -17,6 +19,18 @@ class MessageProvider constructor(
     private val mmsProvider: MmsProvider = MmsProvider(context),
 ) {
 
+    fun getMessageByEventId(eventId: String): Message? {
+        val bridgedMessage = BridgeDatabase.getInstance(context)
+            .bridgedMessageDao().getByEventId(eventId)
+        if(bridgedMessage != null){
+            return if(bridgedMessage.is_mms){
+                mmsProvider.getMessage(Uri.parse("content://mms/" + bridgedMessage.message_id))
+            }else{
+                smsProvider.getMessage(Uri.parse("content://sms/" + bridgedMessage.message_id))
+            }
+        }
+        return null
+    }
     fun getMessage(uri: Uri?): Message? = uri?.let {
         if (it.isMms) mmsProvider.getMessage(it) else smsProvider.getMessage(it)
     }

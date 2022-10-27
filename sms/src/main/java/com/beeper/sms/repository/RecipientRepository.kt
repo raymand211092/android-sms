@@ -14,15 +14,12 @@ import com.beeper.sms.provider.ContactRow
 import com.beeper.sms.provider.ContactInfo
 import com.beeper.sms.provider.GuidProvider
 import com.beeper.sms.work.startstop.SyncWindow
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 
 
 class RecipientRepository(
@@ -63,6 +60,14 @@ class RecipientRepository(
 
 
     fun getContact(phone: String): ContactRow = contactProvider.getRecipientInfo(phone).first
+
+    fun getContactSync(recipientId: Long): RecipientCache? {
+        return runBlocking {
+            return@runBlocking withContext(Dispatchers.IO) {
+                return@withContext getContact(recipientId)
+            }
+        }
+    }
 
     suspend fun getContact(recipientId: Long): RecipientCache? {
         val loadedRecipient = recipientCacheDao.getContact(recipientId)

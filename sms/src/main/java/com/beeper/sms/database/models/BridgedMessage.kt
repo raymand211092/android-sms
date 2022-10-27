@@ -1,5 +1,6 @@
 package com.beeper.sms.database.models
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -8,5 +9,6 @@ import androidx.room.PrimaryKey
 data class BridgedMessage(
     val chat_guid: String,
     val message_id: Long,
-    val is_mms: Boolean
+    val is_mms: Boolean,
+    val event_id: String?,
 )

@@ -17,6 +17,9 @@ import timber.log.Timber
 
 abstract class MmsReceived : MmsReceivedReceiver() {
     abstract fun mapMessageToInboxPreviewCache(message: Message): InboxPreviewCache
+
+    abstract fun showSMSNotification(message: Message)
+
     override fun onMessageReceived(context: Context?, uri: Uri?) {
         com.beeper.sms.Log.d(TAG, "a new MMS message was received")
 
@@ -31,6 +34,7 @@ abstract class MmsReceived : MmsReceivedReceiver() {
                 inboxPreviewProvider.update(
                     preview
                 )
+                showSMSNotification(loadedMessage)
             }
 
             val syncWindowState = StartStopBridge.INSTANCE.syncWindowState.value

@@ -11,8 +11,8 @@ import com.beeper.sms.database.models.*
     BridgedChatThread::class, BridgedMessage::class, BridgedReadReceipt::class,
     PendingReadReceipt::class, InboxPreviewCache::class, ChatThreadMetadataCache::class,
     RecipientCache::class, PendingRecipientUpdate::class, ContactInfoCache::class,
-    PendingSendResponse::class, SmsThreadMatrixRoomRelation::class],
-    version = 10, autoMigrations = [
+    PendingSendResponse::class, SmsThreadMatrixRoomRelation::class, SMSNotificationInfo::class],
+    version = 11, autoMigrations = [
         AutoMigration (from = 1, to = 2),
         AutoMigration (from = 2, to = 3),
         AutoMigration (from = 3, to = 4),
@@ -21,7 +21,8 @@ import com.beeper.sms.database.models.*
         AutoMigration (from = 6, to = 7),
         AutoMigration (from = 7, to = 8),
         AutoMigration (from = 8, to = 9),
-        AutoMigration (from = 9, to = 10)
+        AutoMigration (from = 9, to = 10),
+        AutoMigration (from = 10, to = 11)
     ],
     exportSchema = true
 )
@@ -41,6 +42,7 @@ abstract class BridgedEntitiesDatabase : RoomDatabase() {
     abstract fun contactInfoCacheDao(): ContactInfoCacheDao
     abstract fun pendingSendResponseDao(): PendingSendResponseDao
     abstract fun nativeThreadMatrixRoomRelationDao(): SmsThreadMatrixRoomRelationDao
+    abstract fun notificationInfoDao(): SMSNotificationInfoDao
 
 }
 
