@@ -8,7 +8,6 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Binder
 import android.provider.Telephony
-import android.provider.Telephony.BaseMmsColumns.MESSAGE_BOX
 import android.provider.Telephony.Sms.*
 import android.telephony.SmsMessage
 import android.text.TextUtils
@@ -20,7 +19,6 @@ import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageInfo
 import com.beeper.sms.commands.outgoing.MessageStatus
 import com.beeper.sms.extensions.*
-import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -85,7 +83,6 @@ class SmsProvider constructor(context: Context) {
                 THREAD_ID,
                 DATE,
                 ADDRESS,
-                CREATOR,
                 READ,
                 TYPE,
                 SUBJECT,
@@ -137,8 +134,6 @@ class SmsProvider constructor(context: Context) {
             return null
         }
 
-        val creator = it.getString(CREATOR)
-
         Timber.d("messageInfoMapper thread_id: $threadId timestamp: $timestamp")
 
         return MessageInfo(
@@ -146,8 +141,6 @@ class SmsProvider constructor(context: Context) {
             timestamp,
             chatGuid,
             uri,
-            creator,
-            creator == packageName,
             isRead,
             threadId.toString()
         )
@@ -179,7 +172,6 @@ class SmsProvider constructor(context: Context) {
             rowId = rowId,
             uri = uri,
             subId = it.getIntOrNull(SUBSCRIPTION_ID),
-            creator = messageInfo.creator,
             messageStatus = messageStatus,
             is_read = messageInfo.is_read
         )

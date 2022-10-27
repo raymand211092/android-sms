@@ -38,14 +38,9 @@ class SendMessage constructor(
             Log.e(TAG, "Failed to find $uri")
             return Result.failure()
         }
-        if (message.creator == context.applicationInfo.packageName) {
-            Log.e(TAG, "Message originated from Matrix: $uri")
-            return Result.success()
-        }
         if (message.is_from_me &&
             message.is_mms &&
-            message.resp_st == null &&
-            message.creator == "com.android.mms.service"
+            message.resp_st == null
         ) {
             Log.w(TAG, "Retrying $uri because resp_st=${message.resp_st}")
             return Result.retry()
