@@ -39,7 +39,7 @@ class DatabaseSyncWork constructor(
                     ?.map { it.asString }
                     ?: emptyList()
             messageList
-                .filterNot { it.sent_from_matrix || ids.contains(it.guid) }
+                .filterNot { ids.contains(it.guid) }
                 .also { Log.d(TAG, "bridging ${it.size} messages: $it") }
                 .forEach { workManager.longRunningSendMessage(it.uri) }
         }

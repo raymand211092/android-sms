@@ -1,15 +1,12 @@
 package com.beeper.sms.provider
 
 import android.content.ContentUris
-import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.net.Uri
-import android.provider.Telephony
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.Log
-import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.Message
@@ -104,7 +101,6 @@ class MmsProvider constructor(
             projection = listOf(
                 _ID,
                 THREAD_ID,
-                CREATOR,
                 DATE,
                 MESSAGE_BOX,
                 READ,
@@ -134,7 +130,6 @@ class MmsProvider constructor(
             Log.e(TAG, "Error generating guid for $thread")
             return null
         }
-        val creator = it.getString(CREATOR)
 
         Timber.d("messageInfoMapper thread_id: $thread timestamp: $timestamp")
 
@@ -143,8 +138,6 @@ class MmsProvider constructor(
             timestamp,
             chatGuid,
             uri,
-            creator,
-            creator == packageName,
             isRead,
             thread.toString()
         )
@@ -179,7 +172,6 @@ class MmsProvider constructor(
             attachments = attachments.mapNotNull { a -> a.attachment },
             is_mms = true,
             resp_st = it.getIntOrNull(RESPONSE_STATUS),
-            creator = messageInfo.creator,
             rowId = rowId,
             uri = uri,
             subId = it.getIntOrNull(SUBSCRIPTION_ID),
