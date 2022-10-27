@@ -17,6 +17,9 @@ import kotlinx.coroutines.runBlocking
 
 abstract class SmsReceived : BroadcastReceiver() {
     abstract fun mapMessageToInboxPreviewCache(message: Message): InboxPreviewCache
+
+    abstract fun showSMSNotification(message: Message)
+
     abstract fun startSyncWindow()
     override fun onReceive(context: Context, intent: Intent) {
         com.beeper.sms.Log.d(TAG, "a new SMS message was received")
@@ -38,6 +41,7 @@ abstract class SmsReceived : BroadcastReceiver() {
             inboxPreviewProvider.update(
                 preview
             )
+            showSMSNotification(loadedMessage)
         }
 
         val syncWindowState = StartStopBridge.INSTANCE.syncWindowState.value

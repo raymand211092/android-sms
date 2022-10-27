@@ -13,6 +13,8 @@ interface BridgedMessageDao {
         message_id : Long
     ): Boolean
 
+    @Query("SELECT * FROM bridgedmessage WHERE event_id = :eventId")
+    fun getByEventId(eventId : String): BridgedMessage?
 
     @Query("SELECT DISTINCT chat_guid FROM bridgedmessage")
     fun getBridgedChats(): List<String>?

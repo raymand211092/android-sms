@@ -474,14 +474,9 @@ class StartStopBridge private constructor() {
     }
 
     fun markMessageAsRead(message_guid: String, context: Context){
-        //val databaseInstance = BridgeDatabase.getInstance(context)
-        //val inboxPreviewCacheDao = databaseInstance.inboxPreviewCacheDao()
-
-        //if(lastMessage != null){
-            val inboxPreviewProvider = InboxPreviewProviderLocator.getInstance(context)
-            Log.v(TAG, "marking message_guid as read: $message_guid")
-            inboxPreviewProvider.markMessagesInThreadAsRead(message_guid)
-                //}
+        val inboxPreviewProvider = InboxPreviewProviderLocator.getInstance(context)
+        Log.v(TAG, "marking message_guid as read: $message_guid")
+        inboxPreviewProvider.markMessagesInThreadAsRead(message_guid)
     }
 
     fun getDBFile(context: Context): File{

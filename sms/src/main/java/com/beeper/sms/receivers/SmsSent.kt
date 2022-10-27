@@ -164,7 +164,8 @@ abstract class SmsSent : SentReceiver() {
                 val bridgedMessage = BridgedMessage(
                     guid,
                     rowId,
-                    isMms
+                    isMms,
+                null
                 )
 
                 StartStopBridge.INSTANCE.forwardSendResponseToBridge(

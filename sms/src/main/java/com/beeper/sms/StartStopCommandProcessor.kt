@@ -296,7 +296,8 @@ class StartStopCommandProcessor constructor(
                     val bridgedMessage = BridgedMessage(
                         data.chat_guid,
                         rowId,
-                        isMms
+                        isMms,
+                        data.event_id
                     )
                     Log.v(TAG, "DB storing bridged message:" +
                             " chat_guid:${bridgedMessage.chat_guid} " +
@@ -396,7 +397,8 @@ class StartStopCommandProcessor constructor(
                                 BridgedMessage(
                                     data.chat_guid,
                                     messageId.toLong(),
-                                    isMms
+                                    isMms,
+                                    null
                                 )
                             )
                     }
@@ -498,7 +500,8 @@ class StartStopCommandProcessor constructor(
                                     BridgedMessage(
                                         data.chat_guid,
                                         messageId.toLong(),
-                                        isMms
+                                        isMms,
+                                        null
                                     )
                                 )
                         }

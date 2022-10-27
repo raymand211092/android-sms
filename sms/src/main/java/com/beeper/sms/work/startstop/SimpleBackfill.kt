@@ -134,7 +134,8 @@ class SimpleBackfill constructor(
                                 BridgedMessage(
                                     chatGuid,
                                     lastSmsRowId,
-                                    false
+                                    false,
+                                    null
                                 )
                             )
                         }
@@ -144,7 +145,8 @@ class SimpleBackfill constructor(
                                 BridgedMessage(
                                     chatGuid,
                                     lastMmsRowId,
-                                    true
+                                    true,
+                                    null
                                 )
                             )
                         }
