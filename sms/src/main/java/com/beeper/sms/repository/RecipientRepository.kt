@@ -1,8 +1,5 @@
 package com.beeper.sms.repository
 
-import android.content.ContentUris
-import android.provider.ContactsContract
-import android.util.Base64
 import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
 import com.beeper.sms.commands.incoming.GroupMessaging.Companion.removeSMSGuidPrefix
@@ -13,7 +10,6 @@ import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.ContactRow
 import com.beeper.sms.provider.ContactInfo
 import com.beeper.sms.provider.GuidProvider
-import com.beeper.sms.work.startstop.SyncWindow
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -105,7 +101,7 @@ class RecipientRepository(
                             val userGuid = recipientCache.phone
 
                             if(userGuid!=null) {
-                                val recipientAddress = GuidProvider.normalizeAddress(userGuid)
+                                val recipientAddress = GuidProvider.transformToServerCompatibleAddress(userGuid)
                                 val recipientContactId = recipientCache.contact_id
                                 val avatar = if(recipientContactId != null) {
                                     contactProvider.getAvatarFromContactId(recipientContactId)

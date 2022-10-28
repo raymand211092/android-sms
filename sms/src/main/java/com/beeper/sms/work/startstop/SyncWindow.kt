@@ -1,9 +1,7 @@
 package com.beeper.sms.work.startstop
 
-import android.content.ContentUris
 import android.content.Context
 import android.os.Build
-import android.provider.ContactsContract
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -277,7 +275,7 @@ class SyncWindow constructor(
                         val contactRow = contactProvider.getRecipientInfoWithInlinedAvatar(
                             userGuid
                         ).first
-                        val address = GuidProvider.normalizeAddress(userGuid)
+                        val address = GuidProvider.transformToServerCompatibleAddress(userGuid)
                         val contact = Contact(
                             "SMS;-;$address",
                             contactRow.first_name,

@@ -267,7 +267,7 @@ class NewChatViewModel(
 
     fun getThreadId(recipients: Set<String>): Long {
         return threadProvider.getOrCreateThreadId(recipients.map{
-            GuidProvider.normalizeAddress(it)
+            GuidProvider.transformToPhoneCompatibleAddress(it)
         }.toSet())
     }
 

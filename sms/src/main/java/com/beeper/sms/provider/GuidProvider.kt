@@ -8,7 +8,6 @@ import androidx.core.net.toUri
 import androidx.core.text.isDigitsOnly
 import com.beeper.sms.extensions.firstOrNull
 import com.beeper.sms.extensions.getString
-import java.net.URLEncoder
 import java.util.*
 
 class GuidProvider constructor(
@@ -42,7 +41,7 @@ class GuidProvider constructor(
         private val URI_ADDRESSES = "${MmsSms.CONTENT_URI}/canonical-addresses".toUri()
         private val EMAIL = Patterns.EMAIL_ADDRESS.toRegex()
 
-        fun normalizeAddress(address : String) : String {
+        fun transformToServerCompatibleAddress(address : String) : String {
             // Return formatted numbers
             PhoneNumberUtils
                 .formatNumberToE164(address, Locale.getDefault().country)
@@ -66,6 +65,20 @@ class GuidProvider constructor(
             }
         }
 
+        fun transformToPhoneCompatibleAddress(address : String) : String {
+            // Return formatted numbers
+            PhoneNumberUtils
+                .formatNumberToE164(address, Locale.getDefault().country)
+                ?.let { return it }
+
+            // Return formatted emails
+            EMAIL.find(address, 0)?.let { return it.value }
+
+            return address.filterNot {
+                it.isWhitespace()
+            }
+        }
+
         fun removeEscapingFromGuid(escapedAddress : String) : String {
             return escapedAddress
                 .replace("%20", " ")
@@ -77,6 +90,6 @@ class GuidProvider constructor(
             get() = listOf(this).chatGuid
 
         val List<String>.chatGuid: String
-            get() = "SMS;${if (size == 1) "-" else "+"};${joinToString(" ") { normalizeAddress(it) }}"
+            get() = "SMS;${if (size == 1) "-" else "+"};${joinToString(" ") { transformToServerCompatibleAddress(it) }}"
     }
 }
