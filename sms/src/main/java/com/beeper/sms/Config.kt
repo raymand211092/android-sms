@@ -12,6 +12,7 @@ data class Config(
         var websocket_proxy: String? = null,
         var domain: String? = null,
         var asmux: Boolean? = null,
+        var software: String? = null,
     )
 
     data class AppService(
