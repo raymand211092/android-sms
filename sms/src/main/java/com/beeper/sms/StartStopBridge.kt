@@ -6,7 +6,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
@@ -23,7 +22,7 @@ import com.beeper.sms.extensions.cacheDirPath
 import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.extensions.mmsDir
-import com.beeper.sms.helpers.newGson
+import com.beeper.sms.helpers.GsonHelper.gson
 import com.beeper.sms.provider.InboxPreviewProviderLocator
 import com.beeper.sms.work.WorkManager
 import kotlinx.coroutines.*
@@ -324,6 +323,15 @@ class StartStopBridge private constructor() {
         )
     }
 
+    internal fun buildBackfillCommand(backfill: Backfill) : Command {
+        return Command(
+            "backfill",
+            data = backfill,
+            requestId.addAndGet(1)
+        )
+    }
+
+
     internal fun buildReadReceiptCommand(readReceipt: ReadReceipt) : Command {
         return Command(
             "read_receipt",
@@ -583,7 +591,6 @@ class StartStopBridge private constructor() {
         private const val NEW_CHAT_THREAD_ID_KEY = "newChatThreadId"
         private const val MAUTRIX_CACHE_SUBDIR = "mautrix"
 
-        private val gson = newGson()
         val INSTANCE = StartStopBridge()
 
         val Process?.running: Boolean

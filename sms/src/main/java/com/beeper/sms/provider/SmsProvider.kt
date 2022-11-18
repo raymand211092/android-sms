@@ -265,6 +265,25 @@ class SmsProvider constructor(context: Context) {
             getSms(uri = uri, where = where, order = order, mapper = mapper, limit = limit)
         }
 
+
+    fun countValidSMSMessagesOnThread(threadId: Long): Int? {
+        val query = cr.query(
+            CONTENT_URI,
+            listOf(
+                _ID,
+                DATE,
+            ).toTypedArray(),
+            "$THREAD_ID = $threadId " +
+                    "AND $TYPE <= $MESSAGE_TYPE_SENT",
+            null,
+            null
+        )
+        query?.use{
+            return it.count
+        }
+        return null
+    }
+
     /**
      * Store a received SMS into Telephony provider
      *

@@ -68,7 +68,7 @@ class SmsMmsSender(
             ?: ByteArray(0)
         Log.d("SMSSendMedia", "$filename $mimeType ${bytes.size}")
 
-        return if(mimeType != null && bytes.size <= MAX_FILE_SIZE && bytes.size >= 0) {
+        return if(mimeType != null && bytes.size <= MAX_FILE_SIZE && bytes.isNotEmpty()) {
             sendMessage(text, recipients, bytes, mimeType, filename, thread, sentMessageParcelable)
         }else{
             Log.e("SMSSendMedia", "conditions to send media weren't met")

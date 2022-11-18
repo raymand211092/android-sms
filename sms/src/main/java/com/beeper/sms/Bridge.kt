@@ -11,7 +11,7 @@ import com.beeper.sms.extensions.cacheDirPath
 import com.beeper.sms.extensions.env
 import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.extensions.mmsDir
-import com.beeper.sms.helpers.newGson
+import com.beeper.sms.helpers.GsonHelper.gson
 import com.beeper.sms.observers.SmsObserver
 import com.google.gson.JsonElement
 import kotlinx.coroutines.*
@@ -186,7 +186,6 @@ class Bridge private constructor() {
     companion object {
         private const val TAG = "Bridge"
         private const val DEFAULT_CHANNEL_ID = "sms_bridge_service"
-        private val gson = newGson()
         val INSTANCE = Bridge()
 
         val Process?.running: Boolean

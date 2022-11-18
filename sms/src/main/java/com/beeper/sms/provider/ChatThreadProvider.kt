@@ -48,10 +48,47 @@ class ChatThreadProvider constructor(
             cursor?.use {
                 while (it.moveToNext()) {
                     val id = it.getLong(Telephony.Threads._ID)
+                    val messageCount = it.getLong(Telephony.Threads.MESSAGE_COUNT)
+                    Timber.d("SMS- InfiniteBackfill threadId: $id Message count: $messageCount")
                     threadIds.add(id)
                 }
             }
             threadIds.toList()
+        }
+    }
+
+    data class ThreadToBackfill(val threadId: Long, val messageCount: Int, val newestMessageDate: Long)
+    suspend fun getThreadsToBackfill(): List<ThreadToBackfill> {
+        return withContext(Dispatchers.IO) {
+            val uri = Uri.parse("${Telephony.Threads.CONTENT_URI}?simple=true")
+            val projection = arrayOf(
+                Telephony.Threads._ID,
+                Telephony.Threads.MESSAGE_COUNT,
+                )
+            val selection =
+                "${Telephony.Threads._ID} >= 0 AND ${Telephony.Threads.MESSAGE_COUNT} > 0"
+            val sortOrder = "${Telephony.Threads._ID} DESC"
+            val cursor =
+                context.contentResolver.query(uri, projection, selection, null, sortOrder)
+            val threadsToBackfill = mutableListOf<ThreadToBackfill>()
+            val messageProvider = MessageProvider(context)
+            cursor?.use {
+                while (it.moveToNext()) {
+                    val id = it.getLong(Telephony.Threads._ID)
+                    val messageCount = messageProvider.getMessageCountForThread(id)
+                    val lastMessage = messageProvider.getLastMessage(id)
+
+
+                    val newestMessageDate = lastMessage?.timestamp?.toMillis()?.toLong()
+                    if(newestMessageDate != null) {
+                        Timber.d("SMS- InfiniteBackfill threadId: $id Message count: $messageCount")
+                        threadsToBackfill.add(ThreadToBackfill(id, messageCount, newestMessageDate))
+                    }else{
+                        Timber.w("SMS- InfiniteBackfill no message found for threadId: $id -> skipping")
+                    }
+                }
+            }
+            threadsToBackfill.toList()
         }
     }
 

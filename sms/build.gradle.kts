@@ -9,7 +9,7 @@ plugins {
 object Version {
     const val major = 0
     const val minor = 2
-    const val patch = 149
+    const val patch = 150
 }
 
 android {
@@ -17,7 +17,7 @@ android {
     buildToolsVersion = "31.0.0"
 
     defaultConfig {
-        minSdk = 23
+        minSdk = 21
         targetSdk = 31
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

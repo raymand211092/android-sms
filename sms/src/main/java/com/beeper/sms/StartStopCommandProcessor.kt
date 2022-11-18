@@ -21,7 +21,9 @@ import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
 import com.beeper.sms.extensions.getTimeMilliseconds
 import com.beeper.sms.extensions.hasPermissions
-import com.beeper.sms.helpers.newGson
+import com.beeper.sms.helpers.GsonHelper
+import com.beeper.sms.helpers.dataTree
+import com.beeper.sms.helpers.deserialize
 import com.beeper.sms.provider.*
 import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import com.beeper.sms.provider.MmsProvider.Companion.MMS_PREFIX
@@ -47,7 +49,6 @@ class StartStopCommandProcessor constructor(
     private val coroutineContext: CoroutineContext
 ) {
     val scope = CoroutineScope(coroutineContext)
-    private val firstTimestampForChatGuid = mutableMapOf<String, TimeSeconds>()
     private val chatThreadProvider = ChatThreadProvider(context)
 
 
@@ -65,7 +66,7 @@ class StartStopCommandProcessor constructor(
 
     fun inputToCommand(input: String) : Command {
         Log.v(TAG, input)
-        return gson.fromJson(input, Command::class.java)
+        return GsonHelper.gson.fromJson(input, Command::class.java)
     }
 
 
@@ -74,22 +75,19 @@ class StartStopCommandProcessor constructor(
             Log.d(TAG, "answerPreStartupSync: $command")
             pushKey?.let { bridge.send(Command("push_key", it)) }
 
-            val isBackfilled = bridge.getBackfillingState(context)
-            Log.d(TAG,"answerPreStartupSync SkipSync = $isBackfilled")
+            val skipSync = bridge.getBackfillingState(context)
+            Log.d(TAG,"answerPreStartupSync SkipSync = $skipSync")
 
             bridge.send(
                 Command(
                     "response",
                     // Skipping startup sync
-                    StartupSyncHookResponse(skip_sync = isBackfilled),
+                    StartupSyncHookResponse(skip_sync = skipSync),
                     command.id
                 )
             )
         }
     }
-
-
-
     suspend fun handlePortalSyncScopedCommands(command: Command) {
         when (command.command) {
             "get_chat" -> {
@@ -404,37 +402,6 @@ class StartStopCommandProcessor constructor(
                     }
                 }
             }
-            "get_recent_messages" -> {
-                Log.d(TAG, "receive: $command")
-                /*val data = deserialize(command,GetRecentMessages::class.java)
-                val threadId = context.getThread(data)
-                val limitTimestamp = firstTimestampForChatGuid[data.chat_guid]
-                if(limitTimestamp == null){
-                    val messages = messageProvider.getRecentMessages(threadId, data.limit.toInt())
-                    bridge.send(Command("response", messages, command.id))
-                }else{
-                    val messages =
-                        messageProvider.getRecentMessages(threadId, data.limit.toInt())
-                    Log.d(TAG + "syncWindowScope",
-                        "get_recent_messages messages, chat_guid: ${data.chat_guid}" +
-                                "   ${messages.map {
-                                    it.guid
-                                }}")
-                    val filteredMessages = messages.filter {
-                        it.timestamp < limitTimestamp
-                    }
-
-                    Log.d(TAG + "syncWindowScope",
-                        "get_recent_messages filteredMessages, chat_guid: ${data.chat_guid}" +
-                                "   ${filteredMessages.map {
-                                    it.guid
-                                }}")
-                    bridge.send(Command("response", listOf<Message>(), command.id))
-                }*/
-                // Not answering recent messages on a SyncWindow ->
-                Log.d(TAG, "Not answering recent messages on a SyncWindow: BRI-5105")
-                bridge.send(Command("response", listOf<Message>(), command.id))
-            }
             "send_media" -> {
                 debugPrintCommand(TAG + "syncWindowScope",command)
                 if (!context.hasPermissions) {
@@ -586,6 +553,29 @@ class StartStopCommandProcessor constructor(
         }
     }
 
+    suspend fun awaitForBackfillResult(chatGuid : String, timeoutMillis: Long) : BackfillResult?{
+        return withTimeoutOrNull(timeoutMillis) {
+            val completableDeferred = CompletableDeferred<Command>()
+            val job = commandsReceived.onEach {
+                if (it.command == "backfill_result") {
+                    val data = deserialize(
+                        it,
+                        BackfillResult::class.java
+                    )
+                    if (data.chat_guid == chatGuid) {
+                        completableDeferred.complete(it)
+                    }
+                }
+            }.launchIn(scope)
+            val command = completableDeferred.await()
+            job.cancel()
+            deserialize(
+                command,
+                BackfillResult::class.java
+            )
+        }
+    }
+
 
     suspend fun sendChatCommandAndAwaitForResponse(chat: Chat, timeoutMillis: Long) : Unit?{
         return withTimeoutOrNull(timeoutMillis) {
@@ -607,13 +597,12 @@ class StartStopCommandProcessor constructor(
 
     fun sendMessageCommand(message: Message) {
         val messageCommand = bridge.buildMessageCommand(message)
-        // Adds the limit timestamp for a chat_guid if it is not bridged yet
-        // If we don't do this messages on a new chat will not generate notifications
-        if(firstTimestampForChatGuid[message.chat_guid] == null){
-            firstTimestampForChatGuid[message.chat_guid] = message.timestamp
-        }
-
         bridge.send(messageCommand)
+    }
+
+    fun sendBackfillCommand(backfill: Backfill) {
+        val backfillCommand = bridge.buildBackfillCommand(backfill)
+        bridge.send(backfillCommand)
     }
 
     fun fulfillGetContactRequests() : Job{
@@ -648,6 +637,7 @@ class StartStopCommandProcessor constructor(
             }else {
 
                 val chat = Chat(chatGuid,
+                    threadId.toString(),
                     chatThread.getTitleFromMembers(),
                     chatThread.members.values.mapNotNull {
                         it.phoneNumber?.chatGuid
@@ -657,7 +647,7 @@ class StartStopCommandProcessor constructor(
                 val chatBridged =
                     bridge.commandProcessor.sendChatCommandAndAwaitForResponse(
                         chat,
-                        10000
+                        60000
                     )
 
                 if (chatBridged != null) {
@@ -739,13 +729,6 @@ class StartStopCommandProcessor constructor(
         }
     }
 
-    private val Command.dataTree: JsonElement
-        get() = gson.toJsonTree(data)
-
-    fun <T>deserialize(command: Command,c: Class<T>): T =
-        gson.fromJson(command.dataTree, c)
-            .apply { Log.d(TAG, "receive #${command.id}: $this") }
-
     private fun noPermissionError(commandId: Int) {
         bridge.send(
             commandId,
@@ -761,6 +744,5 @@ class StartStopCommandProcessor constructor(
 
     companion object {
         const val TAG = "StartStopCommandProcessor"
-        private val gson = newGson()
     }
 }

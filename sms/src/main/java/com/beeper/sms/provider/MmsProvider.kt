@@ -4,6 +4,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
 import android.net.Uri
+import android.provider.Telephony
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.Log
@@ -261,6 +262,25 @@ class MmsProvider constructor(
         getMmsMetadata(
             where = "$_ID >= $initialId ",
         )
+
+
+    fun countValidMMSMessagesOnThread(threadId: Long): Int? {
+        val query = cr.query(
+            CONTENT_URI,
+            listOf(
+                _ID,
+            ).toTypedArray(),
+            "$THREAD_ID = $threadId " +
+                    //FILTER ONLY FOR ALREADY RECEIVED OR DELIVERED MMS
+                    "AND $MESSAGE_BOX <= $MESSAGE_BOX_SENT ",
+            null,
+            null
+        )
+        query?.use{
+            return it.count
+        }
+        return null
+    }
 
     private fun <T> getDistinctMms(
         where: String,

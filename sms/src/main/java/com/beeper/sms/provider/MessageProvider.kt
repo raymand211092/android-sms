@@ -39,6 +39,12 @@ class MessageProvider constructor(
         if (it.isMms) mmsProvider.getMessageInfo(it) else smsProvider.getMessageInfo(it)
     }
 
+    fun getMessageCountForThread(threadId: Long): Int {
+        val smsCount = smsProvider.countValidSMSMessagesOnThread(threadId) ?: 0
+        val mmsCount = mmsProvider.countValidMMSMessagesOnThread(threadId) ?: 0
+        return smsCount + mmsCount
+    }
+
     fun getActiveChats(timestampSeconds: TimeSeconds): List<MessageInfo> =
         smsProvider.getActiveChats(timestampSeconds.toMillis())
             .plus(mmsProvider.getActiveChats(timestampSeconds))
@@ -92,7 +98,8 @@ class MessageProvider constructor(
     fun getConversationMessagesBefore(thread: Long, timestampSeconds: TimeSeconds,  limit: Int): List<Message> =
         smsProvider.getMessagesBeforeWithLimit(thread, timestampSeconds.toMillis(), limit)
             .plus(mmsProvider.getMessagesBeforeWithLimitIncludingTimestamp(thread, timestampSeconds, limit))
-            .sortedBy { it.timestamp }
+            .sortedBy { it.timestamp.toMillis().toLong() }
+            .takeLast(limit)
 
     fun getLastReadMessage(chat_guid: String) : Message? {
         val recipients = chat_guid.removeSMSGuidPrefix().split(" ")
