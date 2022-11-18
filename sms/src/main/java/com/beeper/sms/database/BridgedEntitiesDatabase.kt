@@ -11,18 +11,21 @@ import com.beeper.sms.database.models.*
     BridgedChatThread::class, BridgedMessage::class, BridgedReadReceipt::class,
     PendingReadReceipt::class, InboxPreviewCache::class, ChatThreadMetadataCache::class,
     RecipientCache::class, PendingRecipientUpdate::class, ContactInfoCache::class,
-    PendingSendResponse::class, SmsThreadMatrixRoomRelation::class, SMSNotificationInfo::class],
-    version = 11, autoMigrations = [
+    PendingSendResponse::class, SmsThreadMatrixRoomRelation::class, SMSNotificationInfo::class,
+    InfiniteBackfillChatEntry::class],
+    version = 12, autoMigrations = [
         AutoMigration (from = 1, to = 2),
         AutoMigration (from = 2, to = 3),
         AutoMigration (from = 3, to = 4),
-        AutoMigration (from = 4, to = 5, spec = BridgedEntitiesDatabase.ContactCacheMigration::class),
+        AutoMigration (from = 4, to = 5,
+            spec = BridgedEntitiesDatabase.ContactCacheMigration::class),
         AutoMigration (from = 5, to = 6),
         AutoMigration (from = 6, to = 7),
         AutoMigration (from = 7, to = 8),
         AutoMigration (from = 8, to = 9),
         AutoMigration (from = 9, to = 10),
-        AutoMigration (from = 10, to = 11)
+        AutoMigration (from = 10, to = 11),
+        AutoMigration (from = 11, to = 12)
     ],
     exportSchema = true
 )
@@ -43,6 +46,6 @@ abstract class BridgedEntitiesDatabase : RoomDatabase() {
     abstract fun pendingSendResponseDao(): PendingSendResponseDao
     abstract fun nativeThreadMatrixRoomRelationDao(): SmsThreadMatrixRoomRelationDao
     abstract fun notificationInfoDao(): SMSNotificationInfoDao
-
+    abstract fun infiniteBackfillChatEntryDao(): InfiniteBackfillChatEntryDao
 }
 

@@ -42,9 +42,6 @@ data class Config(
         var sync_with_custom_puppets: Boolean? = null,
         var sync_direct_chat_list: Boolean? = null,
         var login_shared_secret: String? = null,
-        var chat_sync_max_age: Float? = null,
-        var initial_backfill_limit: Int? = null,
-        var initial_backfill_disable_notifications: Boolean? = null,
         var periodic_sync: Boolean? = null,
         var find_portals_if_db_empty: Boolean? = null,
         var media_viewer_url: String? = null,
@@ -55,6 +52,13 @@ data class Config(
         var message_status_events: Boolean? = null,
         var max_handle_seconds: Int? = null,
         var device_id: String? = null,
+        var backfill: Backfill? = null,
+        )
+
+    data class Backfill(
+        var initial_limit : Int? = null,
+        var initial_sync_max_age : Float? = null,
+        var msc2716 : Boolean? = null,
     )
 
     data class Encryption(

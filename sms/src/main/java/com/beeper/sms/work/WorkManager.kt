@@ -10,18 +10,29 @@ import com.beeper.sms.work.startstop.ClearData
 import com.beeper.sms.work.startstop.RestartSyncWindow
 import com.beeper.sms.work.startstop.SimpleBackfill
 import com.beeper.sms.work.startstop.SyncWindow
+import com.beeper.sms.work.startstop.infinitebackfill.PeriodicInfiniteBackfillStarter
+import com.beeper.sms.work.startstop.infinitebackfill.PrepareForInfiniteBackfill
 import java.util.concurrent.TimeUnit
 
 class WorkManager constructor(val context: Context) {
     private val workManager = WorkManager.getInstance(context)
 
-    fun enableSMSBridge() {
-        val request : OneTimeWorkRequest = buildSimpleBackfillWorkRequest()
-       workManager.beginUniqueWork(
-            WORK_ENABLE_SMS_BRIDGE,
-            ExistingWorkPolicy.REPLACE,
-            request
-        ).enqueue()
+    fun enableSMSBridge(infiniteBackfill : Boolean = false) {
+        if(!infiniteBackfill) {
+            val request: OneTimeWorkRequest = buildSimpleBackfillWorkRequest()
+            workManager.beginUniqueWork(
+                WORK_ENABLE_SMS_BRIDGE,
+                ExistingWorkPolicy.REPLACE,
+                request
+            ).enqueue()
+        }else{
+            val request: OneTimeWorkRequest = buildInfiniteBackfillPreparationWorkRequest()
+            workManager.beginUniqueWork(
+                WORK_ENABLE_SMS_BRIDGE,
+                ExistingWorkPolicy.REPLACE,
+                request
+            ).enqueue()
+        }
     }
 
     fun startSMSBridgeSyncWindow(inputData: Data = Data.EMPTY) {
@@ -36,6 +47,27 @@ class WorkManager constructor(val context: Context) {
             }
         }else{
             Log.e(TAG,"Can't start a SYNC Window -> Backfill is not complete")
+        }
+    }
+
+    fun cancelPeriodicInfinitBackfillStarter() {
+            Log.d(TAG,"cancelPeriodicInfinitBackfillStarter")
+            workManager.cancelUniqueWork(WORK_SMS_BRIDGE_PERIODIC_BACKFILL_STARTER)
+    }
+
+    fun schedulePeriodicInfiniteBackfillStarter() {
+        val isBackfillComplete = StartStopBridge.INSTANCE.getBackfillingState(context)
+        if(isBackfillComplete) {
+            Log.d(TAG,"schedulePeriodicInfiniteBackfillStarter -> enqueue infinite backfill sync window.")
+            buildPeriodicBackfillStarter().apply {
+                workManager.enqueueUniquePeriodicWork(
+                    WORK_SMS_BRIDGE_PERIODIC_BACKFILL_STARTER,
+                    ExistingPeriodicWorkPolicy.KEEP, this
+                )
+            }
+        }else{
+            Log.e(TAG,"Can't schedule PeriodicInfiniteBackfillStarter ->" +
+                    " preparation didn't finish")
         }
     }
 
@@ -56,6 +88,7 @@ class WorkManager constructor(val context: Context) {
     }
 
     fun disableSMSBridge(deleteBridgeDB: Boolean) {
+        workManager.cancelUniqueWork(WORK_SMS_BRIDGE_PERIODIC_BACKFILL_STARTER)
         workManager.cancelUniqueWork(WORK_SMS_BRIDGE_RETRY_SYNC_WINDOW_WHEN_ONLINE)
         workManager.cancelUniqueWork(WORK_SMS_BRIDGE_SYNC_WINDOW)
         workManager.cancelUniqueWork(WORK_ENABLE_SMS_BRIDGE)
@@ -65,6 +98,7 @@ class WorkManager constructor(val context: Context) {
     }
 
     fun cancelUniqueWorks() {
+        workManager.cancelUniqueWork(WORK_SMS_BRIDGE_PERIODIC_BACKFILL_STARTER)
         workManager.cancelUniqueWork(WORK_SMS_BRIDGE_RETRY_SYNC_WINDOW_WHEN_ONLINE)
         workManager.cancelUniqueWork(WORK_SMS_BRIDGE_SYNC_WINDOW)
         workManager.cancelUniqueWork(WORK_ENABLE_SMS_BRIDGE)
@@ -92,6 +126,18 @@ class WorkManager constructor(val context: Context) {
             .build()
     }
 
+    private fun buildInfiniteBackfillPreparationWorkRequest() : OneTimeWorkRequest {
+        return OneTimeWorkRequest
+            .Builder(PrepareForInfiniteBackfill::class.java)
+            .setBackoffCriteria(
+                RETRY_POLICY,
+                RETRY_INTERVAL_MS,
+                TimeUnit.MILLISECONDS
+            )
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            .build()
+    }
+
     private fun buildSyncWindowWorkRequest(inputData: Data = Data.EMPTY) : OneTimeWorkRequest {
         return OneTimeWorkRequest
             .Builder(SyncWindow::class.java)
@@ -102,6 +148,20 @@ class WorkManager constructor(val context: Context) {
                 TimeUnit.SECONDS
             )
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            .build()
+    }
+
+
+    private fun buildPeriodicBackfillStarter(inputData: Data = Data.EMPTY) :
+            PeriodicWorkRequest {
+        return PeriodicWorkRequestBuilder<PeriodicInfiniteBackfillStarter>(15, TimeUnit.MINUTES)
+            .setInputData(inputData)
+            .setBackoffCriteria(
+                BackoffPolicy.LINEAR,
+                10,
+                TimeUnit.SECONDS
+            )
+            .setConstraints(Constraints.Builder().setRequiresBatteryNotLow(true).build())
             .build()
     }
 
@@ -161,6 +221,8 @@ class WorkManager constructor(val context: Context) {
         private const val WORK_SMS_BRIDGE_SYNC_WINDOW = "sms_bridge_sync_window"
         private const val WORK_SMS_BRIDGE_RETRY_SYNC_WINDOW_WHEN_ONLINE =
             "sms_bridge_schedule_sync_window_when_online"
+        private const val WORK_SMS_BRIDGE_PERIODIC_BACKFILL_STARTER =
+            "sms_bridge_periodic_backfill_starter"
         private const val WORK_LONG_RUNNING_SYNC_DB = "sync_db"
         private const val TAG = "SMSWorkManager"
         val RETRY_POLICY = BackoffPolicy.LINEAR

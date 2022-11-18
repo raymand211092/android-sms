@@ -14,7 +14,7 @@ import com.beeper.sms.extensions.getSharedPreferences
 import com.beeper.sms.extensions.getThread
 import com.beeper.sms.extensions.getTimeMilliseconds
 import com.beeper.sms.extensions.hasPermissions
-import com.beeper.sms.helpers.newGson
+import com.beeper.sms.helpers.GsonHelper.gson
 import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.GuidProvider
 import com.beeper.sms.provider.MessageProvider
@@ -221,6 +221,5 @@ class CommandProcessor constructor(
 
     companion object {
         private const val TAG = "CommandProcessor"
-        private val gson = newGson()
     }
 }
