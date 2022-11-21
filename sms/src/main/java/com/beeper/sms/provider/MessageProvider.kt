@@ -10,7 +10,6 @@ import com.beeper.sms.commands.incoming.GroupMessaging.Companion.removeSMSGuidPr
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageInfo
 import com.beeper.sms.database.BridgeDatabase
-import com.beeper.sms.database.models.BridgedMessageDao
 import timber.log.Timber
 
 class MessageProvider constructor(
@@ -91,12 +90,12 @@ class MessageProvider constructor(
             .takeLast(limit)
 
     fun getConversationMessagesAfter(thread: Long, timestampSeconds: TimeSeconds, limit: Int): List<Message> =
-        smsProvider.getMessagesAfterWithLimit(thread, timestampSeconds.toMillis(), limit)
+        smsProvider.getMessagesAfterWithLimitIncludingTimestamp(thread, timestampSeconds.toMillis(), limit)
             .plus(mmsProvider.getMessagesAfterWithLimitIncludingTimestamp(thread, timestampSeconds, limit))
             .sortedBy { it.timestamp }
 
     fun getConversationMessagesBefore(thread: Long, timestampSeconds: TimeSeconds,  limit: Int): List<Message> =
-        smsProvider.getMessagesBeforeWithLimit(thread, timestampSeconds.toMillis(), limit)
+        smsProvider.getMessagesBeforeWithLimitIncludingTimestamp(thread, timestampSeconds.toMillis(), limit)
             .plus(mmsProvider.getMessagesBeforeWithLimitIncludingTimestamp(thread, timestampSeconds, limit))
             .sortedBy { it.timestamp.toMillis().toLong() }
             .takeLast(limit)
