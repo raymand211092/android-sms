@@ -20,7 +20,6 @@ class InboxPreviewProvider constructor(
     private val inboxPreviewCacheDao: InboxPreviewCacheDao,
     val chatThreadProvider: ChatThreadProvider,
     val messageProvider: MessageProvider,
-
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private val mutPreviewCacheChanges = MutableSharedFlow<EntityChange<InboxPreviewCache>>(0, 100,BufferOverflow.DROP_OLDEST)
@@ -178,45 +177,55 @@ class InboxPreviewProvider constructor(
             val previews = mutableListOf<InboxPreviewCache>()
             Log.d(TAG, "cache debug: Started load chat previews for: $threadIds")
 
-            threadIds.onEach { threadId ->
-                val cachedChatThread = inboxPreviewCacheDao.getPreviewForChatByThreadId(threadId)
-                if (cachedChatThread != null) {
-                    Log.v(TAG, " InboxPreview cache debug: returning cached threadId:$threadId")
-                    previews.add(cachedChatThread)
-                    launch {
-                        refreshCacheFor(threadId, cachedChatThread, mapMessageToInboxPreview)
-                    }
-                } else {
-                    Log.v(
-                        TAG,
-                        "cache debug: didn't find threadId:$threadId in cache -> loading in Android's DB"
-                    )
-                    val chatThread = chatThreadProvider.getThread(threadId)
-                    if (chatThread != null) {
-                        val lastMessage = messageProvider.getLastMessage(
-                            threadId
+            threadIds.map {
+                threadId ->
+                async {
+                    val cachedChatThread = inboxPreviewCacheDao.getPreviewForChatByThreadId(threadId)
+                    if (cachedChatThread != null) {
+                        Log.v(TAG, " InboxPreview cache debug: returning cached threadId:$threadId")
+                        previews.add(cachedChatThread)
+                        mutPreviewCacheChanges.tryEmit(
+                            EntityChange.Update(
+                                cachedChatThread
+                            )
                         )
-                        if (lastMessage != null) {
-                            val newPreview = mapMessageToInboxPreview(
-                                lastMessage
-                            )
-                            Log.v(
-                                TAG, "cache debug: inserting new inbox" +
-                                        " preview threadId:${newPreview.thread_id}"
-                            )
-                            update(newPreview)
-                            previews.add(newPreview)
-                        } else {
-                            Log.e(
-                                TAG,
-                                "cache debug: null lastMessage ${chatThread.recipientIds}" +
-                                        "title: ${chatThread.getTitleFromMembers()} "
-                            )
+                        launch(Dispatchers.Default) {
+                            refreshCacheFor(threadId, cachedChatThread, mapMessageToInboxPreview)
                         }
                     } else {
-                        Log.e(TAG, "cache debug: null chatThread")
+                        Log.v(
+                            TAG,
+                            "cache debug: didn't find threadId:$threadId in cache -> loading in Android's DB"
+                        )
+                        val chatThread = chatThreadProvider.getThread(threadId)
+                        if (chatThread != null) {
+                            val lastMessage = messageProvider.getLastMessage(
+                                threadId
+                            )
+                            if (lastMessage != null) {
+                                val newPreview = mapMessageToInboxPreview(
+                                    lastMessage
+                                )
+                                Log.v(
+                                    TAG, "cache debug: inserting new inbox" +
+                                            " preview threadId:${newPreview.thread_id}"
+                                )
+                                update(newPreview)
+                                previews.add(newPreview)
+                            } else {
+                                Log.e(
+                                    TAG,
+                                    "cache debug: null lastMessage ${chatThread.recipientIds}" +
+                                            "title: ${chatThread.getTitleFromMembers()} "
+                                )
+                            }
+                        } else {
+                            Log.e(TAG, "cache debug: null chatThread")
+                        }
                     }
                 }
+            }.onEach {
+                it.await()
             }
 
             Log.v(TAG, "cache debug: Finished loading chat previews")

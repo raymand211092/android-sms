@@ -57,25 +57,33 @@ class MessageProvider constructor(
             .distinctBy { it.guid }
             .sortedBy { it.timestamp }
 
-    fun getLastMessage(thread: Long): Message?{
-        val lastMessages = mutableListOf<Message>()
+    suspend fun getLastMessage(thread: Long, dispatcher : CoroutineDispatcher = Dispatchers.IO): Message? = coroutineScope{
+        withContext(dispatcher) {
+            val lastMessages = mutableListOf<Message>()
 
-        smsProvider.getLastMessage(thread)?.let {
-            Timber.d("getLastMessage SMS thread_id: $thread timestamp: ${it.timestamp}")
-            lastMessages.add(it)
+            val getLastSmsTask = async {
+                smsProvider.getLastMessage(thread)?.let {
+                    Timber.d("getLastMessage SMS thread_id: $thread timestamp: ${it.timestamp}")
+                    lastMessages.add(it)
+                }
+            }
+
+            val getLastMmsTask = async {
+                mmsProvider.getLastMessage(thread)?.let {
+                    Timber.d("getLastMessage MMS thread_id: $thread timestamp: ${it.timestamp}")
+                    lastMessages.add(it)
+                }
+            }
+            getLastSmsTask.await()
+            getLastMmsTask.await()
+
+            val lastMessage = lastMessages.maxByOrNull {
+                it.timestamp
+            }
+            Timber.d("getLastMessage LAST_MESSAGE thread_id: $thread timestamp: ${lastMessage?.timestamp}")
+
+            lastMessage
         }
-
-        mmsProvider.getLastMessage(thread)?.let {
-            Timber.d("getLastMessage MMS thread_id: $thread timestamp: ${it.timestamp}")
-            lastMessages.add(it)
-        }
-
-        val lastMessage = lastMessages.maxByOrNull {
-            it.timestamp
-        }
-        Timber.d("getLastMessage LAST_MESSAGE thread_id: $thread timestamp: ${lastMessage?.timestamp}")
-
-        return lastMessage
     }
 
     fun getRecentMessages(thread: Long, limit: Int): List<Message> =
