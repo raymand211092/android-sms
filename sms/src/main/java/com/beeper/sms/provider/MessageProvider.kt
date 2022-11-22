@@ -90,6 +90,22 @@ class MessageProvider constructor(
             .sortedBy { it.timestamp }
             .takeLast(limit)
 
+    suspend fun getConversationMessagesInParallel(
+        thread: Long,
+        limit: Int,
+        dispatcher: CoroutineDispatcher = Dispatchers.IO
+    ): List<Message>  = coroutineScope {
+        withContext(dispatcher) {
+            val smsMessagesTask = async { smsProvider.getAll(thread, limit) }
+            val mmsMessagesTask = async { mmsProvider.getAll(thread, limit) }
+            val smsMessages = smsMessagesTask.await()
+            val mmsMessages = mmsMessagesTask.await()
+            smsMessages.plus(mmsMessages)
+                .sortedBy { it.timestamp }
+                .takeLast(limit)
+        }
+    }
+
     fun getConversationMessagesAfter(thread: Long, timestampSeconds: TimeSeconds, limit: Int): List<Message> =
         smsProvider.getMessagesAfterWithLimitIncludingTimestamp(thread, timestampSeconds.toMillis(), limit)
             .plus(mmsProvider.getMessagesAfterWithLimitIncludingTimestamp(thread, timestampSeconds, limit))
@@ -101,24 +117,29 @@ class MessageProvider constructor(
             .sortedBy { it.timestamp.toMillis().toLong() }
             .takeLast(limit)
 
-    suspend fun getConversationMessagesBeforeInParallel(thread: Long, timestampSeconds: TimeSeconds,  limit: Int, dispatcher: CoroutineDispatcher = Dispatchers.IO): List<Message>  = coroutineScope {
+    suspend fun getConversationMessagesBeforeInParallel(
+        thread: Long,
+        timestampSeconds: TimeSeconds,
+        limit: Int,
+        dispatcher: CoroutineDispatcher = Dispatchers.IO
+    ): List<Message>  = coroutineScope {
         withContext(dispatcher) {
-            val smsJob = async {
+            val smsTask = async {
                 smsProvider.getMessagesBeforeWithLimitIncludingTimestamp(
                     thread,
                     timestampSeconds.toMillis(),
                     limit
                 )
             }
-            val mmsJob = async {
+            val mmsTask = async {
                 mmsProvider.getMessagesBeforeWithLimitIncludingTimestamp(
                     thread,
                     timestampSeconds,
                     limit
                 )
             }
-            val smsResult = smsJob.await()
-            val mmsResult = mmsJob.await()
+            val smsResult = smsTask.await()
+            val mmsResult = mmsTask.await()
             smsResult.plus(mmsResult)
                 .sortedBy { it.timestamp.toMillis().toLong() }
                 .takeLast(limit)
