@@ -10,6 +10,7 @@ import com.beeper.sms.commands.incoming.GroupMessaging.Companion.removeSMSGuidPr
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.commands.outgoing.MessageInfo
 import com.beeper.sms.database.BridgeDatabase
+import kotlinx.coroutines.*
 import timber.log.Timber
 
 class MessageProvider constructor(
@@ -99,6 +100,31 @@ class MessageProvider constructor(
             .plus(mmsProvider.getMessagesBeforeWithLimitIncludingTimestamp(thread, timestampSeconds, limit))
             .sortedBy { it.timestamp.toMillis().toLong() }
             .takeLast(limit)
+
+    suspend fun getConversationMessagesBeforeInParallel(thread: Long, timestampSeconds: TimeSeconds,  limit: Int, dispatcher: CoroutineDispatcher = Dispatchers.IO): List<Message>  = coroutineScope {
+        withContext(dispatcher) {
+            val smsJob = async {
+                smsProvider.getMessagesBeforeWithLimitIncludingTimestamp(
+                    thread,
+                    timestampSeconds.toMillis(),
+                    limit
+                )
+            }
+            val mmsJob = async {
+                mmsProvider.getMessagesBeforeWithLimitIncludingTimestamp(
+                    thread,
+                    timestampSeconds,
+                    limit
+                )
+            }
+            val smsResult = smsJob.await()
+            val mmsResult = mmsJob.await()
+            smsResult.plus(mmsResult)
+                .sortedBy { it.timestamp.toMillis().toLong() }
+                .takeLast(limit)
+        }
+    }
+
 
     fun getLastReadMessage(chat_guid: String) : Message? {
         val recipients = chat_guid.removeSMSGuidPrefix().split(" ")
