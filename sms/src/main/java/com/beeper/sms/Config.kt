@@ -59,6 +59,7 @@ data class Config(
         var initial_limit : Int? = null,
         var initial_sync_max_age : Float? = null,
         var msc2716 : Boolean? = null,
+        var unread_hours_threshold : Int? = null,
     )
 
     data class Encryption(
