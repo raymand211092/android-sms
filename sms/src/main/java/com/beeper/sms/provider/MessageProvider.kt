@@ -208,17 +208,27 @@ class MessageProvider constructor(
         }
     }
 
-    fun markConversationAsRead(threadId: Long) {
-        val threadUri =
-            ContentUris.withAppendedId(Telephony.Threads.CONTENT_URI, threadId)
-        val values = ContentValues(2)
-        values.put("read", 1);
-        values.put("seen", 1);
-        context.contentResolver.update(threadUri, values,
-            "(read=0 OR seen=0)", null);
+    internal fun markConversationAsRead(threadId: Long) {
+        val contentValues = ContentValues()
+        contentValues.put("READ", 1)
+        Timber.d("handleSmartReply Marking conversation as read")
+        context.contentResolver.update(
+            Uri.parse("content://sms/"),
+            contentValues,
+            "THREAD_ID = $threadId " +
+                    "AND READ = 0 ",
+            null
+        )
+        context.contentResolver.update(
+            Uri.parse("content://mms/"),
+            contentValues,
+            "THREAD_ID = $threadId " +
+                    "AND READ = 0 ",
+            null
+        )
     }
 
-    internal fun markMessageAsRead(messageId: String) {
+    internal fun markMessageAsRead(messageId: String) : Long? {
         val mms = "mms"
         val sms = "sms"
 
@@ -254,9 +264,12 @@ class MessageProvider constructor(
                         "AND DATE <= ${timestamp.toMillis().toLong()}",
                 null
             )
+            return threadId
         } else {
             Timber.e("Message couldn't be loaded to mark as read")
+            return null
         }
+
     }
 
     suspend fun getLastSmsIdFromThread(threadId: Long): Long? =

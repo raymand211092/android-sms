@@ -6,6 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
@@ -24,7 +25,10 @@ import com.beeper.sms.extensions.hasPermissions
 import com.beeper.sms.extensions.mmsDir
 import com.beeper.sms.helpers.GsonHelper.gson
 import com.beeper.sms.provider.InboxPreviewProviderLocator
+import com.beeper.sms.receivers.BackfillSuccess
+import com.beeper.sms.receivers.SMSChatMarkedAsRead
 import com.beeper.sms.work.WorkManager
+import com.klinker.android.send_message.BroadcastUtils
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
@@ -484,7 +488,7 @@ class StartStopBridge private constructor() {
     fun markMessageAsRead(message_guid: String, context: Context){
         val inboxPreviewProvider = InboxPreviewProviderLocator.getInstance(context)
         Log.v(TAG, "marking message_guid as read: $message_guid")
-        inboxPreviewProvider.markMessagesInThreadAsRead(message_guid)
+        inboxPreviewProvider.markMessagesInThreadAsRead(message_guid, context)
     }
 
     fun getDBFile(context: Context): File{
