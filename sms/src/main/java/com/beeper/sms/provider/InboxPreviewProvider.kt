@@ -1,10 +1,16 @@
 package com.beeper.sms.provider
 
+import android.content.Context
+import android.content.Intent
 import com.beeper.sms.Log
 import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.outgoing.Message
 import com.beeper.sms.database.models.InboxPreviewCache
 import com.beeper.sms.database.models.InboxPreviewCacheDao
+import com.beeper.sms.receivers.BackfillSuccess
+import com.beeper.sms.receivers.SMSChatMarkedAsRead
+import com.beeper.sms.receivers.SMSChatMarkedAsRead.Companion.THREAD_ID_EXTRA_KEY
+import com.klinker.android.send_message.BroadcastUtils
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -25,9 +31,31 @@ class InboxPreviewProvider constructor(
     private val mutPreviewCacheChanges = MutableSharedFlow<EntityChange<InboxPreviewCache>>(0, 100,BufferOverflow.DROP_OLDEST)
     val previewCacheChanges = mutPreviewCacheChanges.asSharedFlow()
 
-    fun markMessagesInThreadAsRead(messageId: String) {
+    fun markThreadAsRead(threadId: Long) {
+        Log.d(TAG, "markThreadAsRead threadId: $threadId")
+        messageProvider.markConversationAsRead(threadId)
+
+        val inboxPreviewCache = inboxPreviewCacheDao.getPreviewForChatByThreadId(threadId)
+        if(inboxPreviewCache != null){
+            Log.d(TAG, "markThreadAsRead " +
+                    "updating preview to read. chat_guid: ${inboxPreviewCache.chat_guid}")
+            update(
+                inboxPreviewCache.copy(
+                    is_read = true
+                )
+            )
+        }else{
+            Log.w(TAG, "markThreadAsRead couldn't mark $threadId as read")
+        }
+    }
+
+    fun markMessagesInThreadAsRead(messageId: String, context: Context) {
         Log.d(TAG, "markMessagesInThreadAsRead messageId: $messageId")
-        messageProvider.markMessageAsRead(messageId)
+        val threadId = messageProvider.markMessageAsRead(messageId)
+        // Broadcast chat marked as read to dismiss SMS notifications
+        val intent = Intent(SMSChatMarkedAsRead.ACTION)
+        intent.putExtra(THREAD_ID_EXTRA_KEY, threadId.toString())
+        BroadcastUtils.sendExplicitBroadcast(context, intent, SMSChatMarkedAsRead.ACTION)
 
         val previewForMessageId = inboxPreviewCacheDao.getPreviewForMessage(messageId)
         if(previewForMessageId != null){
