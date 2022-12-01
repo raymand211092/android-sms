@@ -295,6 +295,41 @@ class ContactProvider constructor(private val context: Context) {
             )
         }
 
+    fun getContactByPhoneNumberOrEmail(searchString: String): ContactRow? {
+        val contentUri: Uri = Uri.withAppendedPath(
+            Contacts.CONTENT_FILTER_URI,
+            Uri.encode(searchString)
+        )
+        val cursor = cr.query(contentUri, null,null, null, null)
+        val retrievedContacts = mutableListOf<ContactRow>()
+        cursor?.use {
+            while (it.moveToNext()) {
+                val id = it.getLong(Contacts._ID)
+                val contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, id)
+                val avatarUri = Uri.withAppendedPath(contactUri, Contacts.Photo.CONTENT_DIRECTORY)
+                val displayName = it.getString(ContactsContract.CommonDataKinds.Nickname.DISPLAY_NAME)
+                val givenName = it.getString(StructuredName.GIVEN_NAME)
+                val middleName = it.getString(StructuredName.MIDDLE_NAME)
+                val familyName = it.getString(StructuredName.FAMILY_NAME)
+
+                retrievedContacts.add(
+                    ContactRow(
+                        first_name = givenName,
+                        middle_name = middleName,
+                        last_name = familyName,
+                        avatar = null,
+                        avatarUri = avatarUri,
+                        nickname = displayName
+                    )
+                )
+            }
+        }
+        Timber.d("getContactByPhoneNumberOrEmail retrievedContacts: $retrievedContacts")
+
+        return retrievedContacts.firstOrNull()
+    }
+
+
     fun getRecipientInfoWithInlinedAvatar(id: Long): ContactRow? =
         cr.firstOrNull(
             ContactsContract.Data.CONTENT_URI,
