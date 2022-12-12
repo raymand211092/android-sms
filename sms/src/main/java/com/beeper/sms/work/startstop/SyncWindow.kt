@@ -249,7 +249,6 @@ class SyncWindow constructor(
                 Log.d(TAG, "Next MMS ID: $nextMmsId")
 
                 //Fetch all the messages we have to send ->
-                val messageProvider = MessageProvider(context)
                 val smsMessages = messageProvider.getNewSmsMessages(nextSmsId)
                 Log.d(TAG, "Bridging ${smsMessages.size} unbridged SMS Messages: " +
                         "${
@@ -353,14 +352,13 @@ class SyncWindow constructor(
                     lastCommandReceivedMillis = now()
                 }
 
-                var hasPendingInfiniteBackfill = false
                 val infiniteBackfillChatEntryDao = database.infiniteBackfillChatEntryDao()
-                val pending = infiniteBackfillChatEntryDao.getPending()
-                hasPendingInfiniteBackfill = pending.isNotEmpty()
+                var hasPendingInfiniteBackfill =
+                    infiniteBackfillChatEntryDao.getPending().isNotEmpty()
                 var backfillRound = 0
-                while(hasPendingInfiniteBackfill && backfillRound < 3) {
+                while(hasPendingInfiniteBackfill && backfillRound < 5) {
                     backfillRound += 1
-                    val currentBatchSize = 500
+                    val currentBatchSize = 200
                     val entries = infiniteBackfillChatEntryDao.getPending()
                     Log.d(TAG, "Doing an infinite backfill round: numEntries: ${entries.count()}")
                     entries.onEach {
@@ -428,8 +426,6 @@ class SyncWindow constructor(
                                     }.reversed()}"
                                 )
 
-
-
                                 if(lastMessageToBridge != null) {
                                     chatGuid = lastMessageToBridge.chat_guid
                                     bridge.commandProcessor.sendBackfillCommand(
@@ -490,26 +486,27 @@ class SyncWindow constructor(
 
                                 Timber.tag(TAG).d("InfiniteBackfill chatGuid: $chatGuid bridgedCount: $bridgedCount lastBridgedMessage: $lastMessageToBridge")
 
-                                val newBridgedCount = it.bridged_count + bridgedCount
+                                var newBridgedCount = it.bridged_count + bridgedCount
                                 val countFulfilled = it.count <= newBridgedCount
                                 val noNewResult = bridgedCount == 0
                                 val isBackfillFinishedForThisChat = countFulfilled || noNewResult
                                 if (isBackfillFinishedForThisChat) {
                                     if (!countFulfilled) {
-                                        // TODO: LOG it to analytics
+                                        // Mark all messages as backfilled
+                                        newBridgedCount = it.count
                                         Log.e(
                                             TAG,
                                             "InfiniteBackfill batch for ${it.thread_id}. ERROR -> couldn't fulfill count but no result found." +
                                                     "countFulfilled: $countFulfilled noNewResult: $noNewResult"
                                         )
                                     } else {
-                                        Log.w(
+                                        Log.d(
                                             TAG,
                                             "InfiniteBackfill batch for ${it.thread_id}. countFulfilled: $countFulfilled noNewResult: $noNewResult"
                                         )
                                     }
                                 } else {
-                                    Log.w(
+                                    Log.d(
                                         TAG,
                                         "InfiniteBackfill batch for ${it.thread_id}. still ${it.count - newBridgedCount} messages to backfill."
                                     )
@@ -530,6 +527,7 @@ class SyncWindow constructor(
                         }else{
                             Log.e(TAG, "InfiniteBackfill batch for ${it.thread_id} has a NULL backfillId bridgedCount: $bridgedCount lastMessageToBridge:${lastMessageToBridge?.guid}")
                             val newInfiniteBackfillEntry = it.copy(
+                                bridged_count = it.count,
                                 backfill_finished = true
                             )
                             Log.d(
@@ -541,14 +539,12 @@ class SyncWindow constructor(
                     }
                     Log.d(TAG, "InfiniteBackfill batch round finished: printing updated entries")
 
-                    val pending = infiniteBackfillChatEntryDao.getPending()
-                    pending.onEach {
+                    val remainingPending = infiniteBackfillChatEntryDao.getPending()
+                    remainingPending.onEach {
                         Log.d(TAG, "InfiniteBackfill entry: $it")
                     }
 
-                    if(pending.size > 0){
-                        hasPendingInfiniteBackfill = true
-                    }
+                    hasPendingInfiniteBackfill = remainingPending.isNotEmpty()
                 }
 
                 lastCommandReceivedMillis = now()
