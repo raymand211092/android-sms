@@ -491,9 +491,9 @@ class SyncWindow constructor(
                                 val noNewResult = bridgedCount == 0
                                 val isBackfillFinishedForThisChat = countFulfilled || noNewResult
                                 if (isBackfillFinishedForThisChat) {
+                                    // Mark all messages as backfilled
+                                    newBridgedCount = it.count
                                     if (!countFulfilled) {
-                                        // Mark all messages as backfilled
-                                        newBridgedCount = it.count
                                         Log.e(
                                             TAG,
                                             "InfiniteBackfill batch for ${it.thread_id}. ERROR -> couldn't fulfill count but no result found." +
