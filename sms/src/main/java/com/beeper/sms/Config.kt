@@ -44,8 +44,7 @@ data class Config(
         var login_shared_secret: String? = null,
         var periodic_sync: Boolean? = null,
         var find_portals_if_db_empty: Boolean? = null,
-        var media_viewer_url: String? = null,
-        var media_viewer_sms_min_size: Int? = null,
+
         var command_prefix: String? = null,
         var encryption: Encryption? = null,
         var send_error_notices: Boolean? = null,
@@ -53,8 +52,13 @@ data class Config(
         var max_handle_seconds: Int? = null,
         var device_id: String? = null,
         var backfill: Backfill? = null,
-        )
-
+        var media_viewer: MediaViewer? = null,
+    )
+    data class MediaViewer(
+        var homeserver: String? = null,
+        var url: String? = null,
+        var sms_min_size: Int? = null,
+    )
     data class Backfill(
         var initial_limit : Int? = null,
         var initial_sync_max_age : Float? = null,
