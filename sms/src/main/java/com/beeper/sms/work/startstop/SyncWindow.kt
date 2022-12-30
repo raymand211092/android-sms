@@ -580,7 +580,7 @@ class SyncWindow constructor(
 
                 if(hasPendingInfiniteBackfill){
                     Log.d(TAG, "SMSSyncWindow scheduling another batch of infinite backfill")
-                    WorkManager(context).schedulePeriodicInfiniteBackfillStarter()
+                    WorkManager(context).schedulePeriodicInfiniteBackfillStarter(inputData)
                 }else{
                     Log.d(TAG, "SMSSyncWindow cancelling any existing pending backfill task")
                     WorkManager(context).cancelPeriodicInfinitBackfillStarter()
