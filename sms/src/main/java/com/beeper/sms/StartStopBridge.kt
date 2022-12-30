@@ -117,6 +117,10 @@ class StartStopBridge private constructor() {
         nativeLibDir = context.applicationInfo.nativeLibraryDir
     }
 
+    fun wasInitialized() : Boolean{
+        return pushKey != null
+    }
+
     suspend fun start(context: Context?,
                       timeoutMillis : Long
     ): Boolean{
@@ -230,8 +234,8 @@ class StartStopBridge private constructor() {
             }
     }
 
-    fun enableSMSBridge(context: Context, inputData: Data) {
-        WorkManager(context).enableSMSBridge(inputData = inputData)
+    fun enableSMSBridge(context: Context) {
+        WorkManager(context).enableSMSBridge()
     }
 
     fun disableSMSBridge(context: Context, deleteBridgeDB: Boolean = false) {

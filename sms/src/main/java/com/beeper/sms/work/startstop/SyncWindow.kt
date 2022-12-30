@@ -1,6 +1,7 @@
 package com.beeper.sms.work.startstop
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import androidx.work.CoroutineWorker
@@ -22,11 +23,15 @@ import com.beeper.sms.helpers.now
 import com.beeper.sms.provider.ContactProvider
 import com.beeper.sms.provider.GuidProvider
 import com.beeper.sms.provider.MessageProvider
+import com.beeper.sms.receivers.BackfillSuccess
+import com.beeper.sms.receivers.BridgeInitNeeded
 import com.beeper.sms.work.WorkManager
+import com.klinker.android.send_message.BroadcastUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
@@ -159,6 +164,29 @@ class SyncWindow constructor(
                         }
                     }
                 }.launchIn(this)
+
+                if(!bridge.wasInitialized()){
+                    val intent = Intent(BridgeInitNeeded.ACTION)
+                    BroadcastUtils.sendExplicitBroadcast(context,intent, BridgeInitNeeded.ACTION)
+                    val isInitialized = withTimeoutOrNull(15_000) {
+                        while (!bridge.wasInitialized() && isActive) {
+                            delay(1_000)
+                        }
+                        true
+                    }
+                    if(isInitialized == null){
+                        Log.e(TAG, "Couldn't start sync window")
+                        if(runAttemptCount > MAX_ATTEMPTS - 1){
+                            Log.e(TAG, "Already tried to init bridge $MAX_ATTEMPTS times," +
+                                    " not retrying anymore")
+                            return@withContext Result.failure()
+                        }else{
+                            Log.w(TAG, "Going to retry")
+                            return@withContext Result.retry()
+                        }
+                    }
+                }
+
 
                 val started = bridge.start(
                     context, timeoutMillis =
@@ -580,7 +608,7 @@ class SyncWindow constructor(
 
                 if(hasPendingInfiniteBackfill){
                     Log.d(TAG, "SMSSyncWindow scheduling another batch of infinite backfill")
-                    WorkManager(context).schedulePeriodicInfiniteBackfillStarter(inputData)
+                    WorkManager(context).schedulePeriodicInfiniteBackfillStarter()
                 }else{
                     Log.d(TAG, "SMSSyncWindow cancelling any existing pending backfill task")
                     WorkManager(context).cancelPeriodicInfinitBackfillStarter()

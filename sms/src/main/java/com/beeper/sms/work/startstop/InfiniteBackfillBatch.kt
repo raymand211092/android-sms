@@ -17,11 +17,13 @@ import com.beeper.sms.provider.ChatThreadProvider
 import com.beeper.sms.provider.GuidProvider
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.receivers.BackfillSuccess
+import com.beeper.sms.receivers.BridgeInitNeeded
 import com.beeper.sms.receivers.InfiniteBackfillBatchFailed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.lang.IllegalStateException
@@ -42,6 +44,31 @@ class InfiniteBackfillBatch constructor(
     override suspend fun doWork(): Result {
         Log.d(TAG, "InfiniteBackfill doWork() attempt: $runAttemptCount")
         val bridge = StartStopBridge.INSTANCE
+
+        if(!bridge.wasInitialized()){
+            val intent = Intent(BridgeInitNeeded.ACTION)
+            BroadcastUtils.sendExplicitBroadcast(context,intent, BridgeInitNeeded.ACTION)
+            val isInitialized = withTimeoutOrNull(15_000) {
+                while (!bridge.wasInitialized() && isActive) {
+                    delay(1_000)
+                }
+                true
+            }
+            if(isInitialized == null){
+                Log.e(TAG, "Couldn't init bridge on infinite backfill batch")
+                if(runAttemptCount > MAX_ATTEMPTS - 1){
+                    Log.e(
+                        TAG, "Already tried to init bridge $MAX_ATTEMPTS times," +
+                            " not retrying anymore")
+                    return Result.failure()
+                }else{
+                    Log.w(TAG, "Going to retry")
+                    return Result.retry()
+                }
+            }
+        }
+
+
         var bridgeSyncFinished = false
         return withContext(Dispatchers.Default) {
             try {
