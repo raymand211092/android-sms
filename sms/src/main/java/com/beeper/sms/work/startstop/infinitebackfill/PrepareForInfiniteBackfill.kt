@@ -143,7 +143,7 @@ class PrepareForInfiniteBackfill constructor(
 
                 //Schedules a subsequent sync window
                 Log.d(TAG, "Scheduling periodic backfill batch starter")
-                WorkManager(context).schedulePeriodicInfiniteBackfillStarter()
+                WorkManager(context).schedulePeriodicInfiniteBackfillStarter(inputData)
                 return@withContext Result.success()
             }catch(e : Exception){
                 Log.e(

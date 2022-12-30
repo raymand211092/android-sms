@@ -10,6 +10,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import androidx.work.Data
 import com.beeper.sms.commands.Command
 import com.beeper.sms.commands.internal.BridgeReadReceipt
 import com.beeper.sms.commands.internal.BridgeSendError
@@ -229,8 +230,8 @@ class StartStopBridge private constructor() {
             }
     }
 
-    fun enableSMSBridge(context: Context) {
-        WorkManager(context).enableSMSBridge()
+    fun enableSMSBridge(context: Context, inputData: Data) {
+        WorkManager(context).enableSMSBridge(inputData = inputData)
     }
 
     fun disableSMSBridge(context: Context, deleteBridgeDB: Boolean = false) {
