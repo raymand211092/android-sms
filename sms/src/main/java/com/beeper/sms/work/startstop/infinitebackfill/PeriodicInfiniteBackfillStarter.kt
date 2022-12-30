@@ -41,7 +41,7 @@ class PeriodicInfiniteBackfillStarter constructor(
                     //Start sync window
                     Log.d(TAG, "Starting a sync window for a new backfill batch.")
                     //Schedules a subsequent sync window
-                    com.beeper.sms.work.WorkManager(context).startSMSBridgeSyncWindow(inputData)
+                    com.beeper.sms.work.WorkManager(context).startSMSBridgeSyncWindow()
                 }else{
                     //Cancel periodic backfill work
                     Log.d(TAG, "Infinite backfill completed.")

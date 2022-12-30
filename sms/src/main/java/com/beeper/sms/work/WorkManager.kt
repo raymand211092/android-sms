@@ -17,16 +17,16 @@ import java.util.concurrent.TimeUnit
 class WorkManager constructor(val context: Context) {
     private val workManager = WorkManager.getInstance(context)
 
-    fun enableSMSBridge(infiniteBackfill : Boolean = false, inputData: Data) {
+    fun enableSMSBridge(infiniteBackfill : Boolean = false) {
         if(!infiniteBackfill) {
-            val request: OneTimeWorkRequest = buildSimpleBackfillWorkRequest(inputData)
+            val request: OneTimeWorkRequest = buildSimpleBackfillWorkRequest()
             workManager.beginUniqueWork(
                 WORK_ENABLE_SMS_BRIDGE,
                 ExistingWorkPolicy.REPLACE,
                 request
             ).enqueue()
         }else{
-            val request: OneTimeWorkRequest = buildInfiniteBackfillPreparationWorkRequest(inputData)
+            val request: OneTimeWorkRequest = buildInfiniteBackfillPreparationWorkRequest()
             workManager.beginUniqueWork(
                 WORK_ENABLE_SMS_BRIDGE,
                 ExistingWorkPolicy.REPLACE,
@@ -51,15 +51,15 @@ class WorkManager constructor(val context: Context) {
     }
 
     fun cancelPeriodicInfinitBackfillStarter() {
-            Log.d(TAG,"cancelPeriodicInfinitBackfillStarter")
-            workManager.cancelUniqueWork(WORK_SMS_BRIDGE_PERIODIC_BACKFILL_STARTER)
+        Log.d(TAG,"cancelPeriodicInfinitBackfillStarter")
+        workManager.cancelUniqueWork(WORK_SMS_BRIDGE_PERIODIC_BACKFILL_STARTER)
     }
 
-    fun schedulePeriodicInfiniteBackfillStarter(inputData: Data) {
+    fun schedulePeriodicInfiniteBackfillStarter() {
         val isBackfillComplete = StartStopBridge.INSTANCE.getBackfillingState(context)
         if(isBackfillComplete) {
             Log.d(TAG,"schedulePeriodicInfiniteBackfillStarter -> enqueue infinite backfill sync window.")
-            buildPeriodicBackfillStarter(inputData).apply {
+            buildPeriodicBackfillStarter().apply {
                 workManager.enqueueUniquePeriodicWork(
                     WORK_SMS_BRIDGE_PERIODIC_BACKFILL_STARTER,
                     ExistingPeriodicWorkPolicy.KEEP, this
@@ -114,10 +114,9 @@ class WorkManager constructor(val context: Context) {
         }
     }
 
-    private fun buildSimpleBackfillWorkRequest(inputData: Data) : OneTimeWorkRequest {
+    private fun buildSimpleBackfillWorkRequest() : OneTimeWorkRequest {
         return OneTimeWorkRequest
             .Builder(SimpleBackfill::class.java)
-            .setInputData(inputData)
             .setBackoffCriteria(
                 RETRY_POLICY,
                 RETRY_INTERVAL_MS,
@@ -127,10 +126,9 @@ class WorkManager constructor(val context: Context) {
             .build()
     }
 
-    private fun buildInfiniteBackfillPreparationWorkRequest(inputData: Data) : OneTimeWorkRequest {
+    private fun buildInfiniteBackfillPreparationWorkRequest() : OneTimeWorkRequest {
         return OneTimeWorkRequest
             .Builder(PrepareForInfiniteBackfill::class.java)
-            .setInputData(inputData)
             .setBackoffCriteria(
                 RETRY_POLICY,
                 RETRY_INTERVAL_MS,
@@ -140,7 +138,7 @@ class WorkManager constructor(val context: Context) {
             .build()
     }
 
-    private fun buildSyncWindowWorkRequest(inputData: Data) : OneTimeWorkRequest {
+    private fun buildSyncWindowWorkRequest(inputData: Data = Data.EMPTY) : OneTimeWorkRequest {
         return OneTimeWorkRequest
             .Builder(SyncWindow::class.java)
             .setInputData(inputData)
@@ -154,7 +152,7 @@ class WorkManager constructor(val context: Context) {
     }
 
 
-    private fun buildPeriodicBackfillStarter(inputData: Data) :
+    private fun buildPeriodicBackfillStarter(inputData: Data = Data.EMPTY) :
             PeriodicWorkRequest {
         return PeriodicWorkRequestBuilder<PeriodicInfiniteBackfillStarter>(15, TimeUnit.MINUTES)
             .setInputData(inputData)
