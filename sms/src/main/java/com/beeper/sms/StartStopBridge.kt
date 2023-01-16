@@ -127,8 +127,6 @@ class StartStopBridge private constructor() {
         return withContext(scope.coroutineContext) {
             Log.d(TAG, "start")
             return@withContext try {
-                stop()
-
                 if(context == null){
                     Log.e(TAG, "Error: Null context on SMS bridge start()")
                     return@withContext false
@@ -288,7 +286,10 @@ class StartStopBridge private constructor() {
 
     fun killProcess() {
         if(process!=null) {
-            process?.kill()
+            val tempProcess = process
+            process = null
+            Log.d(TAG, "Clearing bridge process")
+            tempProcess?.kill()
         }else{
             Log.d(TAG, "No process to kill")
         }
