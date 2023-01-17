@@ -28,6 +28,7 @@ import com.beeper.sms.provider.*
 import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import com.beeper.sms.provider.MmsProvider.Companion.MMS_PREFIX
 import com.beeper.sms.provider.SmsProvider.Companion.SMS_PREFIX
+import com.beeper.sms.work.startstop.SyncWindow
 import com.google.gson.JsonElement
 import com.klinker.android.send_message.Transaction.COMMAND_ID
 import kotlinx.coroutines.*
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onSubscription
+import timber.log.Timber
 import java.io.File
 import kotlin.coroutines.CoroutineContext
 
@@ -556,6 +558,7 @@ class StartStopCommandProcessor constructor(
     suspend fun awaitForBackfillResult(chatGuid : String, timeoutMillis: Long) : BackfillResult?{
         return withTimeoutOrNull(timeoutMillis) {
             val completableDeferred = CompletableDeferred<Command>()
+            var backfillResult : BackfillResult? = null
             val job = commandsReceived.onEach {
                 if (it.command == "backfill_result") {
                     val data = deserialize(
@@ -563,6 +566,7 @@ class StartStopCommandProcessor constructor(
                         BackfillResult::class.java
                     )
                     if (data.chat_guid == chatGuid) {
+                        backfillResult = data
                         completableDeferred.complete(it)
                     }
                 }
@@ -571,11 +575,29 @@ class StartStopCommandProcessor constructor(
             job.cancel()
             deserialize(
                 command,
-                BackfillResult::class.java
-            )
-        }
+                BackfillResult::class.java)
+            }
     }
 
+    suspend fun awaitForGetRecentMessagesCommand(chatGuid : String, timeoutMillis: Long) : Boolean?{
+        return withTimeoutOrNull(timeoutMillis) {
+            val completableDeferred = CompletableDeferred<Boolean>()
+            val job = commandsReceived.onEach {
+                if (it.command == "get_recent_messages") {
+                    val data = deserialize(
+                        it,
+                        GetRecentMessages::class.java
+                    )
+                    if (data.chat_guid == chatGuid) {
+                        completableDeferred.complete(true)
+                    }
+                }
+            }.launchIn(scope)
+            val result = completableDeferred.await()
+            job.cancel()
+            result
+        }
+    }
 
     suspend fun sendChatCommandAndAwaitForResponse(chat: Chat, timeoutMillis: Long) : Unit?{
         return withTimeoutOrNull(timeoutMillis) {
@@ -623,7 +645,7 @@ class StartStopCommandProcessor constructor(
         }.launchIn(scope)
     }
 
-    internal suspend fun bridgeChatWithThreadId(threadId: Long) {
+    internal suspend fun bridgeChatWithThreadId(threadId: Long) : Boolean {
         val chatThreadProvider = ChatThreadProvider(context)
 
         Log.d(TAG, "Asking for thread: $threadId")
@@ -650,13 +672,16 @@ class StartStopCommandProcessor constructor(
                         60000
                     )
 
-                if (chatBridged != null) {
+                return if (chatBridged != null) {
                     Log.w(TAG, "Chat was bridged $threadId")
+                    true
                 } else {
                     Log.e(TAG, "Couldn't bridge chat $threadId")
+                    false
                 }
             }
         }
+        return false
     }
 
     suspend fun sendReadReceiptCommandAndAwaitForResponse(readReceipt: ReadReceipt,
@@ -743,6 +768,6 @@ class StartStopCommandProcessor constructor(
     }
 
     companion object {
-        const val TAG = "StartStopCommandProcessor"
+        const val TAG = "StartStopCmdProcessor"
     }
 }

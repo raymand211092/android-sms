@@ -66,6 +66,7 @@ class SyncWindow constructor(
                 try {
                     setForeground(getForegroundInfo())
                 } catch (e: IllegalStateException) {
+                    bridge.onSyncWindowFinished()
                     Log.e(TAG, "Critical -> Couldn't set the work to run on foreground!")
                     return Result.failure()
                 }
@@ -209,9 +210,11 @@ class SyncWindow constructor(
                             Log.e(TAG, "Already tried after connectivity return," +
                                     " not scheduling anymore")
                         }
+                        bridge.onSyncWindowFinished()
                         return@withContext Result.failure()
                     }else {
                         Log.e(TAG, "Going to retry it later")
+                        bridge.onSyncWindowFinished()
                         return@withContext Result.retry()
                     }
                 }
@@ -467,9 +470,6 @@ class SyncWindow constructor(
                                     Log.e(TAG,
                                         "InfiniteBackfill batch for ${it.thread_id}. lastMessageToBridge is null")
                                 }
-
-
-
                             }else{
                                 Log.e(TAG,
                                     "InfiniteBackfill batch for ${it.thread_id}. Couldn't find latest message")
@@ -485,9 +485,36 @@ class SyncWindow constructor(
                                 1
                             ).firstOrNull()
                             if(lastMessage!=null) {
-                                chatGuid = lastMessage.chat_guid
                                 Timber.tag(TAG).d("InfiniteBackfill $threadId -> Sending Chat command")
-                                bridge.commandProcessor.bridgeChatWithThreadId(threadId)
+                                val chatWasBridged = bridge.commandProcessor.bridgeChatWithThreadId(threadId)
+                                val getRecentMessagesResult = bridge.commandProcessor.awaitForGetRecentMessagesCommand(
+                                    lastMessage.chat_guid,60_000)
+                                if(getRecentMessagesResult != null){
+                                    Log.d(
+                                        TAG,
+                                        "InfiniteBackfill ${it.thread_id} ->  getRecentMessages result received"
+                                    )
+                                    chatGuid = lastMessage.chat_guid
+                                }else{
+                                    if(chatWasBridged) {
+                                        Log.w(
+                                            TAG,
+                                            "InfiniteBackfill ${it.thread_id} ->  getRecentMessages result received"
+                                        )
+                                        Log.w(
+                                            TAG,
+                                            "InfiniteBackfill updating infinitebackfill entry for ${it.thread_id}"
+                                        )
+                                        val newInfiniteBackfillEntry = it.copy(
+                                            oldest_bridged_message = lastMessage.guid,
+                                        )
+                                        Log.w(
+                                            TAG,
+                                            "InfiniteBackfill batch for ${it.thread_id}. NewInfiniteBackfillEntry: $newInfiniteBackfillEntry"
+                                        )
+                                        infiniteBackfillChatEntryDao.insert(newInfiniteBackfillEntry)
+                                    }
+                                }
                             }else{
                                 Timber.tag(TAG).e("InfiniteBackfill $threadId -> Last Message is null -> not sending chat command -> backfill for this chat will be marked as finished")
                             }
@@ -618,7 +645,9 @@ class SyncWindow constructor(
         }catch (e : Exception){
             Log.e(TAG, "SMSSyncWindow caught an exception ->")
             Log.e(TAG, e)
+            bridge.onSyncWindowStopping()
             bridge.stop()
+            bridge.onSyncWindowFinished()
             return Result.failure()
         }
     }
