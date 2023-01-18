@@ -67,14 +67,14 @@ class PrepareForInfiniteBackfill constructor(
                             threadToBackfill.messageCount.toLong(),
                             0,
                             false,
-                            threadToBackfill.newestMessageDate
+                            threadToBackfill.newestMessageDate,
+                            0
                         )
                         infiniteBackfillChatEntryDao.insert(entry)
                     }
                     // Chats and messages bridged after this point will be new and won't need
                     // infinite backfill
                 }
-
 
                 val threadIds = chatThreadProvider.getValidThreadIdsAfter(0)
                 val smsMessagesToStore = mutableListOf<BridgedMessage>()

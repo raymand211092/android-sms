@@ -13,7 +13,7 @@ import com.beeper.sms.database.models.*
     RecipientCache::class, PendingRecipientUpdate::class, ContactInfoCache::class,
     PendingSendResponse::class, SmsThreadMatrixRoomRelation::class, SMSNotificationInfo::class,
     InfiniteBackfillChatEntry::class],
-    version = 12, autoMigrations = [
+    version = 13, autoMigrations = [
         AutoMigration (from = 1, to = 2),
         AutoMigration (from = 2, to = 3),
         AutoMigration (from = 3, to = 4),
@@ -25,7 +25,8 @@ import com.beeper.sms.database.models.*
         AutoMigration (from = 8, to = 9),
         AutoMigration (from = 9, to = 10),
         AutoMigration (from = 10, to = 11),
-        AutoMigration (from = 11, to = 12)
+        AutoMigration (from = 11, to = 12),
+        AutoMigration (from = 12, to = 13)
     ],
     exportSchema = true
 )
