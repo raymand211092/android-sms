@@ -513,6 +513,8 @@ class SyncWindow constructor(
                                             "InfiniteBackfill batch for ${it.thread_id}. NewInfiniteBackfillEntry: $newInfiniteBackfillEntry"
                                         )
                                         infiniteBackfillChatEntryDao.insert(newInfiniteBackfillEntry)
+                                        //Proceed to the next entry
+                                        return@onEach
                                     }
                                 }
                             }else{
@@ -569,7 +571,8 @@ class SyncWindow constructor(
                                 val newInfiniteBackfillEntry = it.copy(
                                     oldest_bridged_message = lastMessageToBridge?.guid,
                                     bridged_count = newBridgedCount,
-                                    backfill_finished = isBackfillFinishedForThisChat
+                                    backfill_finished = isBackfillFinishedForThisChat,
+                                    retryCount = 0
                                 )
                                 Log.d(
                                     TAG,
@@ -577,7 +580,35 @@ class SyncWindow constructor(
                                 )
                                 infiniteBackfillChatEntryDao.insert(newInfiniteBackfillEntry)
                             }else{
-                                Log.e(TAG, "InfiniteBackfill batch for ${it.thread_id} chatGuid: $chatGuid failed backfillId: ${backfillCommand?.backfill_id}")
+                                if(it.retryCount < 5) {
+                                    Log.w(
+                                        TAG,
+                                        "InfiniteBackfill batch for ${it.thread_id} chatGuid: $chatGuid failed backfillId: ${backfillCommand?.backfill_id} -> incrementing retry count"
+                                    )
+                                    val newInfiniteBackfillEntry = it.copy(
+                                        retryCount = it.retryCount + 1
+                                    )
+                                    Log.d(
+                                        TAG,
+                                        "InfiniteBackfill batch for ${it.thread_id}. NewInfiniteBackfillEntry: $newInfiniteBackfillEntry"
+                                    )
+                                    infiniteBackfillChatEntryDao.insert(newInfiniteBackfillEntry)
+                                }else{
+                                    Log.e(
+                                        TAG,
+                                        "InfiniteBackfill batch for ${it.thread_id} chatGuid: $chatGuid failed backfillId: ${backfillCommand?.backfill_id} -> backfill is stuck -> not retrying anymore"
+                                    )
+                                    val newInfiniteBackfillEntry = it.copy(
+                                        bridged_count = it.count,
+                                        backfill_finished = true
+                                    )
+                                    Log.d(
+                                        TAG,
+                                        "InfiniteBackfill batch for ${it.thread_id}. NewInfiniteBackfillEntry: $newInfiniteBackfillEntry"
+                                    )
+                                    infiniteBackfillChatEntryDao.insert(newInfiniteBackfillEntry)
+                                    return@onEach
+                                }
                             }
                         }else{
                             Log.e(TAG, "InfiniteBackfill batch for ${it.thread_id} has a NULL backfillId bridgedCount: $bridgedCount lastMessageToBridge:${lastMessageToBridge?.guid}")
