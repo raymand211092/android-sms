@@ -361,11 +361,14 @@ class StartStopCommandProcessor constructor(
                 }
                 Log.d(TAG, "${command.command} sending the message")
 
+
                 val data = deserialize(command,SendMessage::class.java)
+                val threadId = context.getThread(data)
+                val recipients = GuidProvider(context).getPhoneNumbersFromThreadId(threadId)
                 val uriList = smsMmsSender.sendMessage(
                     data.text,
-                    data.recipientList,
-                    context.getThread(data),
+                    recipients,
+                    threadId,
                     Bundle().apply {
                         putInt(COMMAND_ID, command.id!!)
                     },
@@ -414,7 +417,8 @@ class StartStopCommandProcessor constructor(
                 Log.d(TAG, "${command.command} sending the message")
 
                 val data = deserialize(command,SendMedia::class.java)
-                val recipients = data.recipientList
+                val threadId = context.getThread(data)
+                val recipients = GuidProvider(context).getPhoneNumbersFromThreadId(threadId)
                 val file = File(data.path_on_disk)
                 val size = file.length()
                 if (size > SmsMmsSender.MAX_FILE_SIZE) {
