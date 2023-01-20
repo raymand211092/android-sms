@@ -31,9 +31,12 @@ fun Context.hasPermission(permission: String): Boolean =
 
 fun Context.getThread(group: GroupMessaging) = getThread(group.recipientList)
 
-fun Context.getThread(recipients: List<String>) = try {
-    Threads.getOrCreateThreadId(this, recipients.toSet())
+internal fun Context.getThread(recipients: List<String>) = try {
+    val threadId = Threads.getOrCreateThreadId(this, recipients.toSet())
+    Log.d("SMS-","Context.getThread() loaded threadId: $threadId for $recipients")
+    threadId
 } catch (ignored: Exception) {
+    Log.e("SMS-","Context.getThread() Couldn't load thread for: $recipients")
     0L
 }
 
