@@ -15,6 +15,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import java.util.Collections
 
 sealed class EntityChange<T> {
     data class Update<T>(val entity: T) : EntityChange<T>()
@@ -202,11 +203,11 @@ class InboxPreviewProvider constructor(
 
     private suspend fun loadChatPreviews(threadIds: List<Long>, mapMessageToInboxPreview: (Message)->InboxPreviewCache): List<InboxPreviewCache> {
         return withContext(Dispatchers.IO) {
-            val previews = mutableListOf<InboxPreviewCache>()
+            val previews = Collections.synchronizedList(mutableListOf<InboxPreviewCache>())
             Log.d(TAG, "cache debug: Started load chat previews for: $threadIds")
 
             threadIds.map {
-                threadId ->
+                    threadId ->
                 async {
                     val cachedChatThread = inboxPreviewCacheDao.getPreviewForChatByThreadId(threadId)
                     if (cachedChatThread != null) {
@@ -257,7 +258,7 @@ class InboxPreviewProvider constructor(
             }
 
             Log.v(TAG, "cache debug: Finished loading chat previews")
-            return@withContext previews
+            return@withContext previews.toList()
         }
     }
 
