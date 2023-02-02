@@ -6,12 +6,14 @@ import androidx.work.*
 import androidx.work.WorkManager
 import com.beeper.sms.Log
 import com.beeper.sms.StartStopBridge
+import com.beeper.sms.SyncWindowState
 import com.beeper.sms.work.startstop.ClearData
 import com.beeper.sms.work.startstop.RestartSyncWindow
 import com.beeper.sms.work.startstop.SimpleBackfill
 import com.beeper.sms.work.startstop.SyncWindow
 import com.beeper.sms.work.startstop.infinitebackfill.PeriodicInfiniteBackfillStarter
 import com.beeper.sms.work.startstop.infinitebackfill.PrepareForInfiniteBackfill
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 class WorkManager constructor(val context: Context) {
@@ -38,15 +40,24 @@ class WorkManager constructor(val context: Context) {
     fun startSMSBridgeSyncWindow(inputData: Data = Data.EMPTY) {
         val isBackfillComplete = StartStopBridge.INSTANCE.getBackfillingState(context)
         if(isBackfillComplete) {
-            Log.d(TAG,"startSMSBridgeSyncWindow -> enqueue sync window (Keep if running).")
+            val syncWindowState = StartStopBridge.INSTANCE.syncWindowState.value
+
+            val workPolicy = when(syncWindowState){
+                SyncWindowState.Starting,
+                SyncWindowState.Running -> ExistingWorkPolicy.KEEP
+                SyncWindowState.Stopping,
+                SyncWindowState.Stopped -> ExistingWorkPolicy.REPLACE
+            }
+
+            Timber.d("SMS- SMSService startSMSBridgeSyncWindow syncWindowState: $syncWindowState workPolicy:$workPolicy")
             buildSyncWindowWorkRequest(inputData).apply {
                 workManager.enqueueUniqueWork(
                     WORK_SMS_BRIDGE_SYNC_WINDOW,
-                    ExistingWorkPolicy.KEEP, this
+                    workPolicy, this
                 )
             }
         }else{
-            Log.e(TAG,"Can't start a SYNC Window -> Backfill is not complete")
+            Log.e(TAG,"Can't start a SYNC Window -> Backfill preparation is not complete")
         }
     }
 
