@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Binder
 import android.provider.Telephony
 import android.provider.Telephony.Sms.*
+import android.provider.Telephony.TextBasedSmsColumns
 import android.telephony.SmsMessage
 import android.text.TextUtils
 import com.beeper.sms.Log
@@ -16,6 +17,7 @@ import com.beeper.sms.commands.TimeMillis
 import com.beeper.sms.commands.TimeMillis.Companion.toMillis
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.commands.outgoing.MessageErrorCode
 import com.beeper.sms.commands.outgoing.MessageInfo
 import com.beeper.sms.commands.outgoing.MessageStatus
 import com.beeper.sms.extensions.*
@@ -87,7 +89,8 @@ class SmsProvider constructor(context: Context) {
                 TYPE,
                 SUBJECT,
                 BODY,
-                SUBSCRIPTION_ID
+                SUBSCRIPTION_ID,
+                ERROR_CODE
             ).toTypedArray(),
             order = order,
             limit = if (limit != null && limit > 0) limit else null
@@ -128,6 +131,7 @@ class SmsProvider constructor(context: Context) {
         val date = it.getLong(DATE)
         val timestamp = date.toMillis().toSeconds()
 
+
         val chatGuid = guidProvider.getChatGuid(threadId)
         if (chatGuid.isNullOrBlank()) {
             Log.e(TAG, "Error generating guid for $threadId")
@@ -142,7 +146,7 @@ class SmsProvider constructor(context: Context) {
             chatGuid,
             uri,
             isRead,
-            threadId.toString()
+            threadId.toString(),
         )
     }
 
@@ -154,7 +158,12 @@ class SmsProvider constructor(context: Context) {
         }
 
         val messageStatus : MessageStatus = when(it.getInt(TYPE)){
-            MESSAGE_TYPE_FAILED -> MessageStatus.Failed
+            MESSAGE_TYPE_FAILED -> {
+                val errorCode = it.getInt(
+                    TextBasedSmsColumns.ERROR_CODE
+                )
+                MessageStatus.Failed(MessageErrorCode.fromSmsResult(errorCode))
+            }
             MESSAGE_TYPE_QUEUED, MESSAGE_TYPE_OUTBOX -> MessageStatus.Waiting
             else -> MessageStatus.Sent
         }

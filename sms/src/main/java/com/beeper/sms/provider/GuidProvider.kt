@@ -8,6 +8,7 @@ import androidx.core.net.toUri
 import androidx.core.text.isDigitsOnly
 import com.beeper.sms.extensions.firstOrNull
 import com.beeper.sms.extensions.getString
+import timber.log.Timber
 import java.util.*
 
 class GuidProvider constructor(
@@ -15,11 +16,16 @@ class GuidProvider constructor(
 ) {
     private val cr = context.contentResolver
 
-    fun getChatGuid(thread: Long): String? =
-        getAddresses(thread)
-            ?.mapNotNull { addr -> getPhoneNumber(addr) }
-            ?.takeIf { it.isNotEmpty() }
-            ?.chatGuid
+    fun getChatGuid(thread: Long): String? {
+        val addresses = getAddresses(thread)
+        return addresses?.mapNotNull { addr ->
+                val number = getPhoneNumber(addr)
+                number
+            }
+            ?.takeIf {
+                it.isNotEmpty()
+            }?.chatGuid
+    }
 
     fun getPhoneNumbersFromThreadId(thread: Long): List<String> {
         return getAddresses(thread)
@@ -27,12 +33,12 @@ class GuidProvider constructor(
     }
 
     fun getAddresses(thread: Long): List<String>? =
-        cr.firstOrNull(URI_THREADS, "${Mms._ID} = $thread") {
+        cr.firstOrNull(URI_THREADS, "${Mms._ID} = $thread", projection = listOf(ThreadsColumns.RECIPIENT_IDS).toTypedArray()) {
             it.getString(ThreadsColumns.RECIPIENT_IDS)?.split(" ")
         }
 
     fun getPhoneNumber(recipient: String): String? =
-        cr.firstOrNull(URI_ADDRESSES, "${CanonicalAddressesColumns._ID} = $recipient") {
+        cr.firstOrNull(URI_ADDRESSES, "${CanonicalAddressesColumns._ID} = $recipient", projection = listOf(CanonicalAddressesColumns.ADDRESS).toTypedArray()) {
             it.getString(CanonicalAddressesColumns.ADDRESS)
         }
 

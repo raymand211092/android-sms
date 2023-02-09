@@ -57,14 +57,6 @@ class RecipientRepository(
 
     fun getContact(phone: String): ContactRow = contactProvider.getRecipientInfo(phone).first
 
-    fun getContactSync(recipientId: Long): RecipientCache? {
-        return runBlocking {
-            return@runBlocking withContext(Dispatchers.IO) {
-                return@withContext getContact(recipientId)
-            }
-        }
-    }
-
     suspend fun getContact(recipientId: Long): RecipientCache? {
         val loadedRecipient = recipientCacheDao.getContact(recipientId)
         if(loadedRecipient != null){

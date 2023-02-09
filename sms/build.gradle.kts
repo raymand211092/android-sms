@@ -9,7 +9,7 @@ plugins {
 object Version {
     const val major = 0
     const val minor = 2
-    const val patch = 172
+    const val patch = 173
 }
 
 android {
@@ -17,7 +17,7 @@ android {
     buildToolsVersion = "31.0.0"
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 23
         targetSdk = 31
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -109,7 +109,7 @@ afterEvaluate {
 
 dependencies {
     implementation("androidx.work:work-runtime-ktx:${Versions.work}")
-    implementation("com.gitlab.beeper:android-smsmms:90401dfa")
+    implementation("com.gitlab.beeper:android-smsmms:1b746a2c")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.1")
     implementation("androidx.core:core-ktx:1.6.0")
     implementation("com.google.code.gson:gson:2.8.7")

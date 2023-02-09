@@ -1,8 +1,9 @@
+import android.telephony.SmsManager
 
 fun mapSMSErrorToHumanReadableMessage(error: Int): String{
     return when(error){
-        2-> "SMS radio is off"
-        4-> "SMS service is currently unavailable"
+        SmsManager.RESULT_ERROR_RADIO_OFF -> "SMS radio is off"
+        SmsManager.RESULT_ERROR_NO_SERVICE -> "SMS service is currently unavailable"
         else -> "SMS network failure"
     }
 }

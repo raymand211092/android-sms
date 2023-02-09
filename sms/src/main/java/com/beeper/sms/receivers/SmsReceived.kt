@@ -12,8 +12,6 @@ import com.beeper.sms.database.models.InboxPreviewCache
 import com.beeper.sms.provider.InboxPreviewProviderLocator
 import com.beeper.sms.provider.MessageProvider
 import com.beeper.sms.provider.SmsProvider
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 
 abstract class SmsReceived : BroadcastReceiver() {
     abstract fun mapMessageToInboxPreviewCache(message: Message): InboxPreviewCache
@@ -22,15 +20,15 @@ abstract class SmsReceived : BroadcastReceiver() {
 
     abstract fun startSyncWindow()
     override fun onReceive(context: Context, intent: Intent) {
-        com.beeper.sms.Log.d(TAG, "a new SMS message was received")
+        Log.d(TAG, "a new SMS message was received")
         val uri = SmsProvider(context).writeInboxMessage(intent)
-        com.beeper.sms.Log.d(TAG, "new SMS message uri: $uri")
+        Log.d(TAG, "new SMS message uri: $uri")
 
         if (uri == null) {
-            com.beeper.sms.Log.e(TAG, "Critical issue: ->Failed to write SMS message")
+            Log.e(TAG, "Critical issue: ->Failed to write SMS message")
             return
         }
-        com.beeper.sms.Log.d(TAG, "Message was successfully stored " +
+        Log.d(TAG, "Message was successfully stored " +
                 "in Android's database")
 
         val loadedMessage = MessageProvider(context).getMessage(uri)
