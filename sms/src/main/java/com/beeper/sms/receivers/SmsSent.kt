@@ -16,6 +16,7 @@ import com.beeper.sms.commands.internal.BridgeSendError
 import com.beeper.sms.commands.internal.BridgeSendResponse
 import com.beeper.sms.commands.internal.BridgeThisSmsOrMms
 import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.commands.outgoing.MessageErrorCode
 import com.beeper.sms.commands.outgoing.MessageStatus
 import com.beeper.sms.commands.outgoing.SendMessageStatus
 import com.beeper.sms.commands.outgoing.SendMessageStatusResult
@@ -75,7 +76,7 @@ abstract class SmsSent : SentReceiver() {
                 MessageStatus.Sent
             }else{
                 Log.d(TAG, "SMS message failed to send -> updating inbox preview")
-                MessageStatus.Failed
+                MessageStatus.Failed(MessageErrorCode.fromSmsResult(resultCode))
             }
             inboxPreviewProvider.update(
                 mapMessageToInboxPreviewCache(message.copy(

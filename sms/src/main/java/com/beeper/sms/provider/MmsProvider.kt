@@ -4,15 +4,16 @@ import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
 import android.net.Uri
-import android.provider.Telephony
 import android.provider.Telephony.Mms.*
 import androidx.core.net.toUri
 import com.beeper.sms.Log
 import com.beeper.sms.commands.TimeSeconds
 import com.beeper.sms.commands.TimeSeconds.Companion.toSeconds
 import com.beeper.sms.commands.outgoing.Message
+import com.beeper.sms.commands.outgoing.MessageErrorCode
 import com.beeper.sms.commands.outgoing.MessageInfo
 import com.beeper.sms.commands.outgoing.MessageStatus
+import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.extensions.*
 import com.beeper.sms.provider.GuidProvider.Companion.chatGuid
 import com.google.android.mms.pdu_alt.PduHeaders
@@ -25,6 +26,7 @@ class MmsProvider constructor(
     private val partProvider: PartProvider = PartProvider(context),
     private val guidProvider: GuidProvider = GuidProvider(context),
 ) {
+    val mmsFailureErrorCodeDao = BridgeDatabase.getInstance(context).mmsFailureErrorCodeDao()
     private val packageName = context.applicationInfo.packageName
     private val cr = context.contentResolver
 
@@ -128,19 +130,20 @@ class MmsProvider constructor(
 
         val chatGuid = guidProvider.getChatGuid(thread)
         if (chatGuid.isNullOrBlank()) {
-            Log.e(TAG, "Error generating guid for $thread")
+            Log.e(TAG, "Error generating guid for $thread, rowId: $rowId")
             return null
         }
 
         Timber.d("messageInfoMapper thread_id: $thread timestamp: $timestamp")
+        val guid = "$MMS_PREFIX$rowId"
 
         return MessageInfo(
-            "$MMS_PREFIX$rowId",
+            guid,
             timestamp,
             chatGuid,
             uri,
             isRead,
-            thread.toString()
+            thread.toString(),
         )
     }
 
@@ -152,7 +155,10 @@ class MmsProvider constructor(
             else -> true
         }
         val messageStatus : MessageStatus = when(it.getInt(MESSAGE_BOX)){
-            MESSAGE_BOX_FAILED -> MessageStatus.Failed
+            MESSAGE_BOX_FAILED -> {
+                val errorCode = mmsFailureErrorCodeDao.getByMessageId(messageInfo.guid)?.error_code
+                MessageStatus.Failed(MessageErrorCode.fromMmsResult(errorCode))
+            }
             MESSAGE_BOX_OUTBOX -> MessageStatus.Waiting
             else -> MessageStatus.Sent
         }

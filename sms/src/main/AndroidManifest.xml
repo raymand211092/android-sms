@@ -13,7 +13,7 @@
     <uses-permission android:name="android.provider.Telephony.SMS_RECEIVED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
+z
     <application android:extractNativeLibs="true">
         <receiver
             android:name="com.android.mms.transaction.PushReceiver"

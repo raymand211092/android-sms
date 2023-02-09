@@ -9,5 +9,5 @@ data class MessageInfo(
     var chat_guid: String,
     var uri: Uri,
     var is_read: Boolean,
-    var thread_id: String
+    var thread_id: String,
 )

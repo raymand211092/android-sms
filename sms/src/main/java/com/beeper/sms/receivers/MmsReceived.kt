@@ -11,8 +11,6 @@ import com.beeper.sms.database.models.InboxPreviewCache
 import com.beeper.sms.provider.InboxPreviewProviderLocator
 import com.beeper.sms.provider.MessageProvider
 import com.klinker.android.send_message.MmsReceivedReceiver
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 
 abstract class MmsReceived : MmsReceivedReceiver() {

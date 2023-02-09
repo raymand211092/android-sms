@@ -101,7 +101,6 @@ class SmsMmsSender(
         private fun newSettings(subscriptionId: Int? = null) = Settings().apply {
             setSubscriptionId(subscriptionId)
             deliveryReports = true
-            useSystemSending = true
         }
 
         private fun Message.setupMms() = this.apply {

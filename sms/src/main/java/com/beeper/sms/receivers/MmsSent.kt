@@ -20,6 +20,7 @@ import com.beeper.sms.commands.outgoing.*
 import com.beeper.sms.database.BridgeDatabase
 import com.beeper.sms.database.models.BridgedMessage
 import com.beeper.sms.database.models.InboxPreviewCache
+import com.beeper.sms.database.models.MMSFailureErrorCode
 import com.beeper.sms.database.models.PendingSendResponse
 import com.beeper.sms.extensions.printExtras
 import com.beeper.sms.provider.InboxPreviewProviderLocator
@@ -76,8 +77,17 @@ abstract class MmsSent : MmsSentReceiver() {
                     values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_FAILED)
                     if(message!= null) {
                         Log.d(TAG, "updating inbox preview cache: message failed to send")
+                        val database = BridgeDatabase.getInstance(context).mmsFailureErrorCodeDao()
+
+                        database.insert(
+                            MMSFailureErrorCode(
+                                message.guid,
+                                resultCode
+                            )
+                        )
+
                         val preview = mapMessageToInboxPreviewCache(message.copy(
-                            messageStatus = MessageStatus.Failed
+                            messageStatus = MessageStatus.Failed(MessageErrorCode.fromMmsResult(resultCode))
                         ))
                         inboxPreviewProvider.update(
                             preview
@@ -100,8 +110,6 @@ abstract class MmsSent : MmsSentReceiver() {
         // Notify content observers about MMS changes
         context.contentResolver.notifyChange(Telephony.Mms.CONTENT_URI, null)
 
-
-
         if(uri?.toString()?.startsWith("content://mms/outbox") == true){
             Log.d(TAG, "MMS is only on outbox, it wasn't delivered yet")
         }
@@ -113,7 +121,6 @@ abstract class MmsSent : MmsSentReceiver() {
         }
 
         val syncWindowState = StartStopBridge.INSTANCE.syncWindowState.value
-
 
         if(commandId != null && message != null && resultCode != Activity.RESULT_OK){
             Log.e(TAG, "Bridging error response to MMS not delivered:" +

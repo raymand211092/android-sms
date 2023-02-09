@@ -128,20 +128,16 @@ class InboxPreviewProvider constructor(
         }
     }
 
-    fun loadChatPreviewForInbox(threadId: Long): InboxPreviewCache? {
+    suspend fun loadChatPreviewForInbox(threadId: Long): InboxPreviewCache? {
         Log.d(TAG, "cache debug: loadChatPreviewForInbox")
-        return runBlocking {
-            withContext(Dispatchers.IO) {
-                inboxPreviewCacheDao.getPreviewForChatByThreadId(threadId)
-            }
+        return withContext(Dispatchers.IO) {
+            inboxPreviewCacheDao.getPreviewForChatByThreadId(threadId)
         }
     }
 
-    fun loadChatPreview(threadId: Long, mapMessageToInboxPreview: (Message)->InboxPreviewCache): InboxPreviewCache? {
+    suspend fun loadChatPreview(threadId: Long, mapMessageToInboxPreview: (Message)->InboxPreviewCache): InboxPreviewCache? {
         Log.d(TAG, "cache debug: loadChatPreview")
-        return runBlocking {
-            loadChatPreviews(listOf(threadId), mapMessageToInboxPreview).firstOrNull()
-        }
+        return loadChatPreviews(listOf(threadId), mapMessageToInboxPreview).firstOrNull()
     }
 
     suspend fun onChatChange(
