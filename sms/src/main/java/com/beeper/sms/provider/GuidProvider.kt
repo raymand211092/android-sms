@@ -2,6 +2,7 @@ package com.beeper.sms.provider
 
 import android.content.Context
 import android.provider.Telephony.*
+import android.provider.Telephony.ThreadsColumns.RECIPIENT_IDS
 import android.telephony.PhoneNumberUtils
 import android.util.Patterns
 import androidx.core.net.toUri
@@ -10,6 +11,7 @@ import com.beeper.sms.extensions.firstOrNull
 import com.beeper.sms.extensions.getString
 import timber.log.Timber
 import java.util.*
+
 
 class GuidProvider constructor(
     context: Context,
@@ -33,17 +35,21 @@ class GuidProvider constructor(
     }
 
     fun getAddresses(thread: Long): List<String>? =
-        cr.firstOrNull(URI_THREADS, "${Mms._ID} = $thread", projection = listOf(ThreadsColumns.RECIPIENT_IDS).toTypedArray()) {
-            it.getString(ThreadsColumns.RECIPIENT_IDS)?.split(" ")
+        cr.firstOrNull(ALL_THREADS_URI, "${Threads._ID} = $thread", projection = listOf(RECIPIENT_IDS).toTypedArray()) {
+            val recipientIds = it.getString(RECIPIENT_IDS)?.split(" ")
+            Timber.tag("SMS-GuidProvider").d("getAddresses() recipientIds: $recipientIds")
+            recipientIds
         }
 
     fun getPhoneNumber(recipient: String): String? =
-        cr.firstOrNull(URI_ADDRESSES, "${CanonicalAddressesColumns._ID} = $recipient", projection = listOf(CanonicalAddressesColumns.ADDRESS).toTypedArray()) {
+        cr.firstOrNull(URI_ADDRESSES, "${CanonicalAddressesColumns._ID} = $recipient",
+            projection = listOf(CanonicalAddressesColumns.ADDRESS).toTypedArray()) {
             it.getString(CanonicalAddressesColumns.ADDRESS)
         }
 
     companion object {
-        val URI_THREADS = "${MmsSms.CONTENT_CONVERSATIONS_URI}?simple=true".toUri()
+        private val ALL_THREADS_URI =
+            Threads.CONTENT_URI.buildUpon().appendQueryParameter("simple", "true").build()
         private val URI_ADDRESSES = "${MmsSms.CONTENT_URI}/canonical-addresses".toUri()
         private val EMAIL = Patterns.EMAIL_ADDRESS.toRegex()
 
